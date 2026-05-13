@@ -1,0 +1,8 @@
+{
+  "name": "Remix: TradeFlow",
+  "description": "Smart Export-Import Business Management System for tracking inventory, purchases, sales, and profits.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": []
+}
