@@ -106,11 +106,11 @@ export const ActivityLog = () => {
           <h2>Activity Log</h2>
           <p>Complete history of feature access and system events</p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="btn btn-primary" onClick={downloadPDF} disabled={filteredLogs.length === 0}>
-            📄 Download Report (PDF)
+        <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+          <button className="btn btn-primary flex-1 sm:flex-none justify-center" onClick={downloadPDF} disabled={filteredLogs.length === 0}>
+            📄 Download (PDF)
           </button>
-          <button className="btn btn-outline" onClick={() => {
+          <button className="btn btn-outline flex-1 sm:flex-none justify-center" onClick={() => {
             if(confirm('Are you sure you want to clear all history?')) clearActivityLogs();
           }}>
             Clear Log

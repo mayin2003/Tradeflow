@@ -62,7 +62,7 @@ export const Customers = () => {
           <h2>Customer Management</h2>
           <p>Track loyalty, membership tiers, and contact information</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ Add Customer</button>
+        <button className="btn btn-primary w-full sm:w-auto" onClick={() => setShowModal(true)}>+ Add Customer</button>
       </div>
 
       <div className="stat-grid">

@@ -270,9 +270,9 @@ export const Reports = () => {
           <h2>Reports & Analytics</h2>
           <p>Analyze your business growth and financial performance</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button className="btn btn-outline" onClick={exportPDF}>⬇ Export PDF</button>
-          <button className="btn btn-primary" onClick={() => window.print()}>Print Page</button>
+        <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+          <button className="btn btn-outline flex-1 sm:flex-none justify-center" onClick={exportPDF}>⬇ Export PDF</button>
+          <button className="btn btn-primary flex-1 sm:flex-none justify-center" onClick={() => window.print()}>Print Page</button>
         </div>
       </div>
       
