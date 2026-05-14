@@ -78,11 +78,11 @@ export const Settings = () => {
               top: '24px', 
               left: '50%', 
               zIndex: 9999,
-              background: '#10b981',
+              background: 'var(--success)',
               color: 'white',
               padding: '12px 24px',
-              borderRadius: '12px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              borderRadius: '16px',
+              boxShadow: '0 20px 40px -10px rgba(16, 185, 129, 0.4)',
               display: 'flex',
               alignItems: 'center',
               gap: '12px',
@@ -102,161 +102,122 @@ export const Settings = () => {
         )}
       </AnimatePresence>
 
-      <div className="page-header" style={{ marginBottom: '32px' }}>
+      <div className="page-header" style={{ marginBottom: '48px' }}>
         <div>
-          <h2 className="text-gradient" style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-0.04em' }}>Settings</h2>
-          <p style={{ color: '#64748b', marginTop: '6px', fontSize: '15px', fontWeight: 500 }}>Global system controls and profile management</p>
+          <h2 className="text-gradient" style={{ fontSize: '42px', fontWeight: 900, letterSpacing: '-0.06em' }}>Settings</h2>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '8px', fontSize: '16px', fontWeight: 500 }}>Refine your platform experience and business profile</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
           {showSaved && (
             <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981', fontSize: '14px', fontWeight: 600 }}
+              initial={{ opacity: 0, scale: 0.9, x: 20 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--success)', fontSize: '14px', fontWeight: 800 }}
             >
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></span>
-              Changes Saved
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="flex h-3 w-3 rounded-full bg-emerald-500"></span>
+                <span className="absolute flex h-3 w-3 animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+              </div>
+              Cloud Synced
             </motion.div>
           )}
           <motion.button 
-            whileHover={{ scale: 1.02, translateY: -2 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: 1.05, translateY: -4 }}
+            whileTap={{ scale: 0.95 }}
             className="btn btn-primary" 
             onClick={handleSave}
             disabled={showSaved}
             style={{ 
-              padding: '14px 32px', 
-              borderRadius: '14px',
-              fontSize: '15px',
-              fontWeight: 700,
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              background: showSaved ? '#10b981' : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-              boxShadow: showSaved ? 'none' : '0 10px 20px -5px rgba(37, 99, 235, 0.4)',
+              padding: '16px 40px', 
+              borderRadius: '20px',
+              fontSize: '16px',
+              fontWeight: 900,
+              transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+              background: showSaved ? 'var(--success)' : 'var(--accent)',
+              boxShadow: showSaved ? '0 0 0 0 rgba(16, 185, 129, 0)' : '0 15px 35px -8px rgba(37, 99, 235, 0.5)',
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
-              border: 'none'
+              gap: '14px',
+              border: 'none',
+              color: 'white',
+              cursor: showSaved ? 'default' : 'pointer'
             }}
           >
             {showSaved ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '18px' }}>✨</span> Updated
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '20px' }}>✓</span> Securely Saved
               </motion.div>
             ) : (
-              <><span style={{ fontSize: '18px' }}>⚡</span> Save All Changes</>
+              <><span style={{ fontSize: '20px' }}>⚡</span> Save Global Changes</>
             )}
           </motion.button>
         </div>
       </div>
 
-      {/* Shop Profile Hero Header */}
-      <div style={{ 
-        background: 'linear-gradient(225deg, #0f172a 0%, #1e3a8a 100%)',
-        padding: '50px 40px',
-        borderRadius: '28px',
-        color: 'white',
-        marginBottom: '40px',
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: '40px',
-        boxShadow: '0 30px 60px -12px rgba(0, 0, 0, 0.25), 0 18px 36px -18px rgba(0, 0, 0, 0.3)',
-        position: 'relative',
-        overflow: 'hidden',
-        border: '1px solid rgba(255,255,255,0.1)'
-      }}>
-        {/* Decorative elements */}
-        <div style={{ 
-          position: 'absolute', 
-          right: '-50px', 
-          top: '-50px', 
-          width: '300px',
-          height: '300px',
-          background: 'radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%)',
-          filter: 'blur(40px)',
-          pointerEvents: 'none'
-        }}></div>
+      {/* Modern Profile Banner */}
+      <div className="settings-header-banner">
+        {/* Decorative Glass Particles */}
+        <div style={{ position: 'absolute', top: '10%', left: '5%', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', filter: 'blur(20px)' }}></div>
+        <div style={{ position: 'absolute', bottom: '10%', right: '15%', width: '150px', height: '150px', borderRadius: '50%', background: 'rgba(59,130,246,0.1)', filter: 'blur(30px)' }}></div>
         
-        <div style={{ 
-          position: 'absolute', 
-          right: '40px', 
-          bottom: '40px', 
-          fontSize: '180px', 
-          opacity: 0.05,
-          transform: 'rotate(-10deg)',
-          pointerEvents: 'none',
-          userSelect: 'none'
-        }}>🚢</div>
-
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          style={{ 
-            width: '120px', 
-            height: '120px', 
-            background: 'white', 
-            borderRadius: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'hidden',
-            padding: '10px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
-            zIndex: 2,
-            border: '4px solid rgba(255,255,255,0.1)'
-          }}
-        >
-          {localSettings.shopProfile.logoUrl ? (
-            <img src={localSettings.shopProfile.logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-          ) : (
-            <span style={{ fontSize: '60px' }}>📦</span>
-          )}
-        </motion.div>
+        <div style={{ position: 'absolute', right: '40px', bottom: '20px', fontSize: '200px', opacity: 0.04, transform: 'rotate(-15deg)', pointerEvents: 'none' }}>🚢</div>
         
-        <div style={{ position: 'relative', zIndex: 2, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px', flexWrap: 'wrap' }}>
-            <h1 style={{ margin: 0, fontSize: '42px', fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1 }}>
-              {localSettings.shopProfile.name || 'TradeFlow'}
-            </h1>
-            <div className="glass-dark" style={{ padding: '6px 14px', borderRadius: '30px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#3b82f6' }}></span>
-              Verified Professional
-            </div>
-          </div>
+        <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '32px' }}>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{ 
+              width: '130px', 
+              height: '130px', 
+              background: 'white', 
+              borderRadius: '30px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              padding: '12px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              border: '4px solid rgba(255,255,255,0.15)'
+            }}
+          >
+            {localSettings.shopProfile.logoUrl ? (
+              <img src={localSettings.shopProfile.logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            ) : (
+              <span style={{ fontSize: '64px' }}>📦</span>
+            )}
+          </motion.div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px', opacity: 0.8 }}>
-            <span style={{ fontSize: '16px' }}>📍</span>
-            <p style={{ margin: 0, fontSize: '16px', fontWeight: 500 }}>
-              {localSettings.shopProfile.address || 'Address configuration required'}
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px', flexWrap: 'wrap' }}>
+              <h1 style={{ margin: 0, fontSize: '48px', fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1.1 }}>
+                {localSettings.shopProfile.name || 'TradeFlow Business'}
+              </h1>
+              <div className="glass-dark" style={{ padding: '6px 16px', borderRadius: '40px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#60a5fa', boxShadow: '0 0 10px #60a5fa' }}></span>
+                Verified Enterprise
+              </div>
+            </div>
+            
+            <p style={{ opacity: 0.8, fontSize: '17px', fontWeight: 500, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '20px' }}>📍</span> {localSettings.shopProfile.address || 'Address not configured'}
             </p>
-          </div>
 
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <div className="glass-dark" style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', padding: '10px 18px', borderRadius: '14px', fontWeight: 500 }}>
-              <span style={{ opacity: 0.7 }}>✉️</span> {localSettings.shopProfile.email || 'No email set'}
-            </div>
-            <div className="glass-dark" style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', padding: '10px 18px', borderRadius: '14px', fontWeight: 500 }}>
-              <span style={{ opacity: 0.7 }}>💱</span> System Base: <strong>{localSettings.currency || 'USD'}</strong>
-            </div>
-            <div className="glass-dark" style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', padding: '10px 18px', borderRadius: '14px', fontWeight: 500 }}>
-              <span style={{ opacity: 0.7 }}>📊</span> Tax Rate: <strong>{localSettings.taxRate}%</strong>
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+              {[
+                { label: '📧 Contact', value: localSettings.shopProfile.email || 'N/A' },
+                { label: '💱 Currency', value: localSettings.currency || 'USD' },
+                { label: '📊 VAT', value: `${localSettings.taxRate}%` }
+              ].map((item, idx) => (
+                <div key={idx} className="glass-dark" style={{ padding: '10px 20px', borderRadius: '16px', fontSize: '14px', fontWeight: 600 }}>
+                  <span style={{ opacity: 0.6, marginRight: '6px' }}>{item.label}:</span> {item.value}
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="settings-tabs" style={{ 
-        display: 'flex', 
-        gap: '4px', 
-        marginBottom: '32px', 
-        background: '#f1f5f9', 
-        padding: '6px', 
-        borderRadius: '16px',
-        overflowX: 'auto',
-        border: '1px solid #e2e8f0',
-        width: 'max-content'
-      }}>
+      <div className="settings-tab-container">
         {[
           { id: 'profile', label: 'Shop Profile', icon: '👤' },
           { id: 'general', label: 'General', icon: '⚙️' },
@@ -266,420 +227,411 @@ export const Settings = () => {
         ].map((tab) => (
           <button 
             key={tab.id}
-            className={`btn btn-sm ${activeTab === tab.id ? 'active' : ''}`} 
+            className={`settings-tab-item ${activeTab === tab.id ? 'active' : ''}`} 
             onClick={() => setActiveTab(tab.id as any)}
-            style={{
-              padding: '10px 20px',
-              borderRadius: '12px',
-              fontSize: '14px',
-              fontWeight: activeTab === tab.id ? 700 : 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-              background: activeTab === tab.id ? 'white' : 'transparent',
-              color: activeTab === tab.id ? '#1e40af' : '#64748b',
-              border: 'none',
-              boxShadow: activeTab === tab.id ? '0 4px 6px -1px rgba(0,0,0,0.1)' : 'none',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
           >
-            <span style={{ fontSize: '16px' }}>{tab.icon}</span>
+            <span style={{ fontSize: '18px' }}>{tab.icon}</span>
             {tab.label}
           </button>
         ))}
       </div>
 
       <div className="settings-content">
-        {activeTab === 'profile' && (
-          <div className="chart-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0 }}>Shop Profile</h3>
-              <span style={{ fontSize: '12px', color: '#64748b', background: '#f1f5f9', padding: '4px 10px', borderRadius: '12px' }}>Public Information</span>
-            </div>
-            
-            <div className="form-row" style={{ gap: '24px', marginBottom: '32px', alignItems: 'center', padding: '20px', background: '#f8fafc', borderRadius: '12px' }}>
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          {activeTab === 'profile' && (
+            <div className="settings-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+                <h3 className="settings-section-title" style={{ margin: 0 }}>Identity & Branding</h3>
+                <span className="badge badge-info" style={{ borderRadius: '12px', padding: '6px 16px', fontWeight: 800 }}>Public Organization Data</span>
+              </div>
+              
               <div style={{ 
-                width: '140px', 
-                height: '140px', 
-                border: '2px dashed #0ea5e9', 
-                borderRadius: '16px',
+                background: 'var(--bg)', 
+                borderRadius: '32px', 
+                padding: '40px', 
+                marginBottom: '40px',
+                border: '2px solid var(--border)',
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-                background: '#fff',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                margin: '0 auto'
+                gap: '32px'
               }}>
-                {localSettings.shopProfile.logoUrl ? (
-                  <img src={localSettings.shopProfile.logoUrl} alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                ) : (
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '32px', marginBottom: '8px' }}>🏢</div>
-                    <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>NO LOGO</span>
-                  </div>
-                )}
-              </div>
-              <div>
-                <label className="btn btn-sm btn-primary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                  <span>Upload Shop Logo</span>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    style={{ display: 'none' }} 
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          updateProfile('logoUrl', reader.result as string);
-                        };
-                        reader.readAsDataURL(file);
-                      }
+                <div style={{ display: 'flex', alignItems: 'center', gap: '40px', flexWrap: 'wrap' }}>
+                  <motion.div 
+                    whileHover={{ scale: 1.05, rotate: 2 }}
+                    style={{ 
+                      width: '180px', 
+                      height: '180px', 
+                      background: 'var(--card-bg)',
+                      borderRadius: '40px',
+                      border: '3px dashed var(--accent)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '20px',
+                      position: 'relative',
+                      boxShadow: '0 20px 40px -15px rgba(0,0,0,0.1)'
                     }}
-                  />
-                </label>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>PNG, JPG or SVG. Recommended square size.</p>
-                  {localSettings.shopProfile.logoUrl && (
-                    <button 
-                      className="btn btn-sm" 
-                      style={{ color: '#ef4444', background: '#fef2f2', border: '1px solid #fee2e2', fontSize: '11px' }}
-                      onClick={() => updateProfile('logoUrl', '')}
-                    >Remove</button>
-                  )}
+                  >
+                    {localSettings.shopProfile.logoUrl ? (
+                      <img src={localSettings.shopProfile.logoUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    ) : (
+                      <div style={{ textAlign: 'center', opacity: 0.6 }}>
+                        <div style={{ fontSize: '56px' }}>📁</div>
+                        <div style={{ fontSize: '12px', fontWeight: 900, marginTop: '8px' }}>BRAND LOGO</div>
+                      </div>
+                    )}
+                  </motion.div>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '22px', fontWeight: 900, color: 'var(--text-primary)' }}>Corporate Identity</h4>
+                    <p style={{ margin: '0 0 28px 0', color: 'var(--text-secondary)', fontSize: '15px', maxWidth: '400px', lineHeight: 1.6 }}>This logo will appear on all digital exports, invoices, and your public trade profile. Use a clear, high-contrast image.</p>
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                      <label className="btn btn-primary" style={{ cursor: 'pointer', borderRadius: '14px', padding: '12px 28px', fontWeight: 700 }}>
+                        <span>Update Brand Logo</span>
+                        <input type="file" accept="image/*" style={{ display: 'none' }} 
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => updateProfile('logoUrl', reader.result as string);
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                      {localSettings.shopProfile.logoUrl && (
+                        <button className="btn btn-outline" style={{ color: 'var(--danger)', borderRadius: '14px', padding: '12px 24px', fontWeight: 700 }} onClick={() => updateProfile('logoUrl', '')}>Remove</button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }} className="form-row">
+                <div className="form-group">
+                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Account Representative</label>
+                  <input className="input-modern" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full Name" />
+                </div>
+                <div className="form-group">
+                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Full Trading Name</label>
+                  <input className="input-modern" type="text" value={localSettings.shopProfile.name} onChange={(e) => updateProfile('name', e.target.value)} placeholder="Business Name" />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginTop: '24px' }}>
+                <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Global Headquarters Address</label>
+                <textarea className="input-modern" rows={4} value={localSettings.shopProfile.address} onChange={(e) => updateProfile('address', e.target.value)} placeholder="Street, City, State, Country, ZIP..." />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginTop: '24px' }} className="form-row">
+                <div className="form-group">
+                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Admin Email Address</label>
+                  <input className="input-modern" type="email" value={localSettings.shopProfile.email} onChange={(e) => updateProfile('email', e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Support/Secondary Alias</label>
+                  <input className="input-modern" type="email" value={localSettings.shopProfile.secondaryEmail || ''} onChange={(e) => updateProfile('secondaryEmail', e.target.value)} />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginTop: '24px' }} className="form-row">
+                <div className="form-group">
+                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Official Website</label>
+                  <input className="input-modern" type="text" value={localSettings.shopProfile.website} onChange={(e) => updateProfile('website', e.target.value)} placeholder="https://..." />
+                </div>
+                <div className="form-group">
+                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Corporate Tax ID</label>
+                  <input className="input-modern" type="text" value={localSettings.shopProfile.taxId} onChange={(e) => updateProfile('taxId', e.target.value)} placeholder="Registration Number" />
                 </div>
               </div>
             </div>
+          )}
 
-            <div className="form-group">
-              <label style={{ fontWeight: 700, fontSize: '14px', color: '#475569' }}>User Full Name</label>
-              <input 
-                type="text" 
-                placeholder="Your personal name"
-                style={{ fontSize: '16px', padding: '12px' }}
-                value={fullName} 
-                onChange={(e) => setFullName(e.target.value)} 
-              />
-              <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>This is your account display name.</p>
-            </div>
-
-            <div className="form-group">
-              <label style={{ fontWeight: 700, fontSize: '14px', color: '#475569' }}>Shop / Business Name</label>
-              <input 
-                type="text" 
-                placeholder="e.g. Trade Flow"
-                style={{ fontSize: '16px', padding: '12px' }}
-                value={localSettings.shopProfile.name} 
-                onChange={(e) => updateProfile('name', e.target.value)} 
-              />
-              <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>This name will appear on your invoices and dashboard.</p>
-            </div>
-
-            <div className="form-group">
-              <label style={{ fontWeight: 700, fontSize: '14px', color: '#475569' }}>Full Business Address</label>
-              <textarea 
-                rows={3}
-                style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '15px' }}
-                value={localSettings.shopProfile.address} 
-                onChange={(e) => updateProfile('address', e.target.value)} 
-                placeholder="Include street, city, state, and zip code"
-              />
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '14px', color: '#475569' }}>Primary Contact Email</label>
-                <input type="email" value={localSettings.shopProfile.email} onChange={(e) => updateProfile('email', e.target.value)} />
+          {activeTab === 'general' && (
+            <div className="settings-card">
+              <h3 className="settings-section-title">Platform Experience</h3>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '15px' }}>Customize how you interact with the TradeFlow ecosystem.</p>
+              
+              <div style={{ marginBottom: '48px' }}>
+                <label style={{ fontWeight: 800, display: 'block', marginBottom: '20px', color: 'var(--text-secondary)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Visual Aesthetic</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+                  {[
+                    { id: 'light', label: 'Elegance Light', icon: '☀️', desc: 'Clean, soft, and hyper-readable for daytime productivity.' },
+                    { id: 'dark', label: 'Midnight Premium', icon: '🌙', desc: 'Deep, comfortable contrast for high-focus operations.' }
+                  ].map(theme => (
+                    <motion.div 
+                      key={theme.id}
+                      whileHover={{ scale: 1.02, translateY: -4 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setLocalSettings({...localSettings, theme: theme.id as any})}
+                      style={{ 
+                        padding: '32px',
+                        background: localSettings.theme === theme.id ? 'var(--accent)' : 'var(--bg)',
+                        borderRadius: '28px',
+                        cursor: 'pointer',
+                        border: '2px solid',
+                        borderColor: localSettings.theme === theme.id ? 'var(--accent)' : 'var(--border)',
+                        transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                        boxShadow: localSettings.theme === theme.id ? '0 20px 40px -10px rgba(37, 99, 235, 0.4)' : 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+                        <div style={{ fontSize: '56px', filter: 'drop-shadow(0 10px 10px rgba(0,0,0,0.1))' }}>{theme.icon}</div>
+                        <div>
+                          <div style={{ fontWeight: 900, fontSize: '20px', color: localSettings.theme === theme.id ? 'white' : 'var(--text-primary)', marginBottom: '4px' }}>{theme.label}</div>
+                          <p style={{ margin: 0, fontSize: '13px', color: localSettings.theme === theme.id ? 'rgba(255,255,255,0.8)' : 'var(--text-secondary)', lineHeight: 1.4 }}>{theme.desc}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
               </div>
-              <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '14px', color: '#475569' }}>Secondary Contact Email (Optional)</label>
-                <input type="email" value={localSettings.shopProfile.secondaryEmail || ''} onChange={(e) => updateProfile('secondaryEmail', e.target.value)} />
-              </div>
-            </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '14px', color: '#475569' }}>Website URL</label>
-                <input type="text" value={localSettings.shopProfile.website} onChange={(e) => updateProfile('website', e.target.value)} placeholder="www.yourshop.com" />
-              </div>
-              <div className="form-group">
-                <label style={{ fontWeight: 700, fontSize: '14px', color: '#475569' }}>Tax / VAT ID (Optional)</label>
-                <input type="text" value={localSettings.shopProfile.taxId} onChange={(e) => updateProfile('taxId', e.target.value)} placeholder="e.g. VAT123456" />
+              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+                <div className="form-group">
+                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Base Transaction Currency</label>
+                  <input className="input-modern" type="text" value={localSettings.currency} onChange={(e) => setLocalSettings({...localSettings, currency: e.target.value})} placeholder="USD, EUR, GBP..." />
+                </div>
+                <div className="form-group">
+                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Default Sales Tax (%)</label>
+                  <input className="input-modern" type="number" value={localSettings.taxRate} onChange={(e) => setLocalSettings({...localSettings, taxRate: +e.target.value})} />
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="form-group">
-              <label style={{ fontWeight: 700, fontSize: '14px', color: '#475569' }}>Additional Business Information</label>
-              <textarea 
-                rows={4}
-                style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '15px' }}
-                value={localSettings.shopProfile.additionalInfo} 
-                onChange={(e) => updateProfile('additionalInfo', e.target.value)} 
-                placeholder="Any other details you want to save about your business..."
-              />
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'general' && (
-          <div className="chart-card">
-            <h3 style={{ marginBottom: '16px' }}>System Preferences</h3>
-            
-            <div className="form-group" style={{ marginBottom: '32px' }}>
-              <label style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-secondary)', display: 'block', marginBottom: '12px' }}>App Theme</label>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button 
-                  onClick={() => setLocalSettings({...localSettings, theme: 'light'})}
-                  className={`flex-1 p-6 rounded-2xl border-2 transition-all text-center cursor-pointer ${
-                    localSettings.theme === 'light' 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-transparent bg-slate-50'
-                  }`}
-                >
-                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>☀️</div>
-                  <div className={`font-bold ${localSettings.theme === 'light' ? 'text-blue-700' : 'text-slate-600'}`}>Light Mode</div>
-                </button>
-                <button 
-                  onClick={() => setLocalSettings({...localSettings, theme: 'dark'})}
-                  className={`flex-1 p-6 rounded-2xl border-2 transition-all text-center cursor-pointer ${
-                    localSettings.theme === 'dark' 
-                      ? 'border-blue-500 bg-slate-800' 
-                      : 'border-transparent bg-slate-50'
-                  }`}
-                >
-                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>🌙</div>
-                  <div className={`font-bold ${localSettings.theme === 'dark' ? 'text-blue-100' : 'text-slate-600'}`}>Dark Mode</div>
-                </button>
+          {activeTab === 'buy' && (
+            <div className="settings-card">
+              <h3 className="settings-section-title">Inbound Logistics Control</h3>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '15px' }}>Optimize your inventory acquisition workflow with granular visibility controls.</p>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
+                {[
+                  { id: 'enableShippingCost', label: 'Logistics Expenses', desc: 'Add dedicated lines for freight and shipping charges' },
+                  { id: 'enableCustomsDuty', label: 'Customs & Port Fees', desc: 'Track international clearance and duty payments' },
+                  { id: 'enableOtherCosts', label: 'Handling & Surcharges', desc: 'Capture miscellaneous processing or storage fees' },
+                  { id: 'requireDate', label: 'Mandatory Acquisition Date', desc: 'Enforce strict chronological record keeping' }
+                ].map(item => (
+                  <motion.div 
+                    key={item.id} 
+                    whileHover={{ scale: 1.02 }}
+                    className="toggle-card" 
+                    onClick={() => toggleBuy(item.id as any)}
+                    style={{ padding: '24px' }}
+                  >
+                    <div style={{ flex: 1, marginRight: '24px' }}>
+                      <span style={{ fontSize: '17px', fontWeight: 800, display: 'block', marginBottom: '4px' }}>{item.label}</span>
+                      <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>{item.desc}</p>
+                    </div>
+                    <div style={{ 
+                      width: '56px', 
+                      height: '30px', 
+                      background: localSettings.buy[item.id as keyof typeof localSettings.buy] ? 'var(--success)' : 'var(--border)',
+                      borderRadius: '40px',
+                      position: 'relative',
+                      transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                      flexShrink: 0
+                    }}>
+                      <motion.div 
+                        initial={false}
+                        animate={{ x: localSettings.buy[item.id as keyof typeof localSettings.buy] ? 28 : 2 }}
+                        style={{ 
+                          width: '26px', 
+                          height: '26px', 
+                          background: 'white', 
+                          borderRadius: '50%', 
+                          marginTop: '2px',
+                          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                        }}
+                      />
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             </div>
+          )}
 
-            <div className="form-group">
-              <label>Default Currency Symbol</label>
-              <input type="text" value={localSettings.currency} onChange={(e) => setLocalSettings({...localSettings, currency: e.target.value})} />
-            </div>
-            <div className="form-group">
-              <label>Default Tax Rate (%)</label>
-              <input type="number" value={localSettings.taxRate} onChange={(e) => setLocalSettings({...localSettings, taxRate: +e.target.value})} />
-            </div>
-          </div>
-        )}
+          {activeTab === 'sell' && (
+            <div className="settings-card">
+              <h3 className="settings-section-title">Trade Velocity Engine</h3>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '15px' }}>Precision controls for your sales and outbound transaction engine.</p>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px', marginBottom: '40px' }}>
+                {[
+                  { id: 'enableMultipleProducts', label: 'Bulk Sale Mode', desc: 'Support multiple unique line items in a single trade' },
+                  { id: 'enableVat', label: 'Automated VAT Engine', desc: 'Real-time tax calculation and compliance checks' },
+                  { id: 'enableCustomerName', label: 'Entity Identification', desc: 'Mandatory customer name tracking for audit logs' },
+                  { id: 'enableCurrencySelection', label: 'Global Trade Sync', desc: 'Support per-transaction currency overrides' }
+                ].map(item => (
+                  <motion.div 
+                    key={item.id} 
+                    whileHover={{ scale: 1.02 }}
+                    className="toggle-card" 
+                    onClick={() => toggleSell(item.id as any)}
+                    style={{ padding: '24px' }}
+                  >
+                    <div style={{ flex: 1, marginRight: '24px' }}>
+                      <span style={{ fontSize: '17px', fontWeight: 800, display: 'block', marginBottom: '4px' }}>{item.label}</span>
+                      <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>{item.desc}</p>
+                    </div>
+                    <div style={{ 
+                      width: '56px', 
+                      height: '30px', 
+                      background: localSettings.sell[item.id as keyof typeof localSettings.sell] ? 'var(--accent)' : 'var(--border)',
+                      borderRadius: '40px',
+                      position: 'relative',
+                      transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                      flexShrink: 0
+                    }}>
+                      <motion.div 
+                        initial={false}
+                        animate={{ x: localSettings.sell[item.id as keyof typeof localSettings.sell] ? 28 : 2 }}
+                        style={{ 
+                          width: '26px', 
+                          height: '26px', 
+                          background: 'white', 
+                          borderRadius: '50%', 
+                          marginTop: '2px',
+                          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                        }}
+                      />
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
 
-        {activeTab === 'buy' && (
-          <div className="chart-card">
-            <h3 style={{ marginBottom: '16px' }}>Purchase/Buy Settings</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={localSettings.buy.enableShippingCost} onChange={() => toggleBuy('enableShippingCost')} />
-                <span>Enable Shipping Cost Field</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={localSettings.buy.enableCustomsDuty} onChange={() => toggleBuy('enableCustomsDuty')} />
-                <span>Enable Customs Duty Field</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={localSettings.buy.enableOtherCosts} onChange={() => toggleBuy('enableOtherCosts')} />
-                <span>Enable Other Costs Field</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={localSettings.buy.requireDate} onChange={() => toggleBuy('requireDate')} />
-                <span>Require Purchase Date</span>
-              </label>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'sell' && (
-          <div className="chart-card">
-            <h3 style={{ marginBottom: '16px' }}>Sales/Sell Settings</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={localSettings.sell.enableMultipleProducts} onChange={() => toggleSell('enableMultipleProducts')} />
-                <span>Enable Multi-Product Sales</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={localSettings.sell.enableVat} onChange={() => toggleSell('enableVat')} />
-                <span>Enable VAT/Tax Calculation</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={localSettings.sell.enableCustomerName} onChange={() => toggleSell('enableCustomerName')} />
-                <span>Enable Customer Name Field</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={localSettings.sell.enableCurrencySelection} onChange={() => toggleSell('enableCurrencySelection')} />
-                <span>Enable Individual Sale Currency</span>
-              </label>
-              <div className="form-group" style={{ maxWidth: '200px', marginTop: '8px' }}>
-                <label>Default VAT (%)</label>
-                <input type="number" value={localSettings.sell.defaultVat} onChange={(e) => setLocalSettings({...localSettings, sell: {...localSettings.sell, defaultVat: +e.target.value}})} />
+              <div className="form-group" style={{ maxWidth: '400px' }}>
+                <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Default Transaction VAT (%)</label>
+                <div style={{ position: 'relative' }}>
+                  <input className="input-modern" type="number" value={localSettings.sell.defaultVat} onChange={(e) => setLocalSettings({...localSettings, sell: {...localSettings.sell, defaultVat: +e.target.value}})} style={{ width: '100%', paddingRight: '50px' }} />
+                  <span style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', fontWeight: 900, opacity: 0.4 }}>%</span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === 'invoice' && (
-          <div className="chart-card">
-            <h3 style={{ marginBottom: '16px' }}>Invoice Customization</h3>
-            
-            <div className="form-group">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', marginBottom: '24px', padding: '12px', background: '#f1f5f9', borderRadius: '8px' }}>
-                <input type="checkbox" checked={localSettings.invoice.showLogo} onChange={() => updateInvoice('showLogo', !localSettings.invoice.showLogo)} />
-                <span style={{ fontWeight: 600 }}>Show Shop Logo on Invoice Headers</span>
-              </label>
-            </div>
-
-            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-              <div className="form-group">
-                <label>Paypal / Digital Payment Info</label>
-                <input 
-                  type="text" 
-                  value={localSettings.invoice.bankInfo} 
-                  onChange={(e) => updateInvoice('bankInfo', e.target.value)} 
-                  placeholder="e.g. invoma@gmail.com"
-                />
-              </div>
-              <div className="form-group">
-                <label>Card Payment Methods</label>
-                <input 
-                  type="text" 
-                  value={localSettings.invoice.cardPayment || ''} 
-                  onChange={(e) => updateInvoice('cardPayment', e.target.value)} 
-                  placeholder="e.g. Visa, Master Card"
-                />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Default Discount (%)</label>
-                <input 
-                  type="number" 
-                  value={localSettings.invoice.discount || 0} 
-                  onChange={(e) => updateInvoice('discount', +e.target.value)} 
-                />
-              </div>
-              <div className="form-group">
-                <label>Default VAT / Tax (%)</label>
-                <input 
-                  type="number" 
-                  value={localSettings.invoice.taxRate || 0} 
-                  onChange={(e) => updateInvoice('taxRate', +e.target.value)} 
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginBottom: '24px', alignItems: 'center', padding: '16px', background: '#f8fafc', borderRadius: '8px' }}>
-              <div style={{ 
-                width: '100px', 
-                height: '60px', 
-                border: '1px dashed #ced4da', 
-                borderRadius: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-                background: '#fff'
-              }}>
-                {localSettings.invoice.signatureUrl ? (
-                  <img src={localSettings.invoice.signatureUrl} alt="Signature" style={{ maxWidth: '100%', maxHeight: '100%' }} />
-                ) : (
-                  <span style={{ fontSize: '10px', color: '#adb5bd' }}>No Signature</span>
-                )}
-              </div>
-              <div>
-                <label className="btn btn-sm btn-outline" style={{ cursor: 'pointer', marginBottom: '8px' }}>
-                  <span>Upload Signature</span>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    style={{ display: 'none' }} 
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          updateInvoice('signatureUrl', reader.result as string);
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
+          {activeTab === 'invoice' && (
+            <div className="settings-card">
+              <h3 className="settings-section-title">Invoice Architecture</h3>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '15px' }}>Design the ultimate document experience for your clients.</p>
+              
+              <motion.div 
+                whileHover={{ scale: 1.01 }}
+                className="toggle-card" 
+                style={{ marginBottom: '40px', padding: '24px 32px', borderRadius: '28px' }} 
+                onClick={() => updateInvoice('showLogo', !localSettings.invoice.showLogo)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                  <div style={{ fontSize: '32px', background: 'var(--card-bg)', padding: '12px', borderRadius: '16px', boxShadow: '0 10px 20px -5px rgba(0,0,0,0.05)' }}>💼</div>
+                  <div>
+                    <span style={{ fontSize: '18px', fontWeight: 800 }}>Project Branding on Export</span>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.5 }}>Automatically render your corporate identity on all generated PDF invoices.</p>
+                  </div>
+                </div>
+                <div style={{ 
+                  width: '60px', 
+                  height: '32px', 
+                  background: localSettings.invoice.showLogo ? 'var(--accent)' : 'var(--border)',
+                  borderRadius: '40px',
+                  position: 'relative',
+                  transition: '0.4s'
+                }}>
+                  <motion.div 
+                    animate={{ x: localSettings.invoice.showLogo ? 30 : 2 }}
+                    style={{ width: '28px', height: '28px', background: 'white', borderRadius: '50%', marginTop: '2px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)' }} 
                   />
-                </label>
-                <p style={{ margin: 0, fontSize: '12px', color: '#6c757d' }}>Upload a PNG with transparent background for best results.</p>
-              </div>
-            </div>
+                </div>
+              </motion.div>
 
-            <div className="form-group">
-              <label>Authorized Signatory Name & Title</label>
-              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <input 
-                  type="text" 
-                  value={localSettings.invoice.signatureName || ''} 
-                  onChange={(e) => updateInvoice('signatureName', e.target.value)} 
-                  placeholder="e.g. Jhon Donate"
-                />
-                <input 
-                  type="text" 
-                  placeholder="e.g. Accounts Manager"
-                  onChange={(e) => {/* Title could be another field or part of signatureName */}}
-                />
+              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '32px' }}>
+                <div className="form-group">
+                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Payment Instructions (Primary)</label>
+                  <input className="input-modern" type="text" value={localSettings.invoice.bankInfo} onChange={(e) => updateInvoice('bankInfo', e.target.value)} placeholder="Email / PayPal / Crypto" />
+                </div>
+                <div className="form-group">
+                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Accepted Credit Networks</label>
+                  <input className="input-modern" type="text" value={localSettings.invoice.cardPayment || ''} onChange={(e) => updateInvoice('cardPayment', e.target.value)} placeholder="Visa, Mastercard, Amex..." />
+                </div>
               </div>
-            </div>
 
-            <h4 style={{ marginTop: '32px', marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>Default Client Context</h4>
-            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-              <div className="form-group">
-                <label>Default Client Name</label>
-                <input 
-                  type="text" 
-                  value={localSettings.invoice.defaultClientName || ''} 
-                  onChange={(e) => updateInvoice('defaultClientName', e.target.value)} 
-                  placeholder="e.g. Lowell H. Dominguez"
-                />
+              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '40px' }}>
+                <div className="form-group">
+                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Standard VAT (%)</label>
+                  <input className="input-modern" type="number" value={localSettings.invoice.taxRate} onChange={(e) => updateInvoice('taxRate', +e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Standard Trade Discount (%)</label>
+                  <input className="input-modern" type="number" value={localSettings.invoice.discount} onChange={(e) => updateInvoice('discount', +e.target.value)} />
+                </div>
               </div>
-              <div className="form-group">
-                <label>Default Client Phone</label>
-                <input 
-                  type="text" 
-                  value={localSettings.invoice.defaultClientPhone || ''} 
-                  onChange={(e) => updateInvoice('defaultClientPhone', e.target.value)} 
-                />
-              </div>
-            </div>
-            <div className="form-group">
-                <label>Default Client Email</label>
-                <input 
-                  type="email" 
-                  value={localSettings.invoice.defaultClientEmail || ''} 
-                  onChange={(e) => updateInvoice('defaultClientEmail', e.target.value)} 
-                />
-              </div>
-            <div className="form-group">
-              <label>Default Client Address</label>
-              <textarea 
-                rows={2} 
-                value={localSettings.invoice.defaultClientAddress || ''} 
-                onChange={(e) => updateInvoice('defaultClientAddress', e.target.value)} 
-              />
-            </div>
 
-            <h4 style={{ marginTop: '32px', marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>Footer & Terms</h4>
-            <div className="form-group">
-              <label>Invoice Terms & Conditions</label>
-              <textarea 
-                rows={4} 
-                className="form-control"
-                style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', minHeight: '100px', lineHeight: '1.5', fontSize: '14px' }} 
-                value={localSettings.invoice.termsAndConditions} 
-                onChange={(e) => updateInvoice('termsAndConditions', e.target.value)}
-                placeholder="Enter terms, conditions, and any other notes to display at the bottom of your invoices..."
-              />
+              <div style={{ padding: '40px', background: 'var(--bg)', borderRadius: '32px', border: '2px dashed var(--accent)', marginBottom: '48px', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: '-20px', right: '-20px', fontSize: '120px', opacity: 0.03, transform: 'rotate(15deg)' }}>🖋️</div>
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '40px', flexWrap: 'wrap' }}>
+                  <motion.div 
+                    whileHover={{ scale: 1.02 }}
+                    style={{ width: '220px', height: '120px', background: 'white', borderRadius: '20px', border: '2px solid var(--border)', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}
+                  >
+                    {localSettings.invoice.signatureUrl ? (
+                      <img src={localSettings.invoice.signatureUrl} alt="Sign" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                    ) : (
+                      <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 900, letterSpacing: '0.1em' }}>PLACEHOLDER SIGNATURE</span>
+                    )}
+                  </motion.div>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 900, color: 'var(--text-primary)' }}>Executive Authorization</h4>
+                    <p style={{ margin: '0 0 24px 0', fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>Upload a high-fidelity digital signature to automate document authentication across your global trades.</p>
+                    <label className="btn btn-outline" style={{ cursor: 'pointer', borderRadius: '14px', padding: '12px 28px', fontWeight: 700 }}>
+                      <span>Add/Change Signature Identity</span>
+                      <input type="file" accept="image/*" style={{ display: 'none' }} 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => updateInvoice('signatureUrl', reader.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '40px' }} className="form-row">
+                <div className="form-group">
+                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Authorized Signatory</label>
+                  <input className="input-modern" type="text" value={localSettings.invoice.signatureName || ''} onChange={(e) => updateInvoice('signatureName', e.target.value)} placeholder="Full Legal Name" />
+                </div>
+                <div className="form-group">
+                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Professional Title</label>
+                  <input className="input-modern" type="text" placeholder="e.g. Managing Director" />
+                </div>
+              </div>
+
+              <div style={{ padding: '40px', background: 'var(--bg)', borderRadius: '32px', border: '2px solid var(--border)', position: 'relative' }}>
+                <h4 style={{ margin: '0 0 28px 0', fontSize: '20px', fontWeight: 900, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '28px' }}>📜</span> Global Trade Terms
+                </h4>
+                <textarea 
+                  className="input-modern" 
+                  rows={6} 
+                  value={localSettings.invoice.termsAndConditions} 
+                  onChange={(e) => updateInvoice('termsAndConditions', e.target.value)}
+                  placeholder="Define your business policies, returns, and sovereign trade terms..."
+                  style={{ width: '100%', lineHeight: 1.7, background: 'var(--card-bg) !important' }}
+                />
+                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700 }}>Auto-rendered on every document footer</span>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </motion.div>
       </div>
     </div>
   );

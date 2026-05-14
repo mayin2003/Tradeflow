@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { motion, AnimatePresence } from 'motion/react';
+import { Search, Calendar, Download, Trash2, Clock, Hash, Check } from 'lucide-react';
 
 export const ActivityLog = () => {
   const { activityLogs, clearActivityLogs, settings, addActivityLog } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState<string>('');
+  const [showClearedAlert, setShowClearedAlert] = useState(false);
 
   const filteredLogs = activityLogs.filter(log => {
     const matchesSearch = log.action.toLowerCase().includes(searchTerm.toLowerCase());
@@ -20,17 +23,14 @@ export const ActivityLog = () => {
     const now = new Date();
     const timestampStr = now.toLocaleString();
     
-    // Brand Colors
-    const primaryColor = [14, 165, 233]; // Sky-500
-    const secondaryColor = [100, 116, 139]; // Slate-500
+    const primaryColor = [14, 165, 233]; 
+    const secondaryColor = [100, 116, 139]; 
 
-    // Header Background Accent
     doc.setFillColor(248, 250, 252);
     doc.rect(0, 0, 210, 45, 'F');
     
-    // Title & Logo Text
     doc.setFontSize(24);
-    doc.setTextColor(15, 23, 42); // Slate-900
+    doc.setTextColor(15, 23, 42); 
     doc.setFont('helvetica', 'bold');
     doc.text('TradeFlow Activity Audit', 14, 25);
 
@@ -39,13 +39,11 @@ export const ActivityLog = () => {
     doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
     doc.text(`Official System Access & Activity Log Report`, 14, 32);
 
-    // Meta Info Column
     doc.setFontSize(9);
     doc.text(`Shop Name: ${settings.shopProfile.name}`, 145, 18);
     doc.text(`Generated: ${timestampStr}`, 145, 23);
     doc.text(`Filter Date: ${selectedDate || 'Full History'}`, 145, 28);
     
-    // Divider Line
     doc.setDrawColor(226, 232, 240);
     doc.line(14, 45, 196, 45);
 
@@ -80,8 +78,6 @@ export const ActivityLog = () => {
       },
       margin: { left: 14, right: 14 },
       didDrawPage: (data) => {
-        // Footer on each page
-        const pageCount = doc.internal.pages.length - 1;
         doc.setFontSize(8);
         doc.setTextColor(150);
         doc.text(
@@ -92,126 +88,153 @@ export const ActivityLog = () => {
       }
     });
 
-    const fileName = `ActivityLog_${selectedDate || 'Full'}_${now.getTime()}.pdf`;
+    const fileName = `Activity_Log_${now.getTime()}.pdf`;
     doc.save(fileName);
+    addActivityLog(`Exported Activity Audit: ${fileName}`, '📉', '#10b981');
+  };
 
-    // Record the download action in the log
-    addActivityLog(`Generated Formal Activity Audit Report: ${fileName}`, '📉', '#10b981');
+  const handleClearLogs = () => {
+    if(window.confirm('All historical activity records will be permanently erased. System audit integrity will be reset. Proceed?')) {
+      clearActivityLogs();
+      setShowClearedAlert(true);
+      setTimeout(() => setShowClearedAlert(false), 3000);
+    }
   };
 
   return (
-    <div id="page-activity" className="page active">
-      <div className="page-header">
+    <div id="page-activity" className="page active" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <header className="page-header" style={{ marginBottom: '40px' }}>
         <div>
-          <h2>Activity Log</h2>
-          <p>Complete history of feature access and system events</p>
+          <h2 className="text-gradient" style={{ fontSize: '42px', fontWeight: 900, letterSpacing: '-0.06em' }}>Activity Log</h2>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '8px', fontSize: '16px', fontWeight: 500 }}>Comprehensive historical record of internal platform events</p>
         </div>
-        <div className="flex gap-2 flex-wrap sm:flex-nowrap">
-          <button className="btn btn-primary flex-1 sm:flex-none justify-center" onClick={downloadPDF} disabled={filteredLogs.length === 0}>
-            📄 Download (PDF)
-          </button>
-          <button className="btn btn-outline flex-1 sm:flex-none justify-center" onClick={() => {
-            if(confirm('Are you sure you want to clear all history?')) clearActivityLogs();
-          }}>
-            Clear Log
-          </button>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <motion.button 
+            whileHover={{ scale: 1.02, translateY: -2 }}
+            whileTap={{ scale: 0.98 }}
+            className="btn btn-outline"
+            onClick={downloadPDF}
+            disabled={filteredLogs.length === 0}
+            style={{ borderRadius: '16px', padding: '12px 24px', fontWeight: 700, borderColor: 'var(--accent)', color: 'var(--accent)' }}
+          >
+            <Download size={18} />
+            <span className="hidden sm:inline">Export Audit Report</span>
+          </motion.button>
+          <motion.button 
+            whileHover={{ scale: 1.02, translateY: -2 }}
+            whileTap={{ scale: 0.98 }}
+            className="btn btn-outline"
+            onClick={handleClearLogs}
+            style={{ borderRadius: '16px', padding: '12px 24px', fontWeight: 700, color: 'var(--danger)', borderColor: 'var(--danger-light)' }}
+          >
+            <Trash2 size={18} />
+            <span className="hidden sm:inline">Reset History</span>
+          </motion.button>
         </div>
-      </div>
+      </header>
 
-      <div className="table-card" style={{ padding: '24px' }}>
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+      <section className="activity-search-container">
+        <div style={{ position: 'relative', flex: 1 }}>
+          <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} />
           <input 
             type="text" 
-            placeholder="Search activity..." 
-            className="form-control"
-            style={{ 
-              flex: '1 1 300px', 
-              padding: '10px 16px', 
-              borderRadius: '8px', 
-              border: '1px solid #e2e8f0',
-              fontSize: '14px'
-            }}
+            placeholder="Search operational logs..." 
+            className="activity-search-input"
+            style={{ paddingLeft: '48px' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+        <div style={{ position: 'relative', flex: '0 0 240px' }}>
+          <Calendar size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4, pointerEvents: 'none' }} />
           <input 
             type="date"
-            className="form-control"
-            style={{ 
-              flex: '1 1 200px', 
-              padding: '10px 16px', 
-              borderRadius: '8px', 
-              border: '1px solid #e2e8f0',
-              fontSize: '14px'
-            }}
+            className="activity-search-input"
+            style={{ paddingLeft: '48px' }}
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
           />
         </div>
+      </section>
 
-        <div id="activity-log" style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-          {filteredLogs.length > 0 ? filteredLogs.map((a, index) => {
-            const date = new Date(a.timestamp);
-            const today = new Date();
-            const isToday = date.toDateString() === today.toDateString();
+      <AnimatePresence>
+        {showClearedAlert && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            style={{ 
+              background: 'var(--bg)', 
+              border: '1px solid var(--border)', 
+              padding: '12px 20px', 
+              borderRadius: '12px', 
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              color: 'var(--success)',
+              fontWeight: 700,
+              fontSize: '14px'
+            }}
+          >
+            <Check size={18} /> Logs have been securely purged.
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="activity-list">
+        {filteredLogs.length > 0 ? (
+          filteredLogs.map((log, index) => {
+            const date = new Date(log.timestamp);
+            const today = new Date().toDateString();
+            const isToday = date.toDateString() === today;
             
             return (
-              <div key={a.id} className="activity-item" style={{ 
-                borderLeft: `3px solid ${a.color}`,
-                padding: '16px 20px',
-                marginBottom: '4px',
-                background: index % 2 === 0 ? '#f8fafc' : '#ffffff',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '16px',
-                transition: 'transform 0.2s ease',
-                cursor: 'default'
-              }}>
-                <div className="activity-dot" style={{ 
-                  background: `${a.color}20`, 
-                  color: a.color,
-                  width: '40px',
-                  height: '40px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '10px',
-                  fontSize: '20px'
-                }}>
-                  {a.icon}
+              <motion.div 
+                key={log.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.03, duration: 0.4 }}
+                className="activity-item"
+              >
+                <div className="activity-indicator" style={{ background: log.color }} />
+                <div className="activity-icon-container" style={{ background: `${log.color}15`, color: log.color }}>
+                  {log.icon || '🛠️'}
                 </div>
-                <div className="activity-info" style={{ flex: 1 }}>
-                  <div className="action" style={{ fontWeight: 700, color: '#0f172a', fontSize: '15px' }}>
-                    {a.action}
-                  </div>
-                  <div className="meta" style={{ color: '#64748b', fontSize: '12px', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ 
-                      background: isToday ? '#dcfce7' : '#f1f5f9', 
-                      color: isToday ? '#166534' : '#64748b',
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      fontWeight: 600,
-                      fontSize: '10px'
+                <div className="activity-content">
+                  <div className="activity-action">{log.action}</div>
+                  <div className="activity-meta">
+                    <span className="activity-badge" style={{ 
+                      background: isToday ? 'var(--success-light)' : 'var(--bg)', 
+                      color: isToday ? 'var(--success)' : 'var(--text-muted)',
                     }}>
-                      {isToday ? 'TODAY' : date.toLocaleDateString()}
+                      {isToday ? 'Today' : date.toLocaleDateString()}
                     </span>
-                    <span>{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                    <div className="activity-time">
+                      <Clock size={12} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
+                      {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </div>
                   </div>
                 </div>
-                <div style={{ color: '#cbd5e1', fontSize: '12px', fontWeight: 600 }}>
-                  SYST-{a.id.split('_')[1].slice(-4)}
+                <div className="activity-id">
+                  <Hash size={12} style={{ display: 'inline', marginRight: '2px', verticalAlign: 'middle' }} />
+                  {log.id.split('_')[1]?.slice(-6) || log.id.slice(-6)}
                 </div>
-              </div>
+              </motion.div>
             );
-          }) : (
-            <div className="empty-state" style={{ textAlign: 'center', padding: '60px 20px' }}>
-              <div className="icon" style={{ fontSize: '64px', marginBottom: '16px' }}>📋</div>
-              <p style={{ fontSize: '18px', fontWeight: 600, color: '#64748b' }}>No activity records found</p>
-              <p style={{ color: '#94a3b8' }}>Try searching something else or perform some actions in the app.</p>
-            </div>
-          )}
-        </div>
+          })
+        ) : (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="empty-state" 
+            style={{ padding: '100px 20px', background: 'var(--card-bg)', borderRadius: '32px', border: '1px solid var(--border)' }}
+          >
+            <div style={{ fontSize: '64px', marginBottom: '24px', opacity: 0.5 }}>📋</div>
+            <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>No operational records match your query</h3>
+            <p style={{ color: 'var(--text-secondary)', maxWidth: '400px', margin: '8px auto' }}>Refine your search or date filters to visualize historical system events.</p>
+          </motion.div>
+        )}
       </div>
     </div>
   );
