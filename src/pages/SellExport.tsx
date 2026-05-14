@@ -224,7 +224,7 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
     <div id="page-sell" className="page active">
       <div className="page-header">
         <div><h2>Sell / Export Management</h2><p>Record sales and track profit per transaction</p></div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ Record Sale</button>
+        <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ Sell</button>
       </div>
 
       <div className="stat-grid">
@@ -313,7 +313,7 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
-              <h3>Record Sale</h3>
+              <h3>Sell</h3>
               <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
             </div>
             <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
@@ -571,7 +571,7 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
             </div>
             <div className="modal-footer">
               <button className="btn btn-outline" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleAdd}>Record Sale</button>
+              <button className="btn btn-primary" onClick={handleAdd}>Sell</button>
             </div>
           </div>
         </div>
