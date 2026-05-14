@@ -383,9 +383,9 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
                 )}
               </div>
 
-              <div style={{ margin: '20px 0', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
+              <div style={{ margin: '20px 0', borderTop: '1px solid var(--border)', paddingTop: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <h4 style={{ margin: 0 }}>Products</h4>
+                  <h4 style={{ margin: 0, color: 'var(--text-primary)' }}>Products</h4>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button className="btn btn-sm btn-outline" onClick={() => setShowScanner(true)}>📷 Scan Barcode</button>
                     {settings.sell.enableMultipleProducts && (
@@ -400,25 +400,25 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
                   
                   return (
                     <div key={index} style={{ 
-                      background: '#ffffff', 
+                      background: 'var(--card-bg)', 
                       padding: '20px', 
                       borderRadius: '12px', 
                       marginBottom: '16px',
-                      border: '1px solid #cbd5e1',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                      border: '1px solid var(--border)',
+                      boxShadow: 'var(--shadow-sm)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '12px'
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ background: 'var(--primary)', color: 'white', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: '12px' }}>{index + 1}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ background: 'var(--accent)', color: 'white', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: '12px' }}>{index + 1}</span>
                           Product Item
                         </span>
                         {formData.items.length > 1 && (
                           <button 
                             className="btn btn-sm btn-outline" 
-                            style={{ color: '#ef4444', borderColor: '#fee2e2', background: '#fef2f2', padding: '4px 12px', fontSize: '12px' }}
+                            style={{ color: 'var(--danger)', borderColor: 'var(--danger-light)', background: 'var(--danger-light)', padding: '4px 12px', fontSize: '12px' }}
                             onClick={() => removeItem(index)}
                           >
                             Remove
@@ -428,11 +428,11 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
                       
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
                         <div className="form-group" style={{ margin: 0 }}>
-                          <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>Select Product *</label>
+                          <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Select Product *</label>
                           <select 
                             value={item.product_id}
                             onChange={(e) => updateItem(index, 'product_id', e.target.value)}
-                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px' }}
+                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '14px', background: 'var(--bg)', color: 'var(--text-primary)' }}
                           >
                             <option value="">-- Choose Product --</option>
                             {[...products]
@@ -446,8 +446,8 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                           <div className="form-group" style={{ margin: 0 }}>
-                            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>
-                              Quantity {p && item.qty > p.stock && <span style={{ color: '#ef4444' }}>(Exceeds Stock: {p.stock})</span>}
+                            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                              Quantity {p && item.qty > p.stock && <span style={{ color: 'var(--danger)' }}>(Exceeds Stock: {p.stock})</span>}
                             </label>
                             <input 
                               type="number" 
@@ -458,8 +458,9 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
                                 padding: '10px', 
                                 borderRadius: '8px', 
                                 border: '1px solid',
-                                borderColor: p && item.qty > p.stock ? '#ef4444' : '#e2e8f0',
-                                background: p && item.qty > p.stock ? '#fef2f2' : '#ffffff',
+                                borderColor: p && item.qty > p.stock ? 'var(--danger)' : 'var(--border)',
+                                background: p && item.qty > p.stock ? 'var(--danger-light)' : 'var(--bg)',
+                                color: 'var(--text-primary)',
                                 fontSize: '14px' 
                               }}
                               placeholder="0"
@@ -467,7 +468,7 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
                             />
                           </div>
                           <div className="form-group" style={{ margin: 0 }}>
-                            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>Sell Price ({settings.currency})</label>
+                            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Sell Price ({settings.currency})</label>
                             <input 
                               type="number" 
                               value={item.price || ''} 
@@ -476,12 +477,12 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
                                 width: '100%',
                                 padding: '10px', 
                                 borderRadius: '8px',
-                                border: '1px solid #e2e8f0',
+                                border: '1px solid var(--border)',
                                 fontSize: '14px',
-                                background: item.price > 0 ? '#f0fdf4' : '#ffffff',
-                                borderColor: item.price > 0 ? '#10b981' : '#e2e8f0',
+                                background: item.price > 0 ? 'var(--success-light)' : 'var(--bg)',
+                                borderColor: item.price > 0 ? 'var(--success)' : 'var(--border)',
                                 fontWeight: 600,
-                                color: item.price > 0 ? '#166534' : 'inherit'
+                                color: item.price > 0 ? 'var(--success)' : 'var(--text-primary)'
                               }}
                               placeholder="0.00"
                             />
@@ -492,11 +493,11 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
                           display: 'flex', 
                           justifyContent: 'flex-end', 
                           padding: '8px 12px', 
-                          background: '#f8fafc', 
+                          background: 'var(--bg)', 
                           borderRadius: '6px',
                           fontSize: '13px',
                           fontWeight: 600,
-                          color: '#475569'
+                          color: 'var(--text-secondary)'
                         }}>
                           Item Total: {fmt(item.total)}
                         </div>
@@ -518,16 +519,16 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
                 )}
               </div>
 
-              <div className="calc-box" style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px' }}>
-                <p style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.5px' }}>Loyalty & Notifications</p>
+              <div className="calc-box" style={{ background: 'var(--bg)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.5px' }}>Loyalty & Notifications</p>
                 
                 {selectedCustomer && (
-                  <div style={{ marginBottom: '16px', padding: '12px', background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ marginBottom: '16px', padding: '12px', background: 'var(--card-bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '13px' }}>Current Points: <strong>{selectedCustomer.loyalty_points}</strong></span>
+                      <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>Current Points: <strong>{selectedCustomer.loyalty_points}</strong></span>
                       <span className="badge" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>{selectedCustomer.membership_tier} Member</span>
                     </div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-primary)' }}>
                       <input 
                         type="checkbox" 
                         checked={redeemPoints} 
@@ -541,30 +542,30 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
                         - ৳{pointsToRedeem.toLocaleString()} Discount Applied
                       </div>
                     )}
-                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '8px', borderTop: '1px dashed #e2e8f0', paddingTop: '8px' }}>
-                      Points to be earned from this sale: <span style={{ color: 'var(--primary)', fontWeight: 600 }}>+{pointsEarned}</span>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px', borderTop: '1px dashed var(--border)', paddingTop: '8px' }}>
+                      Points to be earned from this sale: <span style={{ color: 'var(--accent)', fontWeight: 600 }}>+{pointsEarned}</span>
                     </div>
                   </div>
                 )}
 
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', marginBottom: '16px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', marginBottom: '16px', color: 'var(--text-primary)' }}>
                   <input type="checkbox" checked={sendSms} onChange={(e) => setSendSms(e.target.checked)} />
                   Send SMS Invoice Notification
                 </label>
 
-                <p style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.5px' }}>Auto Calculation</p>
-                <div className="calc-row"><span>Subtotal</span><span className="text-mono">{fmt(subtotal)}</span></div>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.5px' }}>Auto Calculation</p>
+                <div className="calc-row" style={{ color: 'var(--text-primary)' }}><span>Subtotal</span><span className="text-mono">{fmt(subtotal)}</span></div>
                 {redeemPoints && <div className="calc-row" style={{ color: 'var(--success)' }}><span>Points Discount</span><span className="text-mono">-{fmt(pointsToRedeem)}</span></div>}
-                <div className="calc-row"><span>VAT ({formData.vat_percent}%)</span><span className="text-mono">{fmt(vatAmount)}</span></div>
-                <div className="calc-row"><span>Total Revenue</span><span className="text-mono">{fmt(totalRevenue)}</span></div>
-                <div className="calc-row"><span>Total Cost (landing)</span><span className="text-mono">{fmt(totalCost)}</span></div>
-                <div className="form-divider" style={{ margin: '8px 0' }}></div>
+                <div className="calc-row" style={{ color: 'var(--text-primary)' }}><span>VAT ({formData.vat_percent}%)</span><span className="text-mono">{fmt(vatAmount)}</span></div>
+                <div className="calc-row" style={{ color: 'var(--text-primary)' }}><span>Total Revenue</span><span className="text-mono">{fmt(totalRevenue)}</span></div>
+                <div className="calc-row" style={{ color: 'var(--text-primary)' }}><span>Total Cost (landing)</span><span className="text-mono">{fmt(totalCost)}</span></div>
+                <div className="form-divider" style={{ margin: '8px 0', background: 'var(--border)' }}></div>
                 <div className="calc-row total" style={{ color: 'var(--accent)' }}>
                   <span style={{ fontWeight: 700 }}>Total Profit / Loss</span>
                   <span className="text-mono" style={{ fontWeight: 700 }}>{fmt(profit)}</span>
                 </div>
                 <div className="calc-row">
-                  <span>Profit Margin</span>
+                  <span style={{ color: 'var(--text-primary)' }}>Profit Margin</span>
                   <span className="text-mono" style={{ color: 'var(--success)', fontWeight: 600 }}>{margin.toFixed(0)}%</span>
                 </div>
               </div>
