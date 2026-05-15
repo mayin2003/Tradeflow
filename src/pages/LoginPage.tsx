@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
+import { Lock, ArrowRight, Chrome } from 'lucide-react';
+
+const GoogleIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-1 .67-2.28 1.07-3.71 1.07-2.85 0-5.27-1.92-6.13-4.51H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+    <path d="M5.87 14.13c-.22-.67-.35-1.39-.35-2.13s.13-1.46.35-2.13V7.03H2.18C1.43 8.53 1 10.21 1 12s.43 3.47 1.18 4.97l3.69-2.84z" fill="#FBBC05"/>
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.03l3.69 2.84c.86-2.59 3.28-4.51 6.13-4.51z" fill="#EA4335"/>
+  </svg>
+);
 
 export const LoginPage = ({ onBack }: { onBack: () => void }) => {
   const { login, register, resetPassword } = useAuth();
@@ -57,8 +67,7 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
       if (result.session) {
         setStatus({ type: 'success', message: 'Success! Logging you in...' });
       } else {
-        setStatus({ type: 'success', message: 'Registration successful! Please check your email to verify your account before logging in.' });
-        // Optionally switch back to login tab
+        setStatus({ type: 'success', message: 'Registration successful! Please check your email to verify your account.' });
         setTimeout(() => setTab('login'), 3000);
       }
     } catch (error: any) {
@@ -88,143 +97,140 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
   };
 
   return (
-    <div id="auth-screen" className="mesh-bg" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '20px' }}>
-      <div style={{ position: 'absolute', top: '40px', left: '40px' }}>
+    <div id="auth-screen">
+      <div style={{ position: 'absolute', top: '24px', left: '24px', zIndex: 100 }}>
         <button 
           onClick={onBack}
           style={{ 
-            background: 'white', 
-            border: '1px solid #e2e8f0', 
-            padding: '10px 20px', 
+            background: 'rgba(255,255,255,0.1)', 
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255,255,255,0.1)', 
+            padding: '8px 16px', 
             borderRadius: '12px', 
-            fontSize: '14px', 
-            fontWeight: 600, 
+            fontSize: '13px', 
+            fontWeight: 700, 
             cursor: 'pointer',
+            color: 'white',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
+            transition: 'all 0.2s'
           }}
+          onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+          onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
         >
-          ← Back to Site
+          ← Back
         </button>
       </div>
 
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="auth-card" 
-        style={{ width: '100%', maxWidth: '440px', padding: '50px 40px' }}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, cubicBezier: [0.16, 1, 0.3, 1] }}
+        className="login-glass-card"
       >
-        <div className="auth-logo">
-          <motion.div 
-            whileHover={{ rotate: 360 }}
-            transition={{ duration: 1 }}
-            className="logo-icon"
-          >
-            🚢
-          </motion.div>
-          <h1 className="text-gradient">TradeFlow</h1>
-          <p>Enterprise Resource Planning Suite</p>
+        <div className="login-logo-glass">
+          <span>🚢</span>
         </div>
+        <h1 className="login-title">TradeFlow</h1>
+        <p className="login-subtitle">Enterprise Resource Planning Suite</p>
 
         {tab !== 'forgot' && (
-          <div className="auth-tabs" style={{ background: '#f8fafc', padding: '6px', borderRadius: '14px', marginBottom: '24px' }}>
+          <div className="login-tab-box">
             <div 
-              className={`auth-tab ${tab === 'login' ? 'active' : ''}`} 
-              style={{ 
-                background: tab === 'login' ? 'white' : 'transparent',
-                boxShadow: tab === 'login' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none'
-              }}
+              className={`login-tab-btn ${tab === 'login' ? 'active' : ''}`}
               onClick={() => setTab('login')}
             >
               Login
             </div>
             <div 
-              className={`auth-tab ${tab === 'register' ? 'active' : ''}`} 
-              style={{ 
-                background: tab === 'register' ? 'white' : 'transparent',
-                boxShadow: tab === 'register' ? '0 4px 12px rgba(0,0,0,0.05)' : 'none'
-              }}
+              className={`login-tab-btn ${tab === 'register' ? 'active' : ''}`}
               onClick={() => setTab('register')}
             >
               Sign Up
             </div>
           </div>
         )}
-        
-        {status && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            style={{ 
-              padding: '12px 16px', 
-              borderRadius: '12px', 
-              marginBottom: '20px',
-              fontSize: '14px',
-              lineHeight: '1.4',
-              textAlign: 'center',
-              backgroundColor: status.type === 'success' ? '#f0fdf4' : '#fef2f2',
-              color: status.type === 'success' ? '#15803d' : '#991b1b',
-              border: `1px solid ${status.type === 'success' ? '#bbf7d0' : '#fecaca'}`,
-            }}
-          >
-            {status.message}
-          </motion.div>
-        )}
-        
+
         <AnimatePresence mode="wait">
+          {status && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              style={{ 
+                width: '100%',
+                padding: '12px', 
+                borderRadius: '16px', 
+                marginBottom: '20px',
+                fontSize: '14px',
+                fontWeight:600,
+                textAlign: 'center',
+                background: status.type === 'success' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                color: status.type === 'success' ? '#10b981' : '#ef4444',
+                border: `1px solid ${status.type === 'success' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
+              }}
+            >
+              {status.message}
+            </motion.div>
+          )}
+
           {tab === 'login' ? (
             <motion.div 
               key="login"
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 10 }}
-              id="login-form"
+              style={{ width: '100%' }}
             >
-              <div className="form-group">
-                <label style={{ fontWeight: 600, color: '#475569' }}>Registered Email</label>
-                <input 
-                  type="email" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email" 
-                  style={{ padding: '14px', borderRadius: '12px' }}
-                />
+              <div className="login-input-wrap">
+                <label className="login-label">Registered Email</label>
+                <div className="login-field-container">
+                  <input 
+                    type="email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="login-field"
+                  />
+                </div>
               </div>
-              <div className="form-group">
-                <label style={{ fontWeight: 600, color: '#475569' }}>Password</label>
-                <input 
-                  type="password" 
-                  value={password} 
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••" 
-                  style={{ padding: '14px', borderRadius: '12px' }}
-                />
+              
+              <div className="login-input-wrap" style={{ marginBottom: '16px' }}>
+                <label className="login-label">Password</label>
+                <div className="login-field-container">
+                  <input 
+                    type="password" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="login-field"
+                  />
+                  <Lock size={18} className="login-field-icon" />
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
-                <button 
-                  onClick={() => setTab('forgot')}
-                  style={{ background: 'none', border: 'none', fontSize: '14px', color: '#2563eb', fontWeight: 500, cursor: 'pointer' }}
-                >
-                  Forgot Password?
-                </button>
+
+              <div className="login-forgot" onClick={() => setTab('forgot')}>
+                Forgot Password?
               </div>
+
+              <button className="google-btn">
+                <GoogleIcon />
+                Log in with Google
+              </button>
+
               <button 
-                className="btn btn-primary btn-full" 
+                className="primary-action-btn"
                 onClick={handleLogin}
                 disabled={isLoading}
-                style={{ 
-                  padding: '16px', 
-                  borderRadius: '12px', 
-                  fontSize: '16px', 
-                  fontWeight: 700, 
-                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                  boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.3)'
-                }}
               >
-                {isLoading ? 'Authenticating...' : 'Login Now →'}
+                {isLoading ? 'Authenticating...' : 'Login Now'}
+                <ArrowRight size={20} />
               </button>
+
+              <div className="login-footer">
+                Not a member? <a onClick={() => setTab('register')} style={{ cursor: 'pointer' }}>Sign up for a free trial</a>
+              </div>
             </motion.div>
           ) : tab === 'register' ? (
             <motion.div 
@@ -232,55 +238,55 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -10 }}
-              id="register-form"
+              style={{ width: '100%' }}
             >
-              <div className="form-group">
-                <label style={{ fontWeight: 600, color: '#475569' }}>Full Name</label>
+              <div className="login-input-wrap">
+                <label className="login-label">Full Name</label>
                 <input 
                   type="text" 
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="John Doe" 
-                  style={{ padding: '14px', borderRadius: '12px' }} 
+                  placeholder="John Doe"
+                  className="login-field"
                 />
               </div>
-              <div className="form-group">
-                <label style={{ fontWeight: 600, color: '#475569' }}>Educational/Company Email</label>
+              <div className="login-input-wrap">
+                <label className="login-label">Corporate Email</label>
                 <input 
                   type="email" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@company.com" 
-                  style={{ padding: '14px', borderRadius: '12px' }} 
+                  placeholder="you@company.com"
+                  className="login-field"
                 />
               </div>
-              <div className="form-group">
-                <label style={{ fontWeight: 600, color: '#475569' }}>Security Password</label>
-                <input 
-                  type="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••" 
-                  style={{ padding: '14px', borderRadius: '12px' }} 
-                />
+              <div className="login-input-wrap">
+                <label className="login-label">Create Password</label>
+                <div className="login-field-container">
+                  <input 
+                    type="password" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="login-field"
+                  />
+                  <Lock size={18} className="login-field-icon" />
+                </div>
               </div>
+              
               <button 
-                className="btn btn-primary btn-full" 
+                className="primary-action-btn"
                 onClick={handleRegister}
                 disabled={isLoading}
-                style={{ 
-                  padding: '16px', 
-                  borderRadius: '12px', 
-                  fontSize: '16px', 
-                  fontWeight: 700,
-                  marginTop: '10px'
-                }}
+                style={{ marginTop: '12px' }}
               >
-                {isLoading ? 'Creating Account...' : 'Sign Up Now →'}
+                {isLoading ? 'Creating Account...' : 'Sign Up Now'}
+                <ArrowRight size={20} />
               </button>
-              <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: '#64748b' }}>
-                By signing up, you agree to our Terms of Service and Privacy Policy.
-              </p>
+
+              <div className="login-footer">
+                Already have an account? <a onClick={() => setTab('login')} style={{ cursor: 'pointer' }}>Log In</a>
+              </div>
             </motion.div>
           ) : (
             <motion.div 
@@ -288,35 +294,36 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              id="forgot-form"
+              style={{ width: '100%' }}
             >
               <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#1e293b' }}>Reset Password</h3>
-                <p style={{ fontSize: '14px', color: '#64748b', marginTop: '8px' }}>
-                  Enter your email and we'll send you a link to reset your password.
+                <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'white' }}>Reset Password</h3>
+                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginTop: '8px' }}>
+                  We'll send a recovery link to your inbox.
                 </p>
               </div>
-              <div className="form-group">
-                <label style={{ fontWeight: 600, color: '#475569' }}>Email Address</label>
+              <div className="login-input-wrap">
+                <label className="login-label">Target Email</label>
                 <input 
                   type="email" 
-                  value={email} 
+                  value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email" 
-                  style={{ padding: '14px', borderRadius: '12px' }}
+                  placeholder="Enter your email"
+                  className="login-field"
                 />
               </div>
               <button 
-                className="btn btn-primary btn-full" 
+                className="primary-action-btn"
                 onClick={handleResetPassword}
                 disabled={isLoading}
-                style={{ padding: '16px', borderRadius: '12px', fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}
+                style={{ marginBottom: '16px' }}
               >
-                {isLoading ? 'Sending...' : 'Send Reset Link →'}
+                {isLoading ? 'Sending...' : 'Send Recovery Link'}
+                <ArrowRight size={20} />
               </button>
               <button 
                 onClick={() => setTab('login')}
-                style={{ background: 'none', border: 'none', width: '100%', fontSize: '14px', color: '#64748b', fontWeight: 600, cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', width: '100%', fontSize: '14px', color: 'rgba(255,255,255,0.6)', fontWeight: 700, cursor: 'pointer' }}
               >
                 ← Back to Login
               </button>
