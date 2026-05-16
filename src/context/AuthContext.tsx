@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   register: (name: string, email: string, password: string, company?: string) => Promise<{ session: boolean }>;
   resetPassword: (email: string) => Promise<void>;
   updateUser: (data: { name?: string; companyName?: string }) => Promise<void>;
@@ -30,9 +31,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Map Supabase user to our App User type
           const appUser: User = {
             id: session.user.id,
-            name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+            name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
             email: session.user.email || '',
             companyName: session.user.user_metadata?.company_name || 'My Business',
+            avatar: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
           };
           setUser(appUser);
         }
@@ -47,15 +49,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        const appUser: User = {
-          id: session.user.id,
-          name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
-          email: session.user.email || '',
-          companyName: session.user.user_metadata?.company_name || 'My Business',
-        };
-        setUser(appUser);
-      } else {
+    if (session?.user) {
+      const appUser: User = {
+        id: session.user.id,
+        name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+        email: session.user.email || '',
+        companyName: session.user.user_metadata?.company_name || 'My Business',
+        avatar: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
+      };
+      setUser(appUser);
+    } else {
         setUser(null);
       }
     });
@@ -77,11 +80,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (data.session?.user) {
       const appUser: User = {
         id: data.session.user.id,
-        name: data.session.user.user_metadata?.full_name || data.session.user.email?.split('@')[0] || 'User',
+        name: data.session.user.user_metadata?.full_name || data.session.user.user_metadata?.name || data.session.user.email?.split('@')[0] || 'User',
         email: data.session.user.email || '',
         companyName: data.session.user.user_metadata?.company_name || 'My Business',
+        avatar: data.session.user.user_metadata?.avatar_url || data.session.user.user_metadata?.picture,
       };
       setUser(appUser);
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        skipBrowserRedirect: true
+      }
+    });
+
+    if (error) {
+      console.error('Google login error:', error.message);
+      if (error.message.includes('provider is not enabled')) {
+        throw new Error('Google Sign-In is not enabled. Please go to Supabase Dashboard > Auth > Providers > Google and toggle "Enable Google" to ON.');
+      }
+      throw error;
+    }
+
+    if (data?.url) {
+      // Open the OAuth provider's URL directly in a popup
+      const authWindow = window.open(
+        data.url,
+        'google_oauth_popup',
+        'width=600,height=700'
+      );
+
+      if (!authWindow) {
+        throw new Error('Popup blocked. Please allow popups to sign in with Google.');
+      }
     }
   };
 
@@ -150,7 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, resetPassword, updateUser, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, signInWithGoogle, register, resetPassword, updateUser, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

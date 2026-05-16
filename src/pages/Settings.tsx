@@ -354,43 +354,6 @@ export const Settings = () => {
           {activeTab === 'general' && (
             <div className="settings-card">
               <h3 className="settings-section-title">Platform Experience</h3>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '15px' }}>Customize how you interact with the TradeFlow ecosystem.</p>
-              
-              <div style={{ marginBottom: '48px' }}>
-                <label style={{ fontWeight: 800, display: 'block', marginBottom: '20px', color: 'var(--text-secondary)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Visual Aesthetic</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-                  {[
-                    { id: 'light', label: 'Elegance Light', icon: '☀️', desc: 'Clean, soft, and hyper-readable for daytime productivity.' },
-                    { id: 'dark', label: 'Midnight Premium', icon: '🌙', desc: 'Deep, comfortable contrast for high-focus operations.' }
-                  ].map(theme => (
-                    <motion.div 
-                      key={theme.id}
-                      whileHover={{ scale: 1.02, translateY: -4 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setLocalSettings({...localSettings, theme: theme.id as any})}
-                      style={{ 
-                        padding: '32px',
-                        background: localSettings.theme === theme.id ? 'var(--accent)' : 'var(--bg)',
-                        borderRadius: '28px',
-                        cursor: 'pointer',
-                        border: '2px solid',
-                        borderColor: localSettings.theme === theme.id ? 'var(--accent)' : 'var(--border)',
-                        transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                        boxShadow: localSettings.theme === theme.id ? '0 20px 40px -10px rgba(37, 99, 235, 0.4)' : 'none'
-                      }}
-                    >
-                      <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-                        <div style={{ fontSize: '56px', filter: 'drop-shadow(0 10px 10px rgba(0,0,0,0.1))' }}>{theme.icon}</div>
-                        <div>
-                          <div style={{ fontWeight: 900, fontSize: '20px', color: localSettings.theme === theme.id ? 'white' : 'var(--text-primary)', marginBottom: '4px' }}>{theme.label}</div>
-                          <p style={{ margin: 0, fontSize: '13px', color: localSettings.theme === theme.id ? 'rgba(255,255,255,0.8)' : 'var(--text-secondary)', lineHeight: 1.4 }}>{theme.desc}</p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-
               <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
                 <div className="form-group">
                   <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Base Transaction Currency</label>

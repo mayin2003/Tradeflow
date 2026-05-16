@@ -19,12 +19,19 @@ import { AuthProvider } from './context/AuthContext';
 
 import { motion, AnimatePresence } from 'motion/react';
 
+import { AuthCallback } from './pages/AuthCallback';
+
 const AppContent = () => {
   const { user } = useAuth();
   const { addActivityLog } = useData();
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+
+  // Handle OAuth Callback route
+  if (window.location.pathname === '/auth/callback' || window.location.pathname === '/auth/callback/') {
+    return <AuthCallback />;
+  }
 
   // Toggle body class for scroll lock on mobile
   useEffect(() => {

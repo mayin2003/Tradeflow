@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
+import { Moon, Sun } from 'lucide-react';
 
 interface TopbarProps {
   title: string;
@@ -8,7 +9,7 @@ interface TopbarProps {
 }
 
 export const Topbar = ({ title, onToggleSidebar, onNavigate }: TopbarProps) => {
-  const { products } = useData();
+  const { products, settings, updateSettings } = useData();
   const [showNotifs, setShowNotifs] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -94,6 +95,17 @@ export const Topbar = ({ title, onToggleSidebar, onNavigate }: TopbarProps) => {
             </div>
           )}
         </div>
+
+        <button 
+          className="w-10 h-10 rounded-xl flex items-center justify-center border border-slate-200 bg-card text-slate-500 hover:border-blue-400 hover:bg-slate-50 transition-all" 
+          onClick={() => {
+            const nextTheme = settings.theme === 'light' ? 'dark' : 'light';
+            updateSettings({ ...settings, theme: nextTheme });
+          }}
+          title={`Switch to ${settings.theme === 'light' ? 'dark' : 'light'} mode`}
+        >
+          {settings.theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+        </button>
 
         <button 
           className="w-10 h-10 rounded-xl flex items-center justify-center border border-slate-200 bg-card text-slate-500 hover:border-blue-400 hover:bg-slate-50 transition-all" 
