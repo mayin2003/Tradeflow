@@ -3,23 +3,37 @@ import { supabase } from '../lib/supabase';
 
 export const AuthCallback = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [attempts, setAttempts] = useState(0);
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Force session refresh to ensure it's loaded in this window
+        console.log('AuthCallback: Checking session (Attempt ' + (attempts + 1) + ')');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) throw error;
         
-        if (window.opener) {
-          // Send success message to the parent window
-          window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, '*');
-          // Close the popup after a brief delay
-          setTimeout(() => window.close(), 1000);
+        if (session) {
+          console.log('AuthCallback: Session found, sending success message');
+          if (window.opener) {
+            window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', session }, '*');
+            setTimeout(() => window.close(), 1000);
+          } else {
+            window.location.href = '/';
+          }
+          return;
+        }
+
+        // If no session and we have hash/search params, keep trying for a bit
+        if (window.location.hash || window.location.search) {
+          if (attempts < 10) {
+            setTimeout(() => setAttempts(a => a + 1), 1000);
+          } else {
+            throw new Error('Authentication timeout. Please try again.');
+          }
         } else {
-          // If opened directly, just redirect to home
-          window.location.href = '/';
+          // If no hash/params and no session, we might have been opened incorrectly
+          throw new Error('No authentication data found in URL.');
         }
       } catch (err: any) {
         console.error('Auth callback error:', err.message);
@@ -31,10 +45,8 @@ export const AuthCallback = () => {
       }
     };
 
-    // Small delay to allow Supabase to process the hash/tokens in URL
-    const timeout = setTimeout(handleCallback, 500);
-    return () => clearTimeout(timeout);
-  }, []);
+    handleCallback();
+  }, [attempts]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 font-sans">

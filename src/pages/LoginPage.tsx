@@ -13,7 +13,7 @@ const GoogleIcon = () => (
 );
 
 export const LoginPage = ({ onBack }: { onBack: () => void }) => {
-  const { login, register, resetPassword, signInWithGoogle } = useAuth();
+  const { login, register, resetPassword, signInWithGoogle, refreshSession, setSession } = useAuth();
   const [tab, setTab] = useState<'login' | 'register' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,12 +46,23 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
   const strength = calculateStrength(password);
   const strengthLabel = getStrengthLabel(strength);
 
+  const validateEmail = (email: string) => {
+    // Stricter regex: requires at least one char before @, a domain with a dot, and a 2+ char TLD
+    const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return regex.test(email);
+  };
+
   const handleLogin = async () => {
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
 
     if (!trimmedEmail || !trimmedPassword) {
       setStatus({ type: 'error', message: 'Please enter both email and password.' });
+      return;
+    }
+
+    if (!validateEmail(trimmedEmail)) {
+      setStatus({ type: 'error', message: 'Please enter a valid email address.' });
       return;
     }
     
@@ -62,10 +73,9 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
       await login(trimmedEmail, trimmedPassword);
     } catch (error: any) {
       let msg = error.message || 'Login failed. Please check your credentials.';
+      // Note: AuthContext already maps some of these, but we keep this as defensive backup
       if (msg.includes('Invalid login credentials')) {
-        msg = 'Invalid email or password. Please try again.';
-      } else if (msg.includes('Email not confirmed')) {
-        msg = 'Your email has not been verified yet. Please check your inbox for a confirmation link.';
+        msg = 'Invalid email or password. Please try again or create a new account.';
       }
       setStatus({ type: 'error', message: msg });
       setIsLoading(false);
@@ -78,6 +88,11 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
 
     if (!trimmedEmail || !trimmedPassword || !fullName.trim()) {
       setStatus({ type: 'error', message: 'Please fill in all required fields.' });
+      return;
+    }
+
+    if (!validateEmail(trimmedEmail)) {
+      setStatus({ type: 'error', message: 'Please enter a valid email address.' });
       return;
     }
 
@@ -109,6 +124,11 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
       setStatus({ type: 'error', message: 'Please enter your email address.' });
       return;
     }
+
+    if (!validateEmail(trimmedEmail)) {
+      setStatus({ type: 'error', message: 'Please enter a valid email address.' });
+      return;
+    }
     
     setIsLoading(true);
     setStatus(null);
@@ -128,6 +148,18 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
     setStatus(null);
     try {
       await signInWithGoogle();
+      // Inform the user to check the popup
+      setStatus({ type: 'success', message: 'Opening Google login window... Please complete authentication there.' });
+      
+      // If the origin is not localhost, log a helpful tip for the user
+      if (!window.location.host.includes('localhost')) {
+        console.log('%c[Supabase Auth Tip]', 'color: #3ecf8e; font-weight: bold', 
+          '\nIf the Google popup redirects to localhost instead of this site, please follow these steps:' +
+          '\n1. Go to Supabase Dashboard > Auth > URL Configuration' +
+          '\n2. Update "Site URL" to: ' + window.location.origin +
+          '\n3. Add to "Redirect URLs": ' + window.location.origin + '/auth/callback'
+        );
+      }
     } catch (error: any) {
       setStatus({ type: 'error', message: error.message || 'Google login failed.' });
       setIsLoading(false);
@@ -136,10 +168,22 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
 
   // Listen for OAuth messages from popup
   React.useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
+    let timeout: NodeJS.Timeout;
+    const handleMessage = async (event: MessageEvent) => {
       if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
+        console.log('LoginPage: Received OAUTH_AUTH_SUCCESS');
+        const session = event.data.session;
+        
+        if (session) {
+          console.log('LoginPage: Manually setting session');
+          await setSession(session);
+        } else {
+          console.log('LoginPage: No session in message, falling back to refresh');
+          await refreshSession();
+        }
+        
         setStatus({ type: 'success', message: 'Google authentication successful! Redirecting...' });
-        // The onAuthStateChange in AuthContext will handle the user state update
+        setIsLoading(false);
       }
       if (event.data?.type === 'OAUTH_AUTH_ERROR') {
         setStatus({ type: 'error', message: event.data.error || 'Google authentication failed.' });
@@ -147,8 +191,11 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
       }
     };
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      clearTimeout(timeout);
+    };
+  }, [refreshSession, setSession]);
 
   return (
     <div className="min-h-screen relative flex flex-col items-center justify-center p-6 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-50/50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 font-sans selection:bg-teal-100 dark:selection:bg-teal-900">

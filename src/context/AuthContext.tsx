@@ -10,6 +10,8 @@ interface AuthContextType {
   register: (name: string, email: string, password: string, company?: string) => Promise<{ session: boolean }>;
   resetPassword: (email: string) => Promise<void>;
   updateUser: (data: { name?: string; companyName?: string }) => Promise<void>;
+  refreshSession: () => Promise<void>;
+  setSession: (session: any) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -25,7 +27,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const getSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
+        if (error) {
+          if (error.message.includes('Email not confirmed')) {
+            throw new Error('Your email address has not been confirmed yet. Please check your inbox for a verification link or disable "Confirm email" in your Supabase Auth settings.');
+          }
+          throw error;
+        }
         
         if (session?.user) {
           // Map Supabase user to our App User type
@@ -74,6 +81,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     if (error) {
       console.error('Login error:', error.message);
+      if (error.message.includes('Email not confirmed')) {
+        throw new Error('Your email address has not been confirmed yet. Please check your inbox for a verification link or disable "Confirm email" in your Supabase Auth settings.');
+      }
+      if (error.message.includes('Invalid login credentials')) {
+        throw new Error('Invalid email or password. Please check your credentials or sign up for a new account.');
+      }
       throw error;
     }
     
@@ -90,10 +103,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
+    // Determine the redirect URL. We use current origin as fallback.
+    const redirectUrl = `${window.location.origin}/auth/callback`;
+    
+    console.log('Attempting Google login with redirect URL:', redirectUrl);
+    
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: redirectUrl,
         skipBrowserRedirect: true
       }
     });
@@ -107,6 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (data?.url) {
+      console.log('Opening OAuth popup with URL:', data.url);
       // Open the OAuth provider's URL directly in a popup
       const authWindow = window.open(
         data.url,
@@ -117,10 +136,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!authWindow) {
         throw new Error('Popup blocked. Please allow popups to sign in with Google.');
       }
+      
+      // Monitor the window - if it redirects to localhost while the app is not on localhost, 
+      // it means Supabase is falling back to a default redirect URL.
+      const monitorInterval = setInterval(() => {
+        try {
+          if (authWindow.closed) {
+            clearInterval(monitorInterval);
+            return;
+          }
+          
+          // Browser security prevents reading URL of the window if it's on another domain
+          // But we can check if we can access its location
+          const windowOrigin = authWindow.location.origin;
+          if (windowOrigin.includes('localhost') && !window.location.origin.includes('localhost')) {
+            console.warn('Detected redirect to localhost. This usually means the "Site URL" in Supabase is set to localhost and needs to be updated to your app URL.');
+          }
+        } catch (e) {
+          // This cross-origin error is expected while on Google or Supabase domain
+        }
+      }, 1000);
     }
   };
 
   const register = async (name: string, email: string, password: string, company: string = 'TradeFlow') => {
+    // Stricter email validation: requires at least one char before @, a domain with a dot, and a 2+ char TLD
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      throw new Error('Please provide a valid email address (e.g., name@example.com).');
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -134,6 +179,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     if (error) {
       console.error('Signup error:', error.message);
+      if (error.message.includes('User already registered')) {
+        throw new Error('This email is already registered. Please try logging in or use a different email.');
+      }
       throw error;
     }
 
@@ -151,19 +199,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { session: false };
   };
 
-  const resetPassword = async (email: string) => {
+  const resetPassword = React.useCallback(async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin,
     });
     if (error) throw error;
-  };
+  }, []);
 
-  const logout = async () => {
+  const refreshSession = React.useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      
+      if (session?.user) {
+        const appUser: User = {
+          id: session.user.id,
+          name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+          email: session.user.email || '',
+          companyName: session.user.user_metadata?.company_name || 'My Business',
+          avatar: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
+        };
+        setUser(appUser);
+      }
+    } catch (err: any) {
+      console.error('Session refresh failed:', err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const setSession = React.useCallback(async (session: any) => {
+    setIsLoading(true);
+    try {
+      if (session?.user) {
+        // Manually set the session in Supabase client
+        await supabase.auth.setSession(session);
+        
+        const appUser: User = {
+          id: session.user.id,
+          name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+          email: session.user.email || '',
+          companyName: session.user.user_metadata?.company_name || 'My Business',
+          avatar: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
+        };
+        setUser(appUser);
+      }
+    } catch (err: any) {
+      console.error('Manual session set failed:', err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const logout = React.useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
-  };
+  }, []);
 
-  const updateUser = async (data: { name?: string; companyName?: string }) => {
+  const updateUser = React.useCallback(async (data: { name?: string; companyName?: string }) => {
     if (!user) return;
 
     const { data: authData, error } = await supabase.auth.updateUser({
@@ -176,16 +270,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
 
     if (authData.user) {
-      setUser({
-        ...user,
+      setUser(prev => prev ? {
+        ...prev,
         ...(data.name && { name: data.name }),
         ...(data.companyName && { companyName: data.companyName }),
-      });
+      } : null);
     }
-  };
+  }, [user]);
+
+  const value = React.useMemo(() => ({
+    user,
+    login,
+    signInWithGoogle,
+    register,
+    resetPassword,
+    updateUser,
+    refreshSession,
+    setSession,
+    logout,
+    isLoading
+  }), [user, login, signInWithGoogle, register, resetPassword, updateUser, refreshSession, setSession, logout, isLoading]);
 
   return (
-    <AuthContext.Provider value={{ user, login, signInWithGoogle, register, resetPassword, updateUser, logout, isLoading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
