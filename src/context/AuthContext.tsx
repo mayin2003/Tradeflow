@@ -104,9 +104,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     // Determine the redirect URL. We use current origin as fallback.
-    const redirectUrl = `${window.location.origin}/auth/callback`;
+    // In AI Studio, window.location.origin within the iframe should be the proxy URL.
+    // However, we use a more robust detection to avoid common redirect issues.
+    let originToUse = window.location.origin;
     
-    console.log('Attempting Google login with redirect URL:', redirectUrl);
+    // Safety check for null or specific platform origins that might be incorrect
+    if (!originToUse || originToUse === 'null' || originToUse.includes('aistudio.google.com')) {
+      originToUse = window.location.href.split('/').slice(0, 3).join('/');
+    }
+    
+    // Ensure no trailing slash
+    if (originToUse.endsWith('/')) {
+      originToUse = originToUse.slice(0, -1);
+    }
+    
+    const redirectUrl = `${originToUse}/auth/callback`;
+    
+    console.log('[Supabase Auth] Attempting Google login');
+    console.log('[Supabase Auth] Current Origin:', originToUse);
+    console.log('[Supabase Auth] Redirect URL:', redirectUrl);
     
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -117,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (error) {
-      console.error('Google login error:', error.message);
+      console.error('[Supabase Auth] Google login error:', error.message);
       if (error.message.includes('provider is not enabled')) {
         throw new Error('Google Sign-In is not enabled. Please go to Supabase Dashboard > Auth > Providers > Google and toggle "Enable Google" to ON.');
       }
@@ -125,7 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (data?.url) {
-      console.log('Opening OAuth popup with URL:', data.url);
+      console.log('[Supabase Auth] Opening OAuth popup');
       // Open the OAuth provider's URL directly in a popup
       const authWindow = window.open(
         data.url,
@@ -136,26 +152,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!authWindow) {
         throw new Error('Popup blocked. Please allow popups to sign in with Google.');
       }
-      
-      // Monitor the window - if it redirects to localhost while the app is not on localhost, 
-      // it means Supabase is falling back to a default redirect URL.
-      const monitorInterval = setInterval(() => {
-        try {
-          if (authWindow.closed) {
-            clearInterval(monitorInterval);
-            return;
-          }
-          
-          // Browser security prevents reading URL of the window if it's on another domain
-          // But we can check if we can access its location
-          const windowOrigin = authWindow.location.origin;
-          if (windowOrigin.includes('localhost') && !window.location.origin.includes('localhost')) {
-            console.warn('Detected redirect to localhost. This usually means the "Site URL" in Supabase is set to localhost and needs to be updated to your app URL.');
-          }
-        } catch (e) {
-          // This cross-origin error is expected while on Google or Supabase domain
-        }
-      }, 1000);
     }
   };
 

@@ -148,17 +148,27 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
     setStatus(null);
     try {
       await signInWithGoogle();
-      // Inform the user to check the popup
-      setStatus({ type: 'success', message: 'Opening Google login window... Please complete authentication there.' });
       
-      // If the origin is not localhost, log a helpful tip for the user
-      if (!window.location.host.includes('localhost')) {
+      const isInternal = window.location.hostname.includes('aistudio.google.com');
+      const msg = isInternal 
+        ? 'OAuth requires a public URL. Please click the "Shared App URL" in the bottom-right of the AI Studio editor to open the app in a new tab first, then try logging in there.'
+        : 'Opening Google login window... Please complete authentication there.';
+      
+      setStatus({ 
+        type: isInternal ? 'error' : 'success', 
+        message: msg 
+      });
+
+      if (!isInternal && !window.location.host.includes('localhost')) {
         console.log('%c[Supabase Auth Tip]', 'color: #3ecf8e; font-weight: bold', 
-          '\nIf the Google popup redirects to localhost instead of this site, please follow these steps:' +
-          '\n1. Go to Supabase Dashboard > Auth > URL Configuration' +
-          '\n2. Update "Site URL" to: ' + window.location.origin +
-          '\n3. Add to "Redirect URLs": ' + window.location.origin + '/auth/callback'
+          '\nIf the Google popup redirects to AI Studio 404 or localhost, ensure your Supabase configuration is updated:' +
+          '\n1. Site URL: ' + window.location.origin +
+          '\n2. Redirect URLs: ' + window.location.origin + '/auth/callback'
         );
+      }
+      
+      if (isInternal) {
+        setIsLoading(false);
       }
     } catch (error: any) {
       setStatus({ type: 'error', message: error.message || 'Google login failed.' });
