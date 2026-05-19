@@ -1,10 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useData } from '../context/DataContext';
+import { QrCode, Camera, Calendar, X, Sparkles, Watch } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { BarcodeScanner } from '../components/BarcodeScanner';
 
 export const BuyImport = () => {
   const { products, transactions, addTransaction, settings } = useData();
   const [showModal, setShowModal] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  
   const [formData, setFormData] = useState({
     product_id: '',
     product_name: '',
@@ -19,13 +25,15 @@ export const BuyImport = () => {
     date: new Date().toISOString().split('T')[0]
   });
 
-  const calc = () => {
-    const prod = formData.price * formData.qty;
-    const add = formData.ship + formData.duty + formData.vat + formData.other;
-    const total = prod + add;
-    const land = formData.qty ? total / formData.qty : 0;
-    return { prod, add, total, land };
-  };
+  const calculations = useMemo(() => {
+    const prodVal = formData.price * formData.qty;
+    const addVal = formData.ship + formData.duty + formData.vat + formData.other;
+    const totalVal = prodVal + addVal;
+    const landVal = formData.qty ? totalVal / formData.qty : 0;
+    return { prod: prodVal, add: addVal, total: totalVal, land: landVal };
+  }, [formData]);
+
+  const { prod, add, total, land } = calculations;
 
   const handleAdd = () => {
     if (!formData.product_name || !formData.qty) {
@@ -36,7 +44,6 @@ export const BuyImport = () => {
     // Default sell_price to purchase price if not set
     const finalSellPrice = formData.sell_price || formData.price;
 
-    const { total } = calc();
     addTransaction({
       type: 'purchase',
       product_id: formData.product_id || `manual_${Date.now()}`,
@@ -68,8 +75,33 @@ export const BuyImport = () => {
     });
   };
 
+  const formattedDate = useMemo(() => {
+    if (!formData.date) return 'Select Date';
+    return new Date(formData.date).toLocaleDateString('en-GB');
+  }, [formData.date]);
+
+  const handleScan = (decodedText: string) => {
+    console.log('Scanned QR:', decodedText);
+    // Logic to find product by barcode or just set name
+    const existing = products.find(p => p.id === decodedText || p.name === decodedText);
+    if (existing) {
+      setFormData({
+        ...formData,
+        product_name: existing.name,
+        product_id: existing.id,
+        price: existing.cost_price,
+        sell_price: existing.sell_price
+      });
+    } else {
+      setFormData({
+        ...formData,
+        product_name: decodedText
+      });
+    }
+    setShowScanner(false);
+  };
+
   const fmt = (n: number) => settings.currency + Math.round(n).toLocaleString();
-  const { prod, add, total, land } = calc();
 
   const filteredTransactions = useMemo(() => {
     return transactions
@@ -171,140 +203,228 @@ export const BuyImport = () => {
         </div>
       </div>
 
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>Record Purchase</h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Product *</label>
-                  <input 
-                    type="text" 
-                    list="products-list"
-                    value={formData.product_name}
-                    onChange={(e) => {
-                      const name = e.target.value;
-                      const existing = products.find(p => p.name === name);
-                      setFormData({
-                        ...formData, 
-                        product_name: name,
-                        product_id: existing ? existing.id : '',
-                        price: existing ? existing.cost_price : formData.price,
-                        sell_price: existing ? existing.sell_price : formData.sell_price
-                      });
-                    }}
-                    placeholder="e.g. Samsung TV" 
-                  />
-                  <datalist id="products-list">
-                    {products.map(p => <option key={p.id} value={p.name} />)}
-                  </datalist>
-                </div>
-                {settings.buy.requireDate && (
-                  <div className="form-group">
-                    <label>Purchase Date *</label>
-                    <input 
-                      type="date" 
-                      value={formData.date}
-                      onChange={(e) => setFormData({...formData, date: e.target.value})}
-                    />
-                  </div>
-                )}
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Quantity *</label>
-                  <input 
-                    type="number" 
-                    value={formData.qty || ''}
-                    onChange={(e) => setFormData({...formData, qty: +e.target.value})}
-                    placeholder="0"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Purchase Price (unit)</label>
-                  <input 
-                    type="number" 
-                    value={formData.price || ''}
-                    onChange={(e) => {
-                      const val = +e.target.value;
-                      setFormData({
-                        ...formData, 
-                        price: val,
-                        sell_price: formData.sell_price === formData.price || !formData.sell_price ? val : formData.sell_price
-                      });
-                    }}
-                    placeholder="0"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Sell Price (unit) *</label>
-                  <input 
-                    type="number" 
-                    value={formData.sell_price || ''}
-                    onChange={(e) => setFormData({...formData, sell_price: +e.target.value})}
-                    placeholder="0"
-                  />
-                </div>
+      <AnimatePresence>
+        {showModal && (
+          <div className="modal-overlay custom-modal-overlay">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="retro-modal"
+            >
+              <div className="retro-modal-header">
+                <h3>Record Purchase</h3>
+                <button className="retro-close-btn" onClick={() => setShowModal(false)}><X size={20} /></button>
               </div>
               
-              {(settings.buy.enableShippingCost || settings.buy.enableCustomsDuty || settings.buy.enableOtherCosts) && (
-                <>
-                  <div className="form-divider"></div>
-                  <p style={{ fontSize: '13px', fontWeight: 600, marginBottom: '10px', color: 'var(--text-secondary)' }}>Additional Costs</p>
-                  <div className="form-row">
-                    {settings.buy.enableShippingCost && (
-                      <div className="form-group">
-                        <label>Shipping Cost</label>
-                        <input 
-                          type="number" 
-                          value={formData.ship || ''}
-                          onChange={(e) => setFormData({...formData, ship: +e.target.value})} 
-                          placeholder="0"
-                        />
-                      </div>
-                    )}
-                    {settings.buy.enableCustomsDuty && (
-                      <div className="form-group">
-                        <label>Customs Duty</label>
-                        <input 
-                          type="number" 
-                          value={formData.duty || ''}
-                          onChange={(e) => setFormData({...formData, duty: +e.target.value})} 
-                          placeholder="0"
-                        />
-                      </div>
-                    )}
+              <div className="retro-modal-body custom-scrollbar">
+                <div className="retro-form-row">
+                  <div className="retro-form-group">
+                    <label>Product *</label>
+                    <div className="retro-input-wrapper">
+                      <input 
+                        type="text" 
+                        list="products-list"
+                        className="retro-input"
+                        value={formData.product_name}
+                        onChange={(e) => {
+                          const name = e.target.value;
+                          const existing = products.find(p => p.name === name);
+                          setFormData({
+                            ...formData, 
+                            product_name: name,
+                            product_id: existing ? existing.id : '',
+                            price: existing ? existing.cost_price : formData.price,
+                            sell_price: existing ? existing.sell_price : formData.sell_price
+                          });
+                        }}
+                        placeholder="e.g. Samsung TV" 
+                      />
+                    </div>
+                    <datalist id="products-list">
+                      {products.map(p => <option key={p.id} value={p.name} />)}
+                    </datalist>
                   </div>
-                  {settings.buy.enableOtherCosts && (
-                    <div className="form-group">
-                      <label>Other Costs</label>
+                  
+                    <div className="retro-form-group">
+                    <label>Purchase Date *</label>
+                    <div className="retro-input-wrapper with-icon cursor-pointer group relative">
+                      <input 
+                        type="date" 
+                        className="retro-input-hidden"
+                        value={formData.date}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val) setFormData({...formData, date: val});
+                        }}
+                        onClick={(e) => {
+                          // Force showPicker if supported for more immediate response
+                          if ('showPicker' in e.currentTarget) {
+                            try {
+                              (e.currentTarget as any).showPicker();
+                            } catch (err) {}
+                          }
+                        }}
+                      />
+                      <div className="retro-input-display group-hover:border-blue-400 transition-colors duration-100 relative z-0 pointer-events-none">
+                        {formattedDate}
+                      </div>
+                      <div className="retro-input-icon group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors duration-100 z-0 pointer-events-none">
+                        <Watch size={18} className="text-slate-700 dark:text-slate-300 group-hover:text-blue-500 transition-colors duration-100" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="retro-section-container">
+                  <div className="retro-form-row">
+                    <div className="retro-form-group no-label-margin">
+                      <label>QR Code Scan</label>
+                      <div className="qr-scan-area">
+                        <div className="qr-preview-box">
+                          <QrCode size={32} className="qr-icon-dim" />
+                          <div className="qr-focus-corners"></div>
+                          <div className="qr-scan-line"></div>
+                        </div>
+                        <button 
+                          className="retro-btn-metallic-teal scan-btn"
+                          onClick={() => setShowScanner(true)}
+                        >
+                          <Camera size={18} />
+                          <span>Scan QR Code</span>
+                        </button>
+                      </div>
+                    </div>
+                    <div className="retro-form-group">
+                      <label>Purchase Price (unit) *</label>
+                      <div className="retro-input-wrapper">
+                        <input 
+                          type="number" 
+                          className="retro-input"
+                          value={formData.price || ''}
+                          onChange={(e) => {
+                            const val = +e.target.value;
+                            setFormData({
+                              ...formData, 
+                              price: val,
+                              sell_price: formData.sell_price === formData.price || !formData.sell_price ? val : formData.sell_price
+                            });
+                          }}
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="retro-form-row">
+                  <div className="retro-form-group">
+                    <label>Quantity *</label>
+                    <div className="retro-input-wrapper">
                       <input 
                         type="number" 
-                        value={formData.other || ''}
-                        onChange={(e) => setFormData({...formData, other: +e.target.value})} 
+                        className="retro-input"
+                        value={formData.qty || ''}
+                        onChange={(e) => setFormData({...formData, qty: +e.target.value})}
                         placeholder="0"
                       />
                     </div>
-                  )}
-                </>
-              )}
-              <div className="calc-box">
-                <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>AUTO CALCULATION</p>
-                <div className="calc-row"><span>Product Cost</span><span className="text-mono">{fmt(prod)}</span></div>
-                <div className="calc-row"><span>Total Import Cost</span><span className="text-mono">{fmt(total)}</span></div>
-                <div className="calc-row total"><span>Landing Cost / Unit</span><span className="text-mono" style={{ color: 'var(--success)' }}>{fmt(land)}</span></div>
+                  </div>
+                  <div className="retro-form-group">
+                    <label>Sell Price (unit) *</label>
+                    <div className="retro-input-wrapper">
+                      <input 
+                        type="number" 
+                        className="retro-input"
+                        value={formData.sell_price || ''}
+                        onChange={(e) => setFormData({...formData, sell_price: +e.target.value})}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="retro-divider-text">
+                  <span>Additional Costs</span>
+                </div>
+
+                <div className="retro-form-row">
+                  <div className="retro-form-group">
+                    <label>Shipping Cost</label>
+                    <div className="retro-input-wrapper">
+                      <input 
+                        type="number" 
+                        className="retro-input"
+                        value={formData.ship || ''}
+                        onChange={(e) => setFormData({...formData, ship: +e.target.value})} 
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                  <div className="retro-form-group">
+                    <label>Customs Duty</label>
+                    <div className="retro-input-wrapper">
+                      <input 
+                        type="number" 
+                        className="retro-input"
+                        value={formData.duty || ''}
+                        onChange={(e) => setFormData({...formData, duty: +e.target.value})} 
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="retro-form-group full-width">
+                  <label>Other Costs</label>
+                  <div className="retro-input-wrapper">
+                    <input 
+                      type="number" 
+                      className="retro-input"
+                      value={formData.other || ''}
+                      onChange={(e) => setFormData({...formData, other: +e.target.value})} 
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+
+                <div className="retro-calc-box">
+                  <div className="calc-header">AUTO CALCULATION</div>
+                  <div className="calc-grid">
+                    <div className="calc-item">
+                      <span>Product Cost</span>
+                      <span className="text-mono">৳{Math.round(prod).toLocaleString()}</span>
+                    </div>
+                    <div className="calc-item highlight">
+                      <span>Total Import Cost</span>
+                      <span className="text-mono">৳{Math.round(total).toLocaleString()}</span>
+                    </div>
+                    <div className="calc-divider"></div>
+                    <div className="calc-item landing-cost">
+                      <span>Landing Cost / Unit</span>
+                      <span className="text-mono font-bold">৳{Math.round(land).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-outline" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleAdd}>Record Purchase</button>
-            </div>
+
+              <div className="retro-modal-footer">
+                <button className="retro-btn-metallic-silver lg" onClick={() => setShowModal(false)}>Cancel</button>
+                <button className="retro-btn-metallic-teal lg flex-1" onClick={handleAdd}>
+                  <span>Record Purchase</span>
+                  <Sparkles size={18} className="sparkle-icon" />
+                </button>
+              </div>
+            </motion.div>
           </div>
-        </div>
+        )}
+      </AnimatePresence>
+
+      {showScanner && (
+        <BarcodeScanner 
+          onScan={handleScan} 
+          onClose={() => setShowScanner(false)} 
+        />
       )}
     </div>
   );

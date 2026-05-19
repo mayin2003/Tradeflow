@@ -113,7 +113,17 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
         setTimeout(() => setTab('login'), 3000);
       }
     } catch (error: any) {
-      setStatus({ type: 'error', message: error.message || 'Registration failed. Try a different email.' });
+      let msg = error.message || 'Registration failed. Try a different email.';
+      
+      // Check if user is already registered to provide helpful UX
+      if (msg.includes('already registered')) {
+        setStatus({ 
+          type: 'error', 
+          message: 'This email is already registered. Did you mean to log in?' 
+        });
+      } else {
+        setStatus({ type: 'error', message: msg });
+      }
       setIsLoading(false);
     }
   };
@@ -243,13 +253,26 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
           <motion.div 
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
-            className={`px-4 py-3 rounded-xl mb-6 text-sm font-medium border ${
+            className={`px-4 py-3 rounded-xl mb-6 text-sm font-medium border relative overflow-hidden ${
               status.type === 'success' 
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' 
                 : 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20'
             }`}
           >
-            {status.message}
+            <div className="flex items-start justify-between gap-3">
+              <span>{status.message}</span>
+              {status.type === 'error' && status.message.includes('already registered') && (
+                <button 
+                  onClick={() => {
+                    setTab('login');
+                    setStatus(null);
+                  }}
+                  className="shrink-0 text-rose-800 dark:text-rose-300 underline font-bold hover:no-underline"
+                >
+                  Login instead
+                </button>
+              )}
+            </div>
           </motion.div>
         )}
 

@@ -46,7 +46,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(appUser);
         }
       } catch (err: any) {
-        console.error('Auth session fetch failed:', err.message);
+        if (err.message.includes('Failed to fetch')) {
+          console.warn('Network Error during Auth check: Proceeding as unauthenticated offline user.');
+        } else {
+          console.error('Auth session fetch failed:', err.message);
+        }
       } finally {
         setIsLoading(false);
       }

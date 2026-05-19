@@ -140,21 +140,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const anyError = [resProducts, resCustomers, resExpenses, resTransactions, resLogs, resDocs].find(r => r.error);
       
       if (anyError) {
-        setDbStatus('error');
         const msg = anyError.error.message;
         const isDefaultUrl = supabaseUrl === 'https://qerbogtxvdqsihhuadzl.supabase.co';
         
         let errorMsg = msg;
         if (msg.includes('Failed to fetch')) {
-          errorMsg = 'Network Error: Could not connect to Supabase. Check your URL and internet connection.';
-          console.error(errorMsg);
+          setDbStatus('offline'); // Use a specific status for offline fallback
+          errorMsg = 'Network Error: Could not connect to Supabase. Proceeding in Offline/Fallback mode.';
+          console.warn(errorMsg);
         } else if (msg.includes('schema cache') || msg.includes('does not exist') || msg.includes('not found')) {
+          setDbStatus('error');
           errorMsg = 'Schema Error: Table missing in Supabase. Run SQL in supabase_schema.sql.';
           console.error(errorMsg);
           if (isDefaultUrl) {
             console.warn('NOTE: You are using the default Supabase project. You should connect your own Supabase project in .env');
           }
         } else {
+          setDbStatus('error');
           console.error('Database connection error:', msg);
         }
         setDbError(errorMsg);
@@ -459,14 +461,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       refreshData: loadData
     }}>
       {children}
-      {dbStatus === 'error' && (
+      {(dbStatus === 'error' || dbStatus === 'offline') && (
         <div style={{
           position: 'fixed',
           bottom: '20px',
           right: '20px',
-          background: '#fee2e2',
-          border: '1px solid #fecaca',
-          color: '#991b1b',
+          background: dbStatus === 'offline' ? '#f0f9ff' : '#fee2e2',
+          border: `1px solid ${dbStatus === 'offline' ? '#bae6fd' : '#fecaca'}`,
+          color: dbStatus === 'offline' ? '#0369a1' : '#991b1b',
           padding: '12px 20px',
           borderRadius: '12px',
           fontSize: '13px',
@@ -477,27 +479,29 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           alignItems: 'center',
           gap: '10px'
         }}>
-          <span>⚠️</span>
+          <span>{dbStatus === 'offline' ? '🌐' : '⚠️'}</span>
           <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '300px' }}>
-            <span>Database Status</span>
+            <span>{dbStatus === 'offline' ? 'Offline Mode' : 'Database Status'}</span>
             <span style={{ fontSize: '11px', opacity: 0.9, fontWeight: 400, lineHeight: 1.3 }}>
-              {dbError || 'Connection issue. Possible causes: Incorrect URL, Paused project, or Ad-blocker.'}
+              {dbError || 'Connection issue. Using local storage.'}
             </span>
           </div>
-          <button 
-            onClick={() => loadData()}
-            style={{ 
-              background: '#ef4444', 
-              color: 'white', 
-              border: 'none', 
-              padding: '4px 10px', 
-              borderRadius: '6px', 
-              fontSize: '11px',
-              cursor: 'pointer'
-            }}
-          >
-            Retry
-          </button>
+          {dbStatus === 'error' && (
+            <button 
+              onClick={() => loadData()}
+              style={{ 
+                background: '#ef4444', 
+                color: 'white', 
+                border: 'none', 
+                padding: '4px 10px', 
+                borderRadius: '6px', 
+                fontSize: '11px',
+                cursor: 'pointer'
+              }}
+            >
+              Retry
+            </button>
+          )}
         </div>
       )}
     </DataContext.Provider>

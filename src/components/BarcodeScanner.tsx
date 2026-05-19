@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
+import { X } from 'lucide-react';
 
 interface BarcodeScannerProps {
   onScan: (decodedText: string) => void;
@@ -39,20 +40,20 @@ export const BarcodeScanner = ({ onScan, onClose }: BarcodeScannerProps) => {
   }, [onScan, onClose]);
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 2000 }}>
-      <div className="modal" style={{ maxWidth: '500px' }}>
-        <div className="modal-header">
-          <h3>Scan Barcode</h3>
-          <button className="modal-close" onClick={onClose}>✕</button>
+    <div className="modal-overlay custom-modal-overlay" style={{ zIndex: 2000 }}>
+      <div className="retro-modal" style={{ height: 'auto' }}>
+        <div className="retro-modal-header">
+          <h3>Scan QR / Barcode</h3>
+          <button className="retro-close-btn" onClick={onClose}><X size={20} /></button>
         </div>
-        <div className="modal-body">
-          <p style={{ marginBottom: '16px', fontSize: '14px', color: '#64748b' }}>
-            Position the barcode within the frame to scan automatically.
+        <div className="retro-modal-body">
+          <p style={{ marginBottom: '16px', fontSize: '14px', opacity: 0.8 }}>
+            Position the code within the frame to scan automatically.
           </p>
-          <div id="reader" style={{ width: '100%' }}></div>
+          <div id="reader" style={{ width: '100%', overflow: 'hidden', borderRadius: '12px' }}></div>
         </div>
-        <div className="modal-footer">
-          <button className="btn btn-outline" onClick={onClose}>Cancel</button>
+        <div className="retro-modal-footer">
+          <button className="retro-btn-metallic-silver lg" onClick={onClose}>Cancel</button>
         </div>
       </div>
     </div>
