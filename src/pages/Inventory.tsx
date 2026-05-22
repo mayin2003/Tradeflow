@@ -1,9 +1,96 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 
+const inferCategory = (productName: string): string => {
+  const name = productName.trim().toLowerCase();
+  
+  if (
+    name.includes('tv') || 
+    name.includes('led') || 
+    name.includes('samsung') || 
+    name.includes('phone') || 
+    name.includes('camera') || 
+    name.includes('laptop') || 
+    name.includes('display') || 
+    name.includes('screen') || 
+    name.includes('charger') || 
+    name.includes('cable') || 
+    name.includes('adapter') ||
+    name.includes('electronics') ||
+    name.includes('device') ||
+    name.includes('computer') ||
+    name.includes('monitor')
+  ) {
+    return 'Electronics';
+  }
+  
+  if (
+    name.includes('shirt') || 
+    name.includes('pant') || 
+    name.includes('garments') || 
+    name.includes('cloth') || 
+    name.includes('t-shirt') || 
+    name.includes('jacket') || 
+    name.includes('fabric') || 
+    name.includes('jeans') ||
+    name.includes('saree') ||
+    name.includes('dress') ||
+    name.includes('cotton')
+  ) {
+    return 'Garments';
+  }
+  
+  if (
+    name.includes('chemical') || 
+    name.includes('acid') || 
+    name.includes('liquid') || 
+    name.includes('paint') || 
+    name.includes('fertilizer') || 
+    name.includes('solvent') ||
+    name.includes('soap') ||
+    name.includes('powder')
+  ) {
+    return 'Chemicals';
+  }
+  
+  if (
+    name.includes('food') || 
+    name.includes('beverage') || 
+    name.includes('drink') || 
+    name.includes('coke') || 
+    name.includes('juice') || 
+    name.includes('water') || 
+    name.includes('snack') || 
+    name.includes('biscuit') || 
+    name.includes('chips') ||
+    name.includes('tea') ||
+    name.includes('coffee') ||
+    name.includes('sugar') ||
+    name.includes('oil')
+  ) {
+    return 'Food & Beverage';
+  }
+  
+  if (
+    name.includes('machine') || 
+    name.includes('drill') || 
+    name.includes('pump') || 
+    name.includes('gear') || 
+    name.includes('tool') || 
+    name.includes('engine') || 
+    name.includes('generator') ||
+    name.includes('compressor') ||
+    name.includes('motor')
+  ) {
+    return 'Machinery';
+  }
+  
+  return 'General Supplies';
+};
+
 export const Inventory = () => {
-  const { products, addProduct, updateProduct, deleteProduct } = useData();
+  const { products, transactions, addProduct, updateProduct, deleteProduct } = useData();
   const [showModal, setShowModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,6 +105,25 @@ export const Inventory = () => {
     barcode: '',
     description: ''
   });
+
+  // Automatically update and classify any Uncategorized products that come from Buy section inputs
+  useEffect(() => {
+    const uncategorized = products.filter(
+      p => !p.category || p.category.trim() === '' || p.category.toLowerCase() === 'uncategorized'
+    );
+    if (uncategorized.length === 0) return;
+
+    const syncCategories = async () => {
+      for (const p of uncategorized) {
+        const autoCat = inferCategory(p.name);
+        await updateProduct({
+          ...p,
+          category: autoCat
+        });
+      }
+    };
+    syncCategories();
+  }, [products, updateProduct]);
 
   const handleAddProduct = () => {
     if (!newProduct.name || !newProduct.category) {
@@ -77,11 +183,36 @@ export const Inventory = () => {
     );
   }, [products, searchQuery]);
 
+  // Dynamically extract and list low-stock items (< 10 quantity)
+  const lowStockProducts = useMemo(() => {
+    return products.filter(p => p.stock < 10);
+  }, [products]);
+
+  // Real-time synchronization of Total Products across both products list and active Buy section transactions
+  const totalProductsCount = useMemo(() => {
+    const uniqueKeys = new Set<string>();
+    products.forEach(p => {
+      uniqueKeys.add(p.name.trim().toLowerCase());
+    });
+    transactions.forEach(t => {
+      if (t.type === 'purchase') {
+        if (t.items && t.items.length > 0) {
+          t.items.forEach(item => {
+            if (item.product_name) uniqueKeys.add(item.product_name.trim().toLowerCase());
+          });
+        } else if (t.product_name) {
+          uniqueKeys.add(t.product_name.trim().toLowerCase());
+        }
+      }
+    });
+    return Math.max(products.length, uniqueKeys.size);
+  }, [products, transactions]);
+
   const stats = useMemo(() => ({
-    lowStockCount: products.filter(p => p.stock <= p.min_stock).length,
+    lowStockCount: lowStockProducts.length,
     productNames: Array.from(new Set(products.map(p => p.name))),
     categories: Array.from(new Set(products.map(p => p.category)))
-  }), [products]);
+  }), [products, lowStockProducts]);
 
   return (
     <div id="page-inventory" className="page active">
@@ -96,7 +227,7 @@ export const Inventory = () => {
             <div className="stat-icon" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>📦</div>
             <div className="stat-badge" style={{ background: 'var(--success-light)', color: 'var(--success)' }}>Active</div>
           </div>
-          <div className="stat-value">{products.length}</div>
+          <div className="stat-value">{totalProductsCount}</div>
           <div className="stat-label">Total Products</div>
         </div>
         <div className="stat-card">
@@ -116,12 +247,34 @@ export const Inventory = () => {
         </div>
       </div>
 
-      {stats.lowStockCount > 0 && (
-        <div className="low-stock-alert">
-          <span style={{ fontSize: '20px' }}>⚠️</span>
-          <div>
-            <strong style={{ color: 'var(--text-primary)' }}>{stats.lowStockCount} products</strong> are below minimum stock level. 
-            <p style={{ margin: 0, fontSize: '12px', opacity: 0.8 }}>Please restock soon to avoid export delays.</p>
+      {lowStockProducts.length > 0 && (
+        <div className="bento-card mb-6" style={{ border: '1px solid rgba(239, 68, 68, 0.25)', background: 'rgba(239, 68, 68, 0.02)' }}>
+          <div className="p-4 border-b border-rose-500/10 flex items-center gap-3">
+            <span style={{ fontSize: '20px' }}>⚠️</span>
+            <div>
+              <h3 className="text-sm font-bold text-rose-600 dark:text-rose-400">Low Stock Alerts</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">The following products have fallen below the critical threshold of 10 units.</p>
+            </div>
+          </div>
+          <div className="p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {lowStockProducts.map(p => (
+                <div 
+                  key={p.id} 
+                  className="p-3 rounded-xl border border-rose-500/10 bg-white/60 dark:bg-slate-900/40 flex items-center justify-between"
+                >
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-[var(--text-primary)]">{p.name}</span>
+                    <span className="text-[10px] text-zinc-400 dark:text-slate-400 uppercase tracking-wider">{p.category}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-rose-500 bg-rose-500/10 px-2 py-1 rounded-full border border-rose-500/20">
+                      {p.stock} units
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

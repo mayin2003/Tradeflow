@@ -14,6 +14,8 @@ interface AuthContextType {
   setSession: (session: any) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  sendOTP: (email: string) => Promise<void>;
+  verifyOTP: (email: string, token: string, type: 'signup' | 'email') => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -278,6 +280,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
+  const sendOTP = React.useCallback(async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true
+      }
+    });
+    if (error) throw error;
+  }, []);
+
+  const verifyOTP = React.useCallback(async (email: string, token: string, type: 'signup' | 'email') => {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type,
+    });
+    if (error) throw error;
+
+    if (data.session?.user) {
+      const appUser: User = {
+        id: data.session.user.id,
+        name: data.session.user.user_metadata?.full_name || data.session.user.user_metadata?.name || data.session.user.email?.split('@')[0] || 'User',
+        email: data.session.user.email || '',
+        companyName: data.session.user.user_metadata?.company_name || 'My Business',
+        avatar: data.session.user.user_metadata?.avatar_url || data.session.user.user_metadata?.picture,
+      };
+      setUser(appUser);
+    }
+  }, []);
+
   const value = React.useMemo(() => ({
     user,
     login,
@@ -288,8 +320,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshSession,
     setSession,
     logout,
-    isLoading
-  }), [user, login, signInWithGoogle, register, resetPassword, updateUser, refreshSession, setSession, logout, isLoading]);
+    isLoading,
+    sendOTP,
+    verifyOTP
+  }), [user, login, signInWithGoogle, register, resetPassword, updateUser, refreshSession, setSession, logout, isLoading, sendOTP, verifyOTP]);
 
   return (
     <AuthContext.Provider value={value}>

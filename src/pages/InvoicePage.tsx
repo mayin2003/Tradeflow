@@ -272,7 +272,45 @@ export const InvoicePage = () => {
                 ></textarea>
               </div>
 
-              {/* Toggles & Print Section */}
+              {/* Visibility & Print Section */}
+              <div className="section-title text-[14px] font-bold text-[#1a2a6c] mt-4 mb-2 border-b pb-1">Invoice Template</div>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div 
+                  className={`cursor-pointer rounded-xl border-2 p-2 transition-all hover:shadow-md ${settings.invoice.templateId === 't1' ? 'border-[#1a2a6c] bg-[#1a2a6c]/5' : 'border-gray-200'}`}
+                  onClick={() => updateSettings({ ...settings, invoice: { ...settings.invoice, templateId: 't1' } })}
+                >
+                  <div className="aspect-[3/4] rounded-lg bg-gray-100 mb-2 flex items-center justify-center overflow-hidden border border-gray-200">
+                    <div className="w-full h-full p-1 flex flex-col gap-1">
+                      <div className="h-4 bg-gray-300 w-1/2 rounded-sm" />
+                      <div className="h-1 bg-gray-200 w-full" />
+                      <div className="h-1 bg-gray-200 w-full" />
+                      <div className="mt-auto h-3 bg-[#1a2a6c] w-full rounded-sm" />
+                    </div>
+                  </div>
+                  <div className="text-center font-bold text-xs">Modern Elite (T1)</div>
+                </div>
+                <div 
+                  className={`cursor-pointer rounded-xl border-2 p-2 transition-all hover:shadow-md ${settings.invoice.templateId === 't2' ? 'border-[#c19a6b] bg-[#c19a6b]/5' : 'border-gray-200'}`}
+                  onClick={() => updateSettings({ ...settings, invoice: { ...settings.invoice, templateId: 't2' } })}
+                >
+                  <div className="aspect-[3/4] rounded-lg bg-gray-100 mb-2 flex items-center justify-center overflow-hidden border border-gray-200">
+                    <div className="w-full h-full p-1 flex flex-col gap-1">
+                      <div className="flex justify-between">
+                        <div className="w-6 h-6 border-dashed border border-gray-400 rounded-sm" />
+                        <div className="w-10 h-3 bg-gray-300 rounded-sm" />
+                      </div>
+                      <div className="h-3 bg-[#1a2a6c] w-1/3 rounded-sm" />
+                      <div className="flex flex-col gap-0.5 mt-2">
+                        <div className="h-1 bg-gray-200 w-full" />
+                        <div className="h-1 bg-[#1a2a6c] w-full" />
+                      </div>
+                      <div className="mt-auto h-4 w-1/2 rounded-md border border-[#c19a6b]/30" />
+                    </div>
+                  </div>
+                  <div className="text-center font-bold text-xs">Classic Gold (T2)</div>
+                </div>
+              </div>
+
               <div className="section-title text-[14px] font-bold text-[#1a2a6c] mt-4 mb-2 border-b pb-1">Visibility & Print Settings</div>
               <div className="text-[10px] text-gray-400 mb-2 italic">Settings are auto-saved. Printing uses A4 layout.</div>
               <div className="toggle-group">
@@ -306,139 +344,289 @@ export const InvoicePage = () => {
       </AnimatePresence>
 
       <div className="page-container" style={{ overflowX: 'auto', padding: '16px' }}>
-        <div className="invoice-card" id="invoice">
-            
-            <div className="header">
-                <div className="logo-area">
-                    <div className="logo-box" id="logo-container">
-                        {settings.shopProfile.logoUrl && settings.invoice.showLogo ? (
-                          <img id="disp-logo" src={settings.shopProfile.logoUrl} alt="Logo" />
-                        ) : (
-                          <span id="logo-placeholder">No Logo</span>
-                        )}
+        <div className={`invoice-card template-${settings.invoice.templateId || 't1'}`} id="invoice">
+            {settings.invoice.templateId === 't2' ? (
+              // TEMPLATE 2: CLASSIC GOLD
+              <div className="t2-wrapper flex flex-col h-full">
+                <div className="t2-header flex justify-between items-start mb-8">
+                  <div className="t2-company-info">
+                    <div className="logo-box !w-24 !h-24 !mb-4 !border-dashed !border-slate-300">
+                      {settings.shopProfile.logoUrl && settings.invoice.showLogo ? (
+                        <img src={settings.shopProfile.logoUrl} alt="Logo" className="max-w-full max-h-full object-contain" />
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-bold">LOGO</span>
+                      )}
                     </div>
-                    <div className="shop-name" id="disp-name">
-                      {settings.shopProfile.name || 'YOUR SHOP NAME'}
+                    <h2 className="text-2xl font-black text-slate-900 mb-1 uppercase tracking-tight">COMPANY: {settings.shopProfile.name || 'TRADEFLOW'}</h2>
+                    <p className="text-xs text-slate-600 font-medium">{settings.shopProfile.address || 'Address Line 1, City'}</p>
+                    <p className="text-xs text-slate-600 font-medium">Phone: {settings.shopProfile.phone || '+880 1XXX XXXXXX'}</p>
+                  </div>
+                  <div className="t2-inv-meta text-right">
+                    <h1 className="text-5xl font-serif text-[#c19a6b] italic mb-4 opacity-80">INVOICE</h1>
+                    <div className="space-y-1">
+                      <p className="text-sm font-bold text-slate-800">Invoice No: <span className="font-mono text-slate-600">{invoiceData.invoiceNo}</span></p>
+                      <p className="text-sm font-bold text-slate-800">Date: <span className="font-mono text-slate-600">{invoiceData.date}</span></p>
                     </div>
-                    <div className="shop-info" id="disp-address">
-                        {settings.shopProfile.address || 'Address Line 1, City'}<br />
-                        Phone: {settings.shopProfile.phone || '+880 1XXX XXXXXX'}
-                    </div>
+                  </div>
                 </div>
-                <div className="inv-meta">
-                    <div className="inv-title">Invoice</div>
-                    <div className="meta-data"><b>No:</b> <span>{invoiceData.invoiceNo}</span></div>
-                    <div className="meta-data"><b>Date:</b> <span id="current-date">{invoiceData.date}</span></div>
-                </div>
-            </div>
 
-            <div className="bill-to">
-                <div className="bill-label">BILL TO</div>
-                <div style={{ fontSize: '14px', lineHeight: '1.5' }}>
-                    <strong>{invoiceData.customer.name}</strong><br />
-                    {invoiceData.customer.address}<br />
-                    Phone: {invoiceData.customer.phone}
+                <div className="t2-separator h-1.5 w-full flex mb-12">
+                   <div className="h-full bg-[#1a2a6c]" style={{ width: '70%' }} />
+                   <div className="h-full bg-[#c19a6b]/50" style={{ width: '30%' }} />
                 </div>
-            </div>
 
-            <table className="items-table">
-                <thead>
-                    <tr>
-                        <th width="5%">SL</th>
-                        <th width="55%">Product Description</th>
-                        <th width="10%">Qty</th>
-                        <th width="15%">Price</th>
-                        <th width="15%">Total</th>
-                        <th width="5%" className="btn-row-del no-print"></th>
-                    </tr>
-                </thead>
-                <tbody id="item-body">
-                    {invoiceData.items.map((item, index) => (
-                      <tr key={item.id} className="item-row">
-                          <td className="sl-no">{index + 1}</td>
-                          <td>
-                            <div className="print-val">{item.description || '-'}</div>
-                            <input 
-                              type="text" 
-                              className="input-cell no-print" 
-                              placeholder="Product Name..." 
-                              value={item.description}
-                              onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                            />
-                          </td>
-                          <td>
-                            <div className="print-val">{item.qty}</div>
-                            <input 
-                              type="number" 
-                              className="input-cell qty no-print" 
-                              value={item.qty} 
-                              onChange={(e) => updateItem(item.id, 'qty', Number(e.target.value))}
-                            />
-                          </td>
-                          <td>
-                            <div className="print-val">{item.price}</div>
-                            <input 
-                              type="number" 
-                              className="input-cell price no-print" 
-                              value={item.price} 
-                              onChange={(e) => updateItem(item.id, 'price', Number(e.target.value))}
-                            />
-                          </td>
-                          <td className="row-total">{invoiceData.currency} {(item.qty * item.price).toFixed(2)}</td>
-                          <td className="btn-row-del no-print" onClick={() => removeItem(item.id)}>×</td>
-                      </tr>
-                    ))}
-                </tbody>
-            </table>
-
-            <div className="summary-wrapper">
-                <div className={`notes-box ${!settings.invoice.showNotes ? 'hidden' : ''}`} id="sec-notes">
-                    <div className="bill-label">NOTES & TERMS</div>
-                    <div style={{ marginTop: '5px', whiteSpace: 'pre-line' }}>
-                      {invoiceData.notes}
-                    </div>
+                <div className="t2-bill-to mb-12">
+                  <div className="inline-block bg-[#1a2a6c] text-white px-4 py-1 rounded-sm text-[11px] font-black uppercase tracking-widest mb-3">BILL TO</div>
+                  <div className="pl-1 space-y-1">
+                    <p className="text-sm font-bold text-slate-800">Customer Name: <span className="font-semibold text-slate-600">{invoiceData.customer.name}</span></p>
+                    <p className="text-sm font-bold text-slate-800">Customer Address: <span className="font-semibold text-slate-600">{invoiceData.customer.address}</span></p>
+                    <p className="text-sm font-bold text-slate-800">Customer Phone: <span className="font-semibold text-slate-600">{invoiceData.customer.phone}</span></p>
+                  </div>
                 </div>
-                <div className="calc-box">
-                    <div className="calc-row">
-                        <span>Subtotal:</span>
-                        <span id="subtotal">{invoiceData.currency} {subtotal.toFixed(2)}</span>
-                    </div>
-                    {settings.invoice.showTax && (
-                      <div className="calc-row" id="row-tax">
-                          <span>VAT (<span id="tax-rate">{settings.invoice.taxRate}</span>%):</span>
-                          <span id="tax-amount">{invoiceData.currency} {taxAmount.toFixed(2)}</span>
+
+                <div className="t2-items-container relative flex-1">
+                   {/* Watermark */}
+                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] z-0 overflow-hidden">
+                      <div className="w-80 h-80 border-8 border-[#1a2a6c] rounded-full flex items-center justify-center p-8">
+                         <div className="w-full h-full border-4 border-[#1a2a6c] rounded-full flex items-center justify-center">
+                            <span className="text-6xl font-black text-[#1a2a6c]">TF</span>
+                         </div>
                       </div>
-                    )}
-                    {settings.invoice.showDiscount && (
-                      <div className="calc-row" id="row-discount">
-                          <span>Discount:</span>
-                          <span id="discount-amount">{invoiceData.currency} {discountAmount.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="calc-row grand-total">
-                        <span>
-                          <small>Grand</small>
-                          Total:
-                        </span>
-                        <span id="grand-total">{invoiceData.currency} {grandTotal.toFixed(2)}</span>
-                    </div>
-                </div>
-            </div>
+                   </div>
 
-            {settings.invoice.showSignature && (
-              <div className="sig-section" id="sec-sig">
-                  <div className="sig-line">Customer Signature</div>
-                  <div className="sig-line">Authorized Signature</div>
+                   <div className="t2-table-header-bar bg-[#1a2a6c] rounded-md h-12 flex items-center px-4 mb-2">
+                       <div className="w-[10%] text-[10px] uppercase font-black tracking-widest text-white">Serial No.</div>
+                       <div className="w-[45%] text-[10px] uppercase font-black tracking-widest text-white">Product Name & Description</div>
+                       <div className="w-[15%] text-[10px] uppercase font-black tracking-widest text-center text-white">Quantity</div>
+                       <div className="w-[15%] text-[10px] uppercase font-black tracking-widest text-center text-white">Price</div>
+                       <div className="w-[15%] text-[10px] uppercase font-black tracking-widest text-center text-white">Total</div>
+                   </div>
+                   <table className="t2-table w-full border-collapse relative z-10 transition-all duration-300">
+                      <thead className="hidden">
+                        <tr>
+                          <th>Serial No.</th>
+                          <th>Product Name & Description</th>
+                          <th>Quantity</th>
+                          <th>Price</th>
+                          <th>Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {invoiceData.items.map((item, index) => (
+                           <tr key={item.id} className="group hover:bg-slate-50/50 transition-colors">
+                              <td className="w-[10%] py-4 px-4 text-sm font-mono text-slate-500 text-center">{index + 1}</td>
+                              <td className="w-[45%] py-4 px-4">
+                                <div className="print-val font-semibold text-slate-800">{item.description || '-'}</div>
+                                <input 
+                                  type="text" 
+                                  className="input-cell no-print font-semibold text-slate-800 placeholder:italic placeholder:font-normal placeholder:opacity-40" 
+                                  placeholder="Product Name and description text..." 
+                                  value={item.description}
+                                  onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                                />
+                              </td>
+                              <td className="w-[15%] py-4 px-4 text-center">
+                                <div className="print-val font-mono text-slate-700">{item.qty}</div>
+                                <input 
+                                  type="number" 
+                                  className="input-cell no-print text-center font-mono text-slate-700" 
+                                  value={item.qty} 
+                                  onChange={(e) => updateItem(item.id, 'qty', Number(e.target.value))}
+                                />
+                              </td>
+                              <td className="w-[15%] py-4 px-4 text-center">
+                                <div className="print-val font-mono text-slate-700">{item.price.toFixed(2)}</div>
+                                <input 
+                                  type="number" 
+                                  className="input-cell no-print text-center font-mono text-slate-700" 
+                                  value={item.price} 
+                                  onChange={(e) => updateItem(item.id, 'price', Number(e.target.value))}
+                                />
+                              </td>
+                              <td className="w-[15%] py-4 px-4 text-center font-mono font-black text-slate-900">
+                                {invoiceData.currency} {(item.qty * item.price).toFixed(2)}
+                              </td>
+                              <td className="no-print absolute right-0 top-1/2 -translate-y-1/2">
+                                 <button 
+                                   onClick={() => removeItem(item.id)}
+                                   className="w-6 h-6 rounded-md bg-amber-100 text-amber-700 hover:bg-amber-500 hover:text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+                                 >
+                                    <X size={12} />
+                                 </button>
+                              </td>
+                           </tr>
+                        ))}
+                      </tbody>
+                   </table>
+                </div>
+
+                <div className="t2-footer mt-auto pt-10 flex justify-between items-end">
+                   <div className="t2-totals-box bg-white p-6 rounded-2xl border-2 border-[#c19a6b]/20 shadow-xl shadow-[#c19a6b]/5 min-w-[300px]">
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center text-slate-500 font-bold uppercase tracking-widest text-[11px]">
+                          <span>Subtoral:</span>
+                          <span className="font-mono text-sm text-slate-800">{invoiceData.currency} {subtotal.toFixed(2)}</span>
+                        </div>
+                        <div className="h-px bg-slate-200" />
+                        <div className="flex justify-between items-end">
+                           <div className="flex flex-col">
+                              <span className="text-[11px] font-black uppercase text-slate-400 tracking-tighter">Grand</span>
+                              <span className="text-2xl font-black text-slate-900 leading-none">Total:</span>
+                           </div>
+                           <div className="text-4xl font-black text-slate-900 font-mono tracking-tighter">
+                              {invoiceData.currency} {grandTotal.toFixed(2)}
+                           </div>
+                        </div>
+                      </div>
+                   </div>
+                   <div className="text-right">
+                      <p className="text-[9px] font-black uppercase text-slate-300 tracking-[0.2em] mb-1">Generated by {settings.shopProfile.name || 'TradeFlow'}</p>
+                      <div className="flex justify-end opacity-20">
+                         <div className="w-8 h-8 rounded-full border-2 border-slate-400 p-1">
+                            <div className="w-full h-full bg-slate-400 rounded-full" />
+                         </div>
+                      </div>
+                   </div>
+                </div>
               </div>
-            )}
+            ) : (
+              // TEMPLATE 1: MODERN ELITE (Original)
+              <>
+                <div className="header">
+                    <div className="logo-area">
+                        <div className="logo-box" id="logo-container">
+                            {settings.shopProfile.logoUrl && settings.invoice.showLogo ? (
+                              <img id="disp-logo" src={settings.shopProfile.logoUrl} alt="Logo" />
+                            ) : (
+                              <span id="logo-placeholder">No Logo</span>
+                            )}
+                        </div>
+                        <div className="shop-name" id="disp-name">
+                          {settings.shopProfile.name || 'YOUR SHOP NAME'}
+                        </div>
+                        <div className="shop-info" id="disp-address">
+                            {settings.shopProfile.address || 'Address Line 1, City'}<br />
+                            Phone: {settings.shopProfile.phone || '+880 1XXX XXXXXX'}
+                        </div>
+                    </div>
+                    <div className="inv-meta">
+                        <div className="inv-title">Invoice</div>
+                        <div className="meta-data"><b>No:</b> <span>{invoiceData.invoiceNo}</span></div>
+                        <div className="meta-data"><b>Date:</b> <span id="current-date">{invoiceData.date}</span></div>
+                    </div>
+                </div>
 
-            <div style={{ textAlign: 'center', fontSize: '10px', color: '#ccc', marginTop: 'auto' }}>
-                Generated by Elite Invoice System
-            </div>
+                <div className="bill-to">
+                    <div className="bill-label">BILL TO</div>
+                    <div style={{ fontSize: '14px', lineHeight: '1.5' }}>
+                        <strong>{invoiceData.customer.name}</strong><br />
+                        {invoiceData.customer.address}<br />
+                        Phone: {invoiceData.customer.phone}
+                    </div>
+                </div>
+
+                <table className="items-table">
+                    <thead>
+                        <tr>
+                            <th width="5%">SL</th>
+                            <th width="55%">Product Description</th>
+                            <th width="10%">Qty</th>
+                            <th width="15%">Price</th>
+                            <th width="15%">Total</th>
+                            <th width="5%" className="btn-row-del no-print"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="item-body">
+                        {invoiceData.items.map((item, index) => (
+                          <tr key={item.id} className="item-row">
+                              <td className="sl-no">{index + 1}</td>
+                              <td>
+                                <div className="print-val">{item.description || '-'}</div>
+                                <input 
+                                  type="text" 
+                                  className="input-cell no-print" 
+                                  placeholder="Product Name..." 
+                                  value={item.description}
+                                  onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                                />
+                              </td>
+                              <td>
+                                <div className="print-val">{item.qty}</div>
+                                <input 
+                                  type="number" 
+                                  className="input-cell qty no-print" 
+                                  value={item.qty} 
+                                  onChange={(e) => updateItem(item.id, 'qty', Number(e.target.value))}
+                                />
+                              </td>
+                              <td>
+                                <div className="print-val">{item.price}</div>
+                                <input 
+                                  type="number" 
+                                  className="input-cell price no-print" 
+                                  value={item.price} 
+                                  onChange={(e) => updateItem(item.id, 'price', Number(e.target.value))}
+                                />
+                              </td>
+                              <td className="row-total">{invoiceData.currency} {(item.qty * item.price).toFixed(2)}</td>
+                              <td className="btn-row-del no-print" onClick={() => removeItem(item.id)}>×</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                </table>
+
+                <div className="summary-wrapper">
+                    <div className={`notes-box ${!settings.invoice.showNotes ? 'hidden' : ''}`} id="sec-notes">
+                        <div className="bill-label">NOTES & TERMS</div>
+                        <div style={{ marginTop: '5px', whiteSpace: 'pre-line' }}>
+                          {invoiceData.notes}
+                        </div>
+                    </div>
+                    <div className="calc-box">
+                        <div className="calc-row">
+                            <span>Subtotal:</span>
+                            <span id="subtotal">{invoiceData.currency} {subtotal.toFixed(2)}</span>
+                        </div>
+                        {settings.invoice.showTax && (
+                          <div className="calc-row" id="row-tax">
+                              <span>VAT (<span id="tax-rate">{settings.invoice.taxRate}</span>%):</span>
+                              <span id="tax-amount">{invoiceData.currency} {taxAmount.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {settings.invoice.showDiscount && (
+                          <div className="calc-row" id="row-discount">
+                              <span>Discount:</span>
+                              <span id="discount-amount">{invoiceData.currency} {discountAmount.toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="calc-row grand-total">
+                            <span>
+                              <small>Grand</small>
+                              Total:
+                            </span>
+                            <span id="grand-total">{invoiceData.currency} {grandTotal.toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {settings.invoice.showSignature && (
+                  <div className="sig-section" id="sec-sig">
+                      <div className="sig-line">Customer Signature</div>
+                      <div className="sig-line">Authorized Signature</div>
+                  </div>
+                )}
+
+                <div style={{ textAlign: 'center', fontSize: '10px', color: '#ccc', marginTop: 'auto' }}>
+                    Generated by Elite Invoice System
+                </div>
+              </>
+            )}
         </div>
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
         :root {
             --primary: #1a2a6c;
             --secondary: #5d6d7e;
@@ -547,6 +735,43 @@ export const InvoicePage = () => {
             line-height: 1.5;
             transform-origin: top center;
         }
+
+        /* --- TEMPLATE 2 (CLASSIC GOLD) SPECIFIC STYLES --- */
+        .template-t2 {
+           font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+           background: #ffffff !important;
+        }
+        .template-t2 .font-serif {
+           font-family: 'Playfair Display', serif !important;
+        }
+        .template-t2 .t2-header {
+           border-bottom: none !important;
+        }
+        .template-t2 .t2-table th {
+           background: #1a2a6c !important;
+           color: white !important;
+           text-transform: uppercase;
+           font-size: 10px;
+           letter-spacing: 0.1em;
+        }
+        .template-t2 .t2-table td {
+           border-bottom: 1px solid #f1f5f9 !important;
+           vertical-align: middle;
+        }
+        .template-t2 .input-cell {
+           border: none !important;
+           outline: none !important;
+           background: transparent !important;
+           padding: 0 !important;
+           width: 100%;
+        }
+        .template-t2 .t2-totals-box {
+           background: linear-gradient(135deg, #ffffff 0%, #fdfbf7 100%) !important;
+        }
+        .template-t2 .is-printing .no-print {
+           display: none !important;
+        }
+
         @media (max-width: 800px) {
            /* No scaling here as it might break horizontal scroll logic, better to just let it scroll */
         }

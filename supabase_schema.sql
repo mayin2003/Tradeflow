@@ -22,6 +22,9 @@ CREATE TABLE tf_products (
   stock INTEGER DEFAULT 0,
   min_stock INTEGER DEFAULT 5,
   barcode TEXT,
+  sku TEXT,
+  image TEXT,
+  unit TEXT,
   description TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -74,7 +77,11 @@ CREATE TABLE tf_transactions (
   customs_duty DECIMAL(12, 2),
   vat DECIMAL(12, 2),
   other_cost DECIMAL(12, 2),
-  sell_price DECIMAL(12, 2)
+  sell_price DECIMAL(12, 2),
+  supplier TEXT,
+  payment_method TEXT,
+  exchange_rate DECIMAL(12, 4),
+  expiry_date DATE
 );
 
 -- 6. Activity Logs table

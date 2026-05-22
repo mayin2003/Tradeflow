@@ -113,7 +113,7 @@ const AppContent = () => {
   };
 
   return (
-    <div id="app" style={{ display: 'flex' }}>
+    <div id="app" className={isSidebarOpen ? 'sidebar-open' : ''} style={{ display: 'flex' }}>
       <Sidebar 
         current={currentPage} 
         onNavigate={setCurrentPage} 

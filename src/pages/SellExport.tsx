@@ -1,6 +1,8 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { BarcodeScanner } from '../components/BarcodeScanner';
+import { motion, AnimatePresence } from 'motion/react';
+import { X, Watch, Percent, Trash2, Sparkles, Camera } from 'lucide-react';
 
 interface SellExportProps {
   onNavigate?: (page: string) => void;
@@ -22,6 +24,54 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
       { product_id: '', product_name: '', qty: 0, price: 0, total: 0 }
     ]
   });
+
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  const formattedDate = useMemo(() => {
+    if (!formData.date) return 'Select Date';
+    return new Date(formData.date).toLocaleDateString('en-GB');
+  }, [formData.date]);
+
+  const availableProducts = useMemo(() => {
+    // Start with all products from the context
+    const list = [...products];
+
+    // Scan transactions for any purchase transactions that aren't already represented in products list
+    transactions.forEach(t => {
+      if (t.type === 'purchase') {
+        const hasProduct = list.some(p => p.id === t.product_id || p.name.trim().toLowerCase() === t.product_name.trim().toLowerCase());
+        if (!hasProduct && t.product_name) {
+          list.push({
+            id: t.product_id || `manual_${Date.now()}`,
+            name: t.product_name,
+            category: t.category || 'Uncategorized',
+            stock: t.quantity || 0,
+            cost_price: t.unit_price || 0,
+            sell_price: t.sell_price || t.unit_price || 0,
+            sku: `SKU-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+            image: '',
+            unit: 'pcs'
+          } as any);
+        }
+      }
+    });
+
+    // To prevent duplicate product entries (by name or ID case-insensitively), let's keep only unique ones
+    const seenNames = new Set<string>();
+    const seenIds = new Set<string>();
+    const uniqueList: typeof products = [];
+
+    list.forEach(p => {
+      const lowerName = p.name.trim().toLowerCase();
+      if (!seenNames.has(lowerName) && !seenIds.has(p.id)) {
+        seenNames.add(lowerName);
+        seenIds.add(p.id);
+        uniqueList.push(p);
+      }
+    });
+
+    // Sort alphabetically by name
+    return uniqueList.sort((a, b) => a.name.localeCompare(b.name));
+  }, [products, transactions]);
 
   const selectedCustomer = useMemo(() => {
     return customers.find(c => c.name === formData.customer);
@@ -46,7 +96,7 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
     const item = { ...newItems[index], [field]: value };
     
     if (field === 'product_id') {
-      const p = products.find(prod => prod.id === value);
+      const p = availableProducts.find(prod => prod.id === value);
       item.product_name = p?.name || '';
       // Auto-fill price from product's sell_price (determined during purchase or in inventory)
       item.price = p?.sell_price || 0;
@@ -59,7 +109,7 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
     const qty = field === 'qty' ? value : item.qty;
     
     // Immediate stock validation for individual row
-    const p = products.find(prod => prod.id === item.product_id);
+    const p = availableProducts.find(prod => prod.id === item.product_id);
     if (p && qty > p.stock) {
       // We allow them to type it but we'll cap it or just rely on the final validation
       // Let's at least warn or cap it if it's not the cumulative check
@@ -91,10 +141,10 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
   
   const totalCost = useMemo(() => {
     return formData.items.reduce((sum, item) => {
-      const p = products.find(prod => prod.id === item.product_id);
+      const p = availableProducts.find(prod => prod.id === item.product_id);
       return sum + (p?.cost_price || 0) * item.qty;
     }, 0);
-  }, [formData.items, products]);
+  }, [formData.items, availableProducts]);
   
   const profit = totalRevenue - totalCost;
   const margin = totalRevenue ? (profit / totalRevenue) * 100 : 0;
@@ -113,7 +163,7 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
     }
 
     for (const productId in productQuantities) {
-      const p = products.find(prod => prod.id === productId);
+      const p = availableProducts.find(prod => prod.id === productId);
       const totalQty = productQuantities[productId];
       if (p && totalQty > p.stock) {
         alert(`Insufficient stock for ${p.name}. Total requested: ${totalQty}, Available: ${p.stock}`);
@@ -176,7 +226,7 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
   };
 
   const handleScan = (barcode: string) => {
-    const product = products.find(p => p.barcode === barcode);
+    const product = availableProducts.find(p => p.barcode === barcode);
     if (product) {
       // Find empty slot or add new item
       const emptyIndex = formData.items.findIndex(item => !item.product_id);
@@ -208,7 +258,7 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
     const sales = transactions.filter(t => t.type === 'sale');
     const totalRevenueSum = sales.reduce((a, b) => a + b.total_price, 0);
     const totalProfitSum = sales.reduce((a, b) => {
-      const p = products.find(prod => prod.name === b.product_name);
+      const p = availableProducts.find(prod => prod.name === b.product_name);
       return a + (b.total_price - (p?.cost_price || 0) * b.quantity);
     }, 0);
 
@@ -218,7 +268,7 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
       totalProfitSum,
       avgMargin: totalRevenueSum > 0 ? (totalProfitSum / totalRevenueSum) * 100 : 0
     };
-  }, [transactions, products]);
+  }, [transactions, availableProducts]);
 
   return (
     <div id="page-sell" className="page active">
@@ -309,274 +359,316 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
         </div>
       </div>
 
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>Sell</h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
-            </div>
-            <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-              <div className="form-row">
-                {settings.sell.enableCustomerName && (
-                  <div className="form-group">
-                    <label>Customer Name (optional)</label>
-                    <input 
-                      type="text" 
-                      list="customer-list"
-                      value={formData.customer} 
-                      onChange={(e) => setFormData({...formData, customer: e.target.value})} 
-                      placeholder="Type or select customer"
-                    />
-                    <datalist id="customer-list">
-                      {customers.map(c => (
-                        <option key={c.id} value={c.name} />
-                      ))}
-                    </datalist>
-                  </div>
-                )}
-                {settings.sell.requireSaleDate && (
-                  <div className="form-group">
-                    <label>Sale Date *</label>
-                    <input type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} />
-                  </div>
-                )}
+      <AnimatePresence>
+        {showModal && (
+          <div className="modal-overlay custom-modal-overlay">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="retro-modal"
+            >
+              <div className="retro-modal-header">
+                <h3>Sell</h3>
+                <button className="retro-close-btn" onClick={() => setShowModal(false)}><X size={20} /></button>
               </div>
-
-              <div className="form-row">
-                {settings.sell.enableCurrencySelection && (
-                  <div className="form-group">
-                    <label>Currency</label>
-                    <select 
-                      value={formData.currency}
-                      onChange={(e) => setFormData({...formData, currency: e.target.value})}
-                    >
-                      <option value="BDT (৳)">BDT (৳)</option>
-                      <option value="USD ($)">USD ($)</option>
-                      <option value="CNY (¥)">CNY (¥)</option>
-                      <option value="INR (₹)">INR (₹)</option>
-                    </select>
-                  </div>
-                )}
-                {settings.sell.enableVat && (
-                  <div className="form-group">
-                    <label>VAT (%)</label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <input 
-                        type="number" 
-                        value={formData.vat_percent} 
-                        onChange={(e) => setFormData({...formData, vat_percent: +e.target.value})}
-                        placeholder="0"
-                      />
-                      <select 
-                        value={formData.vat_percent}
-                        onChange={(e) => setFormData({...formData, vat_percent: +e.target.value})}
-                        style={{ width: '80px' }}
-                      >
-                        <option value="0">0%</option>
-                        <option value="5">5%</option>
-                        <option value="10">10%</option>
-                        <option value="15">15%</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ margin: '20px 0', borderTop: '1px solid var(--border)', paddingTop: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <h4 style={{ margin: 0, color: 'var(--text-primary)' }}>Products</h4>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn btn-sm btn-outline" onClick={() => setShowScanner(true)}>📷 Scan Barcode</button>
-                    {settings.sell.enableMultipleProducts && (
-                      <button className="btn btn-sm btn-outline" onClick={addItem}>+ Add Product</button>
-                    )}
-                  </div>
-                </div>
-                
-                {formData.items.map((item, index) => {
-                  const p = products.find(prod => prod.id === item.product_id);
-                  const stock = p ? p.stock : 0;
-                  
-                  return (
-                    <div key={index} style={{ 
-                      background: 'var(--card-bg)', 
-                      padding: '20px', 
-                      borderRadius: '12px', 
-                      marginBottom: '16px',
-                      border: '1px solid var(--border)',
-                      boxShadow: 'var(--shadow-sm)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ background: 'var(--accent)', color: 'white', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontSize: '12px' }}>{index + 1}</span>
-                          Product Item
-                        </span>
-                        {formData.items.length > 1 && (
-                          <button 
-                            className="btn btn-sm btn-outline" 
-                            style={{ color: 'var(--danger)', borderColor: 'var(--danger-light)', background: 'var(--danger-light)', padding: '4px 12px', fontSize: '12px' }}
-                            onClick={() => removeItem(index)}
-                          >
-                            Remove
-                          </button>
-                        )}
+              <div className="retro-modal-body custom-scrollbar">
+                <div className="retro-form-row">
+                  {settings.sell.enableCustomerName && (
+                    <div className="retro-form-group">
+                      <label>Customer Name (optional)</label>
+                      <div className="retro-input-wrapper">
+                        <input 
+                          type="text" 
+                          list="customer-list"
+                          className="retro-input"
+                          value={formData.customer} 
+                          onChange={(e) => setFormData({...formData, customer: e.target.value})} 
+                          placeholder="Type or select customer"
+                        />
                       </div>
-                      
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
-                        <div className="form-group" style={{ margin: 0 }}>
-                          <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Select Product *</label>
+                      <datalist id="customer-list">
+                        {customers.map(c => (
+                          <option key={c.id} value={c.name} />
+                        ))}
+                      </datalist>
+                    </div>
+                  )}
+                  {settings.sell.requireSaleDate && (
+                    <div className="retro-form-group">
+                      <label>Sale Date *</label>
+                      <div className="retro-input-wrapper with-icon cursor-pointer group relative overflow-hidden" 
+                           onClick={() => dateInputRef.current?.showPicker?.()}>
+                        <input 
+                          ref={dateInputRef}
+                          type="date" 
+                          className="retro-input-hidden"
+                          value={formData.date}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val) setFormData({...formData, date: val});
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="retro-input-display group-hover:border-blue-400 transition-colors duration-100 relative z-0 pointer-events-none">
+                          {formattedDate}
+                        </div>
+                        <div className="retro-input-icon group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors duration-100 z-0 pointer-events-none">
+                          <Watch size={18} className="text-slate-700 dark:text-slate-300 group-hover:text-blue-500 transition-colors duration-100" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="retro-form-row">
+                  {settings.sell.enableCurrencySelection && (
+                    <div className="retro-form-group">
+                      <label>Currency</label>
+                      <div className="retro-input-wrapper">
+                        <select 
+                          className="retro-input"
+                          value={formData.currency}
+                          onChange={(e) => setFormData({...formData, currency: e.target.value})}
+                        >
+                          <option value="BDT (৳)">BDT (৳)</option>
+                          <option value="USD ($)">USD ($)</option>
+                          <option value="CNY (¥)">CNY (¥)</option>
+                          <option value="INR (₹)">INR (₹)</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                  {settings.sell.enableVat && (
+                    <div className="retro-form-group">
+                      <label>VAT (%)</label>
+                      <div className="flex gap-2">
+                        <div className="retro-input-wrapper flex-1">
+                          <input 
+                            type="number" 
+                            className="retro-input"
+                            value={formData.vat_percent} 
+                            onChange={(e) => setFormData({...formData, vat_percent: +e.target.value})}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div className="retro-input-wrapper w-[100px]">
                           <select 
-                            value={item.product_id}
-                            onChange={(e) => updateItem(index, 'product_id', e.target.value)}
-                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '14px', background: 'var(--bg)', color: 'var(--text-primary)' }}
+                            className="retro-input"
+                            value={formData.vat_percent}
+                            onChange={(e) => setFormData({...formData, vat_percent: +e.target.value})}
                           >
-                            <option value="">-- Choose Product --</option>
-                            {[...products]
-                              .filter(p => p.stock > 0)
-                              .sort((a, b) => a.name.localeCompare(b.name))
-                              .map(p => (
-                                <option key={p.id} value={p.id}>{p.name} (Available: {p.stock} units)</option>
-                              ))}
+                            <option value="0">0%</option>
+                            <option value="5">5%</option>
+                            <option value="10">10%</option>
+                            <option value="15">15%</option>
                           </select>
                         </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                          <div className="form-group" style={{ margin: 0 }}>
-                            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                              Quantity {p && item.qty > p.stock && <span style={{ color: 'var(--danger)' }}>(Exceeds Stock: {p.stock})</span>}
-                            </label>
-                            <input 
-                              type="number" 
-                              value={item.qty || ''} 
-                              onChange={(e) => updateItem(index, 'qty', +e.target.value)}
-                              style={{ 
-                                width: '100%', 
-                                padding: '10px', 
-                                borderRadius: '8px', 
-                                border: '1px solid',
-                                borderColor: p && item.qty > p.stock ? 'var(--danger)' : 'var(--border)',
-                                background: p && item.qty > p.stock ? 'var(--danger-light)' : 'var(--bg)',
-                                color: 'var(--text-primary)',
-                                fontSize: '14px' 
-                              }}
-                              placeholder="0"
-                              min="1"
-                            />
-                          </div>
-                          <div className="form-group" style={{ margin: 0 }}>
-                            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Sell Price ({settings.currency})</label>
-                            <input 
-                              type="number" 
-                              value={item.price || ''} 
-                              onChange={(e) => updateItem(index, 'price', +e.target.value)}
-                              style={{ 
-                                width: '100%',
-                                padding: '10px', 
-                                borderRadius: '8px',
-                                border: '1px solid var(--border)',
-                                fontSize: '14px',
-                                background: item.price > 0 ? 'var(--success-light)' : 'var(--bg)',
-                                borderColor: item.price > 0 ? 'var(--success)' : 'var(--border)',
-                                fontWeight: 600,
-                                color: item.price > 0 ? 'var(--success)' : 'var(--text-primary)'
-                              }}
-                              placeholder="0.00"
-                            />
-                          </div>
-                        </div>
-
-                        <div style={{ 
-                          display: 'flex', 
-                          justifyContent: 'flex-end', 
-                          padding: '8px 12px', 
-                          background: 'var(--bg)', 
-                          borderRadius: '6px',
-                          fontSize: '13px',
-                          fontWeight: 600,
-                          color: 'var(--text-secondary)'
-                        }}>
-                          Item Total: {fmt(item.total)}
-                        </div>
                       </div>
                     </div>
-                  );
-                })}
+                  )}
+                </div>
 
-                {settings.sell.enableMultipleProducts && (
-                  <div style={{ marginTop: '8px', textAlign: 'center' }}>
-                    <button 
-                      className="btn btn-sm btn-outline" 
-                      onClick={addItem}
-                      style={{ padding: '8px 24px', borderRadius: '20px', fontSize: '13px', fontWeight: 600 }}
-                    >
-                      + Add Another Product
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="calc-box" style={{ background: 'var(--bg)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.5px' }}>Loyalty & Notifications</p>
-                
-                {selectedCustomer && (
-                  <div style={{ marginBottom: '16px', padding: '12px', background: 'var(--card-bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>Current Points: <strong>{selectedCustomer.loyalty_points}</strong></span>
-                      <span className="badge" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>{selectedCustomer.membership_tier} Member</span>
+                <div className="border-t border-slate-100 dark:border-slate-800/80 pt-5 mt-5">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="text-base font-bold text-slate-800 dark:text-slate-200">Products</h4>
+                    <div className="flex gap-2">
+                      <button className="retro-btn-metallic-teal px-3 py-1.5 text-xs flex items-center gap-1.5" onClick={() => setShowScanner(true)}>
+                        <Camera size={14} />
+                        <span>Barcode Scan</span>
+                      </button>
+                      {settings.sell.enableMultipleProducts && (
+                        <button className="retro-btn-metallic-teal px-3 py-1.5 text-xs flex items-center gap-1.5" onClick={addItem}>
+                          <span>+ Add Product</span>
+                        </button>
+                      )}
                     </div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-primary)' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={redeemPoints} 
-                        disabled={selectedCustomer.loyalty_points === 0}
-                        onChange={(e) => setRedeemPoints(e.target.checked)} 
-                      />
-                      Redeem Points (Max ৳{maxRedeemable})
+                  </div>
+                  
+                  {formData.items.map((item, index) => {
+                    const p = availableProducts.find(prod => prod.id === item.product_id);
+                    
+                    return (
+                      <div key={index} className="retro-section-container flex flex-col gap-4">
+                        <div className="flex justify-between items-center border-b border-slate-200/50 dark:border-slate-800/60 pb-2">
+                          <span className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                            <span className="bg-teal-600 dark:bg-teal-550 text-white w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold">{index + 1}</span>
+                            <span>Product Item</span>
+                          </span>
+                          {formData.items.length > 1 && (
+                            <button 
+                              className="text-xs font-bold text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1 bg-red-50 dark:bg-red-950/10 px-2.5 py-1 rounded-md border border-red-200/50 dark:border-red-900/40 transition-colors cursor-pointer"
+                              onClick={() => removeItem(index)}
+                            >
+                              <Trash2 size={12} />
+                              <span>Remove</span>
+                            </button>
+                          )}
+                        </div>
+                        
+                        <div className="flex flex-col gap-4">
+                          <div className="retro-form-group">
+                            <label>Select Product *</label>
+                            <div className="retro-input-wrapper">
+                              <select 
+                                className="retro-input"
+                                value={item.product_id}
+                                onChange={(e) => updateItem(index, 'product_id', e.target.value)}
+                              >
+                                <option value="">-- Choose Product --</option>
+                                {availableProducts.map(prod => (
+                                  <option key={prod.id} value={prod.id}>{prod.name} (Available: {prod.stock} units)</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="retro-form-row !mb-0">
+                            <div className="retro-form-group">
+                              <label className="flex items-center gap-1">
+                                <span>Quantity *</span>
+                                {p && item.qty > p.stock && <span className="text-red-500 text-xs font-semibold">(Exceeds Stock: {p.stock})</span>}
+                              </label>
+                              <div className="retro-input-wrapper" style={{
+                                background: p && item.qty > p.stock ? 'rgba(239, 68, 68, 0.2)' : undefined
+                              }}>
+                                <input 
+                                  type="number" 
+                                  value={item.qty || ''} 
+                                  onChange={(e) => updateItem(index, 'qty', +e.target.value)}
+                                  className="retro-input"
+                                  style={{ 
+                                    background: p && item.qty > p.stock ? 'rgba(239, 68, 68, 0.05)' : undefined,
+                                    borderColor: p && item.qty > p.stock ? '#ef4444' : undefined,
+                                    color: p && item.qty > p.stock ? '#ef4444' : undefined,
+                                  }}
+                                  placeholder="0"
+                                  min="1"
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="retro-form-group">
+                              <label>Sell Price ({settings.currency}) *</label>
+                              <div className="retro-input-wrapper">
+                                <input 
+                                  type="number" 
+                                  value={item.price || ''} 
+                                  onChange={(e) => updateItem(index, 'price', +e.target.value)}
+                                  className="retro-input"
+                                  placeholder="0.00"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-end p-2 px-3 bg-slate-100/30 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/50 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 font-mono">
+                            Item Total: {fmt(item.total)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {settings.sell.enableMultipleProducts && (
+                    <div className="mt-2 text-center">
+                      <button 
+                        className="retro-btn-metallic-silver px-6 py-2 text-xs font-bold" 
+                        onClick={addItem}
+                      >
+                        + Add Another Product
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="retro-calc-box">
+                  <div className="calc-header">LOYALTY & NOTIFICATIONS</div>
+                  
+                  {selectedCustomer && (
+                    <div className="mb-4 p-3.5 bg-slate-100/50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/80 rounded-xl space-y-2">
+                      <div className="flex justify-between text-xs text-slate-600 dark:text-slate-300">
+                        <span>Current Points: <strong className="text-slate-900 dark:text-white">{selectedCustomer.loyalty_points}</strong></span>
+                        <span className="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase">{selectedCustomer.membership_tier} Member</span>
+                      </div>
+                      <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-700 dark:text-slate-300">
+                        <input 
+                          type="checkbox" 
+                          className="rounded text-teal-600"
+                          checked={redeemPoints} 
+                          disabled={selectedCustomer.loyalty_points === 0}
+                          onChange={(e) => setRedeemPoints(e.target.checked)} 
+                        />
+                        <span>Redeem Points (Max ৳{maxRedeemable})</span>
+                      </label>
+                      {redeemPoints && (
+                        <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-450">
+                          - ৳{pointsToRedeem.toLocaleString()} Discount Applied
+                        </div>
+                      )}
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 border-t border-dashed border-slate-200 dark:border-slate-800 pt-1.5 mt-1.5 flex justify-between">
+                        <span>Points to earn:</span>
+                        <span className="text-blue-600 dark:text-blue-400 font-bold font-mono">+{pointsEarned}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mb-4">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-700 dark:text-slate-300">
+                      <input type="checkbox" className="rounded text-teal-600 font-bold" checked={sendSms} onChange={(e) => setSendSms(e.target.checked)} />
+                      <span>Send SMS Invoice Notification</span>
                     </label>
+                  </div>
+
+                  <div className="calc-header">AUTO CALCULATION</div>
+                  <div className="calc-grid text-sm">
+                    <div className="calc-item">
+                      <span>Subtotal</span>
+                      <span className="text-mono font-medium">{fmt(subtotal)}</span>
+                    </div>
                     {redeemPoints && (
-                      <div style={{ fontSize: '11px', color: 'var(--success)', marginTop: '4px' }}>
-                        - ৳{pointsToRedeem.toLocaleString()} Discount Applied
+                      <div className="calc-item text-emerald-600 dark:text-emerald-450 font-semibold">
+                        <span>Points Discount</span>
+                        <span className="text-mono">-{fmt(pointsToRedeem)}</span>
                       </div>
                     )}
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px', borderTop: '1px dashed var(--border)', paddingTop: '8px' }}>
-                      Points to be earned from this sale: <span style={{ color: 'var(--accent)', fontWeight: 600 }}>+{pointsEarned}</span>
+                    <div className="calc-item">
+                      <span>VAT ({formData.vat_percent}%)</span>
+                      <span className="text-mono font-medium">{fmt(vatAmount)}</span>
+                    </div>
+                    <div className="calc-item font-semibold text-slate-800 dark:text-slate-200">
+                      <span>Total Revenue</span>
+                      <span className="text-mono">{fmt(totalRevenue)}</span>
+                    </div>
+                    <div className="calc-item text-slate-500 dark:text-slate-450 text-xs">
+                      <span>Total Cost (landing)</span>
+                      <span className="text-mono">{fmt(totalCost)}</span>
+                    </div>
+                    
+                    <div className="calc-divider my-2"></div>
+                    
+                    <div className="calc-item highlight font-black text-base flex items-center justify-between">
+                      <span className="font-bold text-teal-700 dark:text-teal-400">Total Profit / Loss</span>
+                      <span className="text-mono text-teal-700 dark:text-teal-400">{fmt(profit)}</span>
+                    </div>
+                    <div className="calc-item text-xs text-slate-500 dark:text-slate-400 flex justify-between">
+                      <span>Profit Margin</span>
+                      <span className="text-mono text-emerald-600 dark:text-emerald-450 font-bold">{margin.toFixed(0)}%</span>
                     </div>
                   </div>
-                )}
-
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', marginBottom: '16px', color: 'var(--text-primary)' }}>
-                  <input type="checkbox" checked={sendSms} onChange={(e) => setSendSms(e.target.checked)} />
-                  Send SMS Invoice Notification
-                </label>
-
-                <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.5px' }}>Auto Calculation</p>
-                <div className="calc-row" style={{ color: 'var(--text-primary)' }}><span>Subtotal</span><span className="text-mono">{fmt(subtotal)}</span></div>
-                {redeemPoints && <div className="calc-row" style={{ color: 'var(--success)' }}><span>Points Discount</span><span className="text-mono">-{fmt(pointsToRedeem)}</span></div>}
-                <div className="calc-row" style={{ color: 'var(--text-primary)' }}><span>VAT ({formData.vat_percent}%)</span><span className="text-mono">{fmt(vatAmount)}</span></div>
-                <div className="calc-row" style={{ color: 'var(--text-primary)' }}><span>Total Revenue</span><span className="text-mono">{fmt(totalRevenue)}</span></div>
-                <div className="calc-row" style={{ color: 'var(--text-primary)' }}><span>Total Cost (landing)</span><span className="text-mono">{fmt(totalCost)}</span></div>
-                <div className="form-divider" style={{ margin: '8px 0', background: 'var(--border)' }}></div>
-                <div className="calc-row total" style={{ color: 'var(--accent)' }}>
-                  <span style={{ fontWeight: 700 }}>Total Profit / Loss</span>
-                  <span className="text-mono" style={{ fontWeight: 700 }}>{fmt(profit)}</span>
-                </div>
-                <div className="calc-row">
-                  <span style={{ color: 'var(--text-primary)' }}>Profit Margin</span>
-                  <span className="text-mono" style={{ color: 'var(--success)', fontWeight: 600 }}>{margin.toFixed(0)}%</span>
                 </div>
               </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-outline" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleAdd}>Sell</button>
-            </div>
+              <div className="retro-modal-footer">
+                <button className="retro-btn-metallic-silver lg" onClick={() => setShowModal(false)}>Cancel</button>
+                <button className="retro-btn-metallic-teal lg flex-1 font-bold" onClick={handleAdd}>
+                  <span>Sell</span>
+                  <Sparkles size={18} className="sparkle-icon" />
+                </button>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
       {showScanner && (
         <BarcodeScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
       )}

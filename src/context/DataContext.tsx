@@ -23,6 +23,7 @@ interface DataContextType {
   addCustomer: (c: Omit<Customer, 'id' | 'user_id' | 'created_at'>) => Promise<void>;
   addExpense: (e: Omit<Expense, 'id' | 'user_id'>) => Promise<void>;
   addTransaction: (t: Omit<Transaction, 'id' | 'user_id'>) => Promise<void>;
+  deleteTransaction: (id: string, name: string) => Promise<void>;
   addDocument: (d: Omit<TradeDocument, 'id' | 'user_id' | 'date'>) => Promise<void>;
   deleteDocument: (id: string, name: string) => Promise<void>;
   addActivityLog: (action: string, icon: string, color: string) => Promise<void>;
@@ -82,7 +83,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       defaultClientName: '',
       defaultClientAddress: '',
       defaultClientEmail: '',
-      defaultClientPhone: ''
+      defaultClientPhone: '',
+      showNotes: true,
+      templateId: 't1'
     }
   });
 
@@ -97,10 +100,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const localSettings = storage.getSettings(userId);
       const localDocs = await documentDB.getAll(userId);
 
-      if (localProducts.length) await supabase.from('tf_products').upsert(localProducts);
+      if (localProducts.length) {
+        const cleanLocalProducts = localProducts.map((p: any) => {
+          const { sku, image, unit, ...clean } = p;
+          return clean;
+        });
+        await supabase.from('tf_products').upsert(cleanLocalProducts);
+      }
       if (localCustomers.length) await supabase.from('tf_customers').upsert(localCustomers);
       if (localExpenses.length) await supabase.from('tf_expenses').upsert(localExpenses);
-      if (localTransactions.length) await supabase.from('tf_transactions').upsert(localTransactions);
+      if (localTransactions.length) {
+        const cleanLocalTransactions = localTransactions.map((t: any) => {
+          const { supplier, payment_method, exchange_rate, expiry_date, ...clean } = t;
+          return clean;
+        });
+        await supabase.from('tf_transactions').upsert(cleanLocalTransactions);
+      }
       if (localLogs.length) await supabase.from('tf_activity_logs').upsert(localLogs);
       if (localDocs.length) await supabase.from('tf_documents').upsert(localDocs);
       
@@ -145,9 +160,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         
         let errorMsg = msg;
         if (msg.includes('Failed to fetch')) {
-          setDbStatus('offline'); // Use a specific status for offline fallback
-          errorMsg = 'Network Error: Could not connect to Supabase. Proceeding in Offline/Fallback mode.';
-          console.warn(errorMsg);
+          setDbStatus('offline');
+          errorMsg = 'Connected in Local Mode. Data will be saved to your browser.';
+          console.info('Switching to offline/local storage due to fetch failure.');
         } else if (msg.includes('schema cache') || msg.includes('does not exist') || msg.includes('not found')) {
           setDbStatus('error');
           errorMsg = 'Schema Error: Table missing in Supabase. Run SQL in supabase_schema.sql.';
@@ -178,7 +193,33 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         if (resProducts.data) setProducts(resProducts.data);
         if (resCustomers.data) setCustomers(resCustomers.data);
         if (resExpenses.data) setExpenses(resExpenses.data);
-        if (resTransactions.data) setTransactions(resTransactions.data);
+        if (resTransactions.data) {
+          // Merge local storage transactions to retain fields like base64 invoice file data
+          const localTrans = storage.getTransactions(user.id);
+          const cloudIds = new Set(resTransactions.data.map((ct: any) => ct.id));
+          const onlyLocalTrans = localTrans.filter((lt: any) => !cloudIds.has(lt.id));
+          
+          const mergedTrans = [
+            ...resTransactions.data.map((cloudT: any) => {
+              const localT = localTrans.find((lt: any) => lt.id === cloudT.id);
+              if (localT) {
+                return {
+                  ...cloudT,
+                  invoice_file_data: localT.invoice_file_data || cloudT.invoice_file_data,
+                  invoice_file_name: localT.invoice_file_name || cloudT.invoice_file_name,
+                  invoice_file_type: localT.invoice_file_type || cloudT.invoice_file_type,
+                  supplier: cloudT.supplier || localT.supplier,
+                  payment_method: cloudT.payment_method || localT.payment_method,
+                  exchange_rate: cloudT.exchange_rate || localT.exchange_rate,
+                  expiry_date: cloudT.expiry_date || localT.expiry_date,
+                };
+              }
+              return cloudT;
+            }),
+            ...onlyLocalTrans
+          ];
+          setTransactions(mergedTrans);
+        }
         if (resLogs.data) setActivityLogs(resLogs.data);
         
         if (resSettings.data?.data) {
@@ -266,15 +307,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const addProduct = async (p: any) => {
     if (!user) return;
-    const newProduct: Product = { ...p, id: `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, user_id: user.id, created_at: new Date().toISOString() };
+    const newProduct: Product = { 
+      ...p, 
+      id: `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, 
+      user_id: user.id, 
+      created_at: new Date().toISOString() 
+    };
     
     setProducts(prev => [newProduct, ...prev]);
     storage.saveProduct(newProduct);
     
-    const { error } = await supabase.from('tf_products').insert([newProduct]);
+    // Create a clean version for Supabase that only includes confirmed columns
+    // to prevent "Could not find column... in schema cache" errors
+    const { sku, image, unit, ...cleanProduct } = newProduct as any;
+    
+    const { error } = await supabase.from('tf_products').insert([cleanProduct]);
     if (error) {
       console.error('Supabase error adding product:', error.message);
-      // We could optionally revert local state or show a warning
     }
     
     await addActivityLog(`Product added: ${p.name}`, '📦', 'var(--purple-light)');
@@ -284,7 +333,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setProducts(prev => prev.map(item => item.id === p.id ? p : item));
     storage.saveProduct(p);
     
-    const { error } = await supabase.from('tf_products').upsert(p);
+    // Create a clean version for Supabase
+    const { sku, image, unit, ...cleanProduct } = p as any;
+    
+    const { error } = await supabase.from('tf_products').upsert(cleanProduct);
     if (error) console.error('Supabase error updating product:', error.message);
     
     await addActivityLog(`Product updated: ${p.name}`, '📦', 'var(--accent-light)');
@@ -340,7 +392,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setTransactions(prev => [newTransaction, ...prev]);
     storage.saveTransaction(newTransaction);
     
-    const { error } = await supabase.from('tf_transactions').insert([newTransaction]);
+    // Create clean version for Supabase
+    const { supplier, payment_method, exchange_rate, expiry_date, invoice_file_data, invoice_file_name, invoice_file_type, ...cleanTransaction } = newTransaction as any;
+    
+    const { error } = await supabase.from('tf_transactions').insert([cleanTransaction]);
     if (error) console.error('Supabase error adding transaction:', error.message);
     
     // Auto-update inventory
@@ -413,6 +468,55 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await addActivityLog(`${typeLabel}: ${t.product_name || 'Multiple'}`, t.type === 'sale' ? '💰' : '🛒', t.type === 'sale' ? 'var(--success-light)' : 'var(--purple-light)');
   };
 
+  const deleteTransaction = async (id: string, name: string) => {
+    // Find the transaction to see if we need to adjust stock
+    const t = transactions.find(item => item.id === id);
+    let productToUpdate: Product | null = null;
+    
+    if (t) {
+      if (t.type === 'purchase') {
+        const p = products.find(prod => prod.id === t.product_id || prod.name === t.product_name);
+        if (p) {
+          productToUpdate = { ...p, stock: Math.max(0, p.stock - (t.quantity || 0)) };
+        }
+      } else if (t.type === 'sale') {
+        const p = products.find(prod => prod.id === t.product_id || prod.name === t.product_name);
+        if (p) {
+          productToUpdate = { ...p, stock: p.stock + (t.quantity || 0) };
+        }
+      }
+    }
+
+    // 1. Instantly update transactions state for instant UI response
+    setTransactions(prev => prev.filter(item => item.id !== id));
+    storage.deleteTransaction(id);
+
+    // 2. Instantly update products state if stock changed
+    if (productToUpdate) {
+      const updatedProduct = productToUpdate;
+      setProducts(prev => prev.map(item => item.id === updatedProduct.id ? updatedProduct : item));
+      storage.saveProduct(updatedProduct);
+    }
+
+    // 3. Perform network calls and activity logs in background asynchronously (non-blocking)
+    (async () => {
+      try {
+        if (productToUpdate) {
+          const { sku, image, unit, ...cleanProduct } = productToUpdate as any;
+          const { error: pError } = await supabase.from('tf_products').upsert(cleanProduct);
+          if (pError) console.error('Supabase error updating product:', pError.message);
+        }
+        
+        const { error: tError } = await supabase.from('tf_transactions').delete().eq('id', id);
+        if (tError) console.error('Supabase error deleting transaction:', tError.message);
+        
+        await addActivityLog(`Transaction deleted: ${name}`, '🗑️', 'var(--danger-light)');
+      } catch (err) {
+        console.error('Error during background transaction deletion sync:', err);
+      }
+    })();
+  };
+
   const addDocument = async (d: any) => {
     if (!user) return;
     const newDoc: TradeDocument = { 
@@ -455,7 +559,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       products, customers, expenses, transactions, activityLogs, documents, settings,
       selectedInvoiceId, setSelectedInvoiceId,
       addProduct, updateProduct, deleteProduct,
-      addCustomer, addExpense, addTransaction, 
+      addCustomer, addExpense, addTransaction, deleteTransaction, 
       addDocument, deleteDocument,
       addActivityLog, clearActivityLogs, updateSettings,
       refreshData: loadData
@@ -466,24 +570,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           position: 'fixed',
           bottom: '20px',
           right: '20px',
-          background: dbStatus === 'offline' ? '#f0f9ff' : '#fee2e2',
-          border: `1px solid ${dbStatus === 'offline' ? '#bae6fd' : '#fecaca'}`,
-          color: dbStatus === 'offline' ? '#0369a1' : '#991b1b',
-          padding: '12px 20px',
-          borderRadius: '12px',
-          fontSize: '13px',
+          background: dbStatus === 'offline' ? 'rgba(255, 255, 255, 0.9)' : '#fee2e2',
+          border: `1px solid ${dbStatus === 'offline' ? '#e2e8f0' : '#fecaca'}`,
+          color: dbStatus === 'offline' ? '#64748b' : '#991b1b',
+          backdropFilter: 'blur(8px)',
+          padding: '10px 16px',
+          borderRadius: '20px',
+          fontSize: '12px',
           fontWeight: 600,
           zIndex: 9999,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px'
+          gap: '8px',
+          transition: 'all 0.3s ease'
         }}>
-          <span>{dbStatus === 'offline' ? '🌐' : '⚠️'}</span>
-          <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '300px' }}>
-            <span>{dbStatus === 'offline' ? 'Offline Mode' : 'Database Status'}</span>
-            <span style={{ fontSize: '11px', opacity: 0.9, fontWeight: 400, lineHeight: 1.3 }}>
-              {dbError || 'Connection issue. Using local storage.'}
+          <span>{dbStatus === 'offline' ? '📡' : '⚠️'}</span>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span>{dbStatus === 'offline' ? 'Local Mode' : 'System Notice'}</span>
+            <span style={{ fontSize: '10px', opacity: 0.7, fontWeight: 400 }}>
+              {dbError || 'Running on local database'}
             </span>
           </div>
           {dbStatus === 'error' && (

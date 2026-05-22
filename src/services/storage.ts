@@ -94,6 +94,12 @@ export const storage = {
     else transactions.push(transaction);
     localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
   },
+  deleteTransaction: (id: string) => {
+    const data = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
+    let transactions: Transaction[] = data ? JSON.parse(data) : [];
+    transactions = transactions.filter(t => t.id !== id);
+    localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
+  },
 
   getSettings: (userId: string): AppSettings => {
     const data = localStorage.getItem(`${STORAGE_KEYS.SETTINGS}_${userId}`);

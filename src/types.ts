@@ -17,6 +17,9 @@ export interface Product {
   stock: number;
   min_stock: number;
   barcode?: string;
+  sku?: string;
+  image?: string;
+  unit?: string;
   description?: string;
   created_at: string;
 }
@@ -68,6 +71,13 @@ export interface Transaction {
   vat?: number;
   other_cost?: number;
   sell_price?: number;
+  supplier?: string;
+  payment_method?: string;
+  exchange_rate?: number;
+  expiry_date?: string;
+  invoice_file_data?: string | null;
+  invoice_file_name?: string | null;
+  invoice_file_type?: string | null;
 }
 
 export interface ActivityLogItem {
@@ -125,6 +135,8 @@ export interface AppSettings {
     signatureUrl?: string;
     discount?: number;
     taxRate?: number;
+    showNotes?: boolean;
+    templateId?: 't1' | 't2';
     // Default client info for the sample
     defaultClientName?: string;
     defaultClientAddress?: string;

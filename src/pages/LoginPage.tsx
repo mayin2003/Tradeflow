@@ -13,8 +13,12 @@ const GoogleIcon = () => (
 );
 
 export const LoginPage = ({ onBack }: { onBack: () => void }) => {
-  const { login, register, resetPassword, signInWithGoogle, refreshSession, setSession } = useAuth();
-  const [tab, setTab] = useState<'login' | 'register' | 'forgot'>('login');
+  const { login, register, resetPassword, signInWithGoogle, refreshSession, setSession, sendOTP, verifyOTP } = useAuth();
+  const [tab, setTab] = useState<'login' | 'register' | 'forgot' | 'otp-login'>('login');
+  const [otpToken, setOtpToken] = useState('');
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [otpType, setOtpType] = useState<'signup' | 'email'>('email');
+  const [temporaryEmail, setTemporaryEmail] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -24,6 +28,15 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [rateLimitTimer, setRateLimitTimer] = useState(0);
+
+  React.useEffect(() => {
+    if (rateLimitTimer === 0) return;
+    const interval = setInterval(() => {
+      setRateLimitTimer((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [rateLimitTimer]);
 
   const calculateStrength = (pass: string) => {
     if (!pass) return 0;
@@ -108,9 +121,13 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
       const result = await register(fullName.trim(), trimmedEmail, trimmedPassword, companyName.trim() || 'TradeFlow');
       if (result.session) {
         setStatus({ type: 'success', message: 'Success! Logging you in...' });
+        setIsLoading(false);
       } else {
-        setStatus({ type: 'success', message: 'Registration successful! Please check your email to verify your account.' });
-        setTimeout(() => setTab('login'), 3000);
+        setTemporaryEmail(trimmedEmail);
+        setOtpType('signup');
+        setShowOtpInput(true);
+        setStatus({ type: 'success', message: 'Registration initiated! A 6-digit verification code has been sent to your email.' });
+        setIsLoading(false);
       }
     } catch (error: any) {
       let msg = error.message || 'Registration failed. Try a different email.';
@@ -121,9 +138,70 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
           type: 'error', 
           message: 'This email is already registered. Did you mean to log in?' 
         });
+      } else if (msg.toLowerCase().includes('rate limit')) {
+        setRateLimitTimer(60);
+        setStatus({
+          type: 'error',
+          message: 'Too many verification code requests (rate limit exceeded). Please wait 60 seconds before trying again.'
+        });
       } else {
         setStatus({ type: 'error', message: msg });
       }
+      setIsLoading(false);
+    }
+  };
+
+  const handleSendLoginOTP = async () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setStatus({ type: 'error', message: 'Please enter your email address.' });
+      return;
+    }
+    if (!validateEmail(trimmedEmail)) {
+      setStatus({ type: 'error', message: 'Please enter a valid email address.' });
+      return;
+    }
+
+    setIsLoading(true);
+    setStatus(null);
+    try {
+      await sendOTP(trimmedEmail);
+      setTemporaryEmail(trimmedEmail);
+      setOtpType('email');
+      setShowOtpInput(true);
+      setStatus({ type: 'success', message: 'A 6-digit verification code has been sent to your email.' });
+    } catch (error: any) {
+      const msg = error.message || '';
+      if (msg.toLowerCase().includes('rate limit')) {
+        setRateLimitTimer(60);
+        setStatus({
+          type: 'error',
+          message: 'Too many login attempts (rate limit exceeded). Please wait 60 seconds before trying again.'
+        });
+      } else {
+        setStatus({ type: 'error', message: error.message || 'Failed to send verification code.' });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    const trimmedToken = otpToken.trim();
+    if (!trimmedToken || trimmedToken.length < 4) {
+      setStatus({ type: 'error', message: 'Please enter a valid verification code.' });
+      return;
+    }
+
+    setIsLoading(true);
+    setStatus(null);
+    try {
+      await verifyOTP(temporaryEmail, trimmedToken, otpType);
+      setStatus({ type: 'success', message: 'Verification successful! Logging you in...' });
+      setShowOtpInput(false);
+    } catch (error: any) {
+      setStatus({ type: 'error', message: error.message || 'Verification failed. Please check the code and try again.' });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -238,13 +316,23 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-[480px] bg-white dark:bg-slate-900 rounded-[32px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border border-slate-100 dark:border-slate-800 p-10 relative z-10"
       >
-        {tab !== 'register' && (
+        {!showOtpInput && tab !== 'register' && tab !== 'otp-login' && tab !== 'forgot' && (
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-              {tab === 'login' ? 'Secure Access' : 'Recover Access'}
+              Secure Access
             </h2>
             <p className="text-slate-500 dark:text-slate-400">
-              {tab === 'login' ? 'Enter your credentials to proceed.' : 'Enter your email to reset your security keys.'}
+              Enter your credentials to proceed.
+            </p>
+          </div>
+        )}
+        {!showOtpInput && tab === 'forgot' && (
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+              Recover Access
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400">
+              Enter your email to reset your security keys.
             </p>
           </div>
         )}
@@ -259,25 +347,118 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
                 : 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20'
             }`}
           >
-            <div className="flex items-start justify-between gap-3">
-              <span>{status.message}</span>
-              {status.type === 'error' && status.message.includes('already registered') && (
-                <button 
-                  onClick={() => {
-                    setTab('login');
-                    setStatus(null);
-                  }}
-                  className="shrink-0 text-rose-800 dark:text-rose-300 underline font-bold hover:no-underline"
-                >
-                  Login instead
-                </button>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-start justify-between gap-3">
+                <span>{status.message}</span>
+                {status.type === 'error' && status.message.includes('already registered') && (
+                  <button 
+                    onClick={() => {
+                      setTab('login');
+                      setStatus(null);
+                    }}
+                    className="shrink-0 text-rose-800 dark:text-rose-300 underline font-bold hover:no-underline"
+                  >
+                    Login instead
+                  </button>
+                )}
+              </div>
+              
+              {status.type === 'error' && status.message.toLowerCase().includes('rate limit') && (
+                <div className="text-xs text-rose-600 dark:text-rose-400 border-t border-rose-100 dark:border-rose-500/10 pt-2.5 mt-1 space-y-1">
+                  <span className="font-bold block text-[11px] uppercase tracking-wider text-rose-800 dark:text-rose-300">🛠️ How to increase/disable this in Supabase:</span>
+                  <p>1. Go to your <span className="font-semibold">Supabase Dashboard</span>.</p>
+                  <p>2. Select your project, then click on <span className="font-semibold">Project Settings</span> (gear icon) &rsaquo; <span className="font-semibold">Auth</span>.</p>
+                  <p>3. Scroll down to <span className="font-semibold">Rate Limits</span> / <span className="font-semibold">Email Rate Limits</span>.</p>
+                  <p>4. Adjust the defaults <span className="italic">(e.g. Max Limit per period)</span> or turn them up higher to avoid interruption during your tests.</p>
+                </div>
               )}
             </div>
           </motion.div>
         )}
 
         <AnimatePresence mode="wait">
-          {tab === 'login' ? (
+          {showOtpInput ? (
+            <motion.div
+              key="otp-verif"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="space-y-6"
+            >
+              <div className="text-center mb-4">
+                <div className="text-4xl mb-2">📥</div>
+                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Verify Verification Code</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Please enter the 6-digit confirmation code code sent to <strong>{temporaryEmail}</strong>
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 tracking-wider uppercase">6-Digit Verification Code</label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={otpToken}
+                  onChange={(e) => setOtpToken(e.target.value.replace(/\D/g, ''))}
+                  placeholder="123456"
+                  className="w-full text-center tracking-[0.5em] font-mono text-2xl py-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-300 placeholder:tracking-normal font-bold"
+                />
+              </div>
+
+              <button
+                onClick={handleVerifyOTP}
+                disabled={isLoading}
+                className="w-full h-14 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white font-bold rounded-xl shadow-[0_4px_20px_-4px_rgba(20,184,166,0.4)] hover:shadow-[0_8px_25px_-4px_rgba(20,184,166,0.5)] transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none"
+              >
+                {isLoading ? (
+                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  "Verify Code & Log In"
+                )}
+              </button>
+
+              <div className="flex justify-between items-center text-xs mt-3">
+                <button
+                  type="button"
+                  disabled={isLoading || rateLimitTimer > 0}
+                  onClick={async () => {
+                    setIsLoading(true);
+                    try {
+                      await sendOTP(temporaryEmail);
+                      setStatus({ type: 'success', message: 'Resent 6-digit verification code to your email.' });
+                    } catch (e: any) {
+                      const msg = e.message || '';
+                      if (msg.toLowerCase().includes('rate limit')) {
+                        setRateLimitTimer(60);
+                        setStatus({
+                          type: 'error',
+                          message: 'Too many resend attempts (rate limit exceeded). Please wait 60 seconds before trying again.'
+                        });
+                      } else {
+                        setStatus({ type: 'error', message: msg });
+                      }
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  className="text-teal-600 dark:text-teal-400 font-bold hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
+                >
+                  {rateLimitTimer > 0 ? `Resend Code (${rateLimitTimer}s)` : 'Resend Code'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowOtpInput(false);
+                    setStatus(null);
+                  }}
+                  className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-bold hover:underline"
+                >
+                  Back to Form
+                </button>
+              </div>
+            </motion.div>
+          ) : tab === 'login' ? (
             <motion.div 
               key="login"
               initial={{ opacity: 0, x: -10 }}
@@ -304,12 +485,26 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center px-1">
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Password</label>
-                  <button 
-                    onClick={() => setTab('forgot')}
-                    className="text-sm font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 transition-colors"
-                  >
-                    Forgot password?
-                  </button>
+                  <div className="flex gap-2 text-xs font-semibold">
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setTab('otp-login');
+                        setStatus(null);
+                      }}
+                      className="text-teal-600 hover:text-teal-700 dark:text-teal-400 transition-colors cursor-pointer"
+                    >
+                      Login with OTP
+                    </button>
+                    <span className="text-slate-300 dark:text-slate-700">|</span>
+                    <button 
+                      type="button"
+                      onClick={() => setTab('forgot')}
+                      className="text-teal-600 hover:text-teal-700 dark:text-teal-400 transition-colors"
+                    >
+                      Forgot?
+                    </button>
+                  </div>
                 </div>
                 <div className="relative group">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-teal-500 transition-colors">
@@ -372,8 +567,63 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
 
               <div className="text-center mt-6">
                 <p className="text-sm font-medium text-slate-500">
-                  Don't have an account? <button onClick={() => setTab('register')} className="text-teal-600 dark:text-teal-400 font-bold hover:underline">Sign Up</button>
+                  Don't have an account? <button onClick={() => { setTab('register'); setStatus(null); }} className="text-teal-600 dark:text-teal-400 font-bold hover:underline">Sign Up</button>
                 </p>
+              </div>
+            </motion.div>
+          ) : tab === 'otp-login' ? (
+            <motion.div 
+              key="otp-login"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              className="space-y-6"
+            >
+              <div className="text-center mb-4">
+                <div className="text-4xl mb-2">🔑</div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">OTP One-Time Login</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Enter your email address to receive a secure login token.
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Email Address</label>
+                <div className="relative group">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-teal-500 transition-colors">
+                    <Mail size={18} />
+                  </div>
+                  <input 
+                    type="email" 
+                    value={email} 
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="pilot@tradeflow.global" 
+                    className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
+                  />
+                </div>
+              </div>
+
+              <button 
+                onClick={handleSendLoginOTP}
+                disabled={isLoading}
+                className="w-full h-14 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white font-bold rounded-xl shadow-[0_4px_20px_-4px_rgba(20,184,166,0.4)] hover:shadow-[0_8px_25px_-4px_rgba(20,184,166,0.5)] transition-all flex items-center justify-center gap-2 group active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none"
+              >
+                {isLoading ? (
+                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    Send Login Code <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </button>
+
+              <div className="text-center mt-6 flex justify-between px-2">
+                <button onClick={() => { setTab('login'); setStatus(null); }} className="text-xs text-teal-600 dark:text-teal-400 font-bold hover:underline">
+                  Log in with Password
+                </button>
+                <button onClick={() => { setTab('register'); setStatus(null); }} className="text-xs text-teal-600 dark:text-teal-400 font-bold hover:underline">
+                  Create Account
+                </button>
               </div>
             </motion.div>
           ) : tab === 'register' ? (
