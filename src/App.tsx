@@ -14,6 +14,8 @@ import { Documents } from './pages/Documents';
 import { ActivityLog } from './pages/ActivityLog';
 import { Customers } from './pages/Customers';
 import { Settings } from './pages/Settings';
+import ShipmentTracking from './pages/ShipmentTracking';
+import { StaffPayroll } from './pages/StaffPayroll';
 import { DataProvider, useData } from './context/DataContext';
 import { AuthProvider } from './context/AuthContext';
 
@@ -56,6 +58,8 @@ const AppContent = () => {
         documents: '📄',
         customers: '👥',
         activity: '📋',
+        tracking: '🌐',
+        payroll: '💰',
         settings: '⚙️'
       };
       
@@ -106,6 +110,8 @@ const AppContent = () => {
       case 'reports': return <Reports />;
       case 'documents': return <Documents />;
       case 'customers': return <Customers />;
+      case 'tracking': return <ShipmentTracking />;
+      case 'payroll': return <StaffPayroll />;
       case 'activity': return <ActivityLog />;
       case 'settings': return <Settings />;
       default: return <Dashboard onNavigate={setCurrentPage} />;

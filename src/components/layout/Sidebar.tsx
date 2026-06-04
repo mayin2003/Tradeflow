@@ -19,14 +19,16 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
     { id: 'customers', label: 'Customers', icon: '👥', section: 'Main' },
     { id: 'buy', label: 'Buy (Import)', icon: '🛒', section: 'Trade' },
     { id: 'sell', label: 'Sell (Export)', icon: '💰', section: 'Trade' },
+    { id: 'tracking', label: 'Shipment Tracking', icon: '🌐', section: 'Trade' },
     { id: 'invoice', label: 'Invoices', icon: '🧾', section: 'Trade' },
+    { id: 'payroll', label: 'Staff Payroll', icon: '💰', section: 'Human Resources' },
     { id: 'reports', label: 'Reports', icon: '📊', section: 'Analysis' },
     { id: 'documents', label: 'Documents', icon: '📁', section: 'Analysis' },
     { id: 'activity', label: 'Activity Log', icon: '📋', section: 'Analysis' },
     { id: 'settings', label: 'Settings', icon: '⚙️', section: 'Settings' },
   ];
 
-  const sections = ['Main', 'Trade', 'Analysis', 'Settings'];
+  const sections = ['Main', 'Trade', 'Human Resources', 'Analysis', 'Settings'];
 
   return (
     <aside 

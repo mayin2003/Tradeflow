@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
-          if (error.message.includes('Email not confirmed')) {
+          if (error.message?.includes('Email not confirmed')) {
             throw new Error('Your email address has not been confirmed yet. Please check your inbox for a verification link or disable "Confirm email" in your Supabase Auth settings.');
           }
           throw error;
@@ -48,10 +48,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(appUser);
         }
       } catch (err: any) {
-        if (err.message.includes('Failed to fetch')) {
+        const errMsg = err?.message || '';
+        if (errMsg.includes('Failed to fetch') || errMsg.includes('fetch') || errMsg.includes('NetworkError')) {
           console.warn('Network Error during Auth check: Proceeding as unauthenticated offline user.');
         } else {
-          console.error('Auth session fetch failed:', err.message);
+          console.error('Auth session fetch failed:', errMsg);
         }
       } finally {
         setIsLoading(false);

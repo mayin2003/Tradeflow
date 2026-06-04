@@ -155,11 +155,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const anyError = [resProducts, resCustomers, resExpenses, resTransactions, resLogs, resDocs].find(r => r.error);
       
       if (anyError) {
-        const msg = anyError.error.message;
+        const msg = anyError.error.message || '';
         const isDefaultUrl = supabaseUrl === 'https://qerbogtxvdqsihhuadzl.supabase.co';
         
         let errorMsg = msg;
-        if (msg.includes('Failed to fetch')) {
+        const lowerMsg = msg.toLowerCase();
+        
+        const isFetchError = lowerMsg.includes('failed to fetch') || 
+                             lowerMsg.includes('fetch failed') || 
+                             lowerMsg.includes('load failed') || 
+                             lowerMsg.includes('networkerror') || 
+                             lowerMsg.includes('network') || 
+                             lowerMsg.includes('typeerror') ||
+                             lowerMsg.includes('cors');
+
+        if (isFetchError) {
           setDbStatus('offline');
           errorMsg = 'Connected in Local Mode. Data will be saved to your browser.';
           console.info('Switching to offline/local storage due to fetch failure.');
@@ -253,7 +263,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
         if (resDocs.data) setDocuments(resDocs.data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.warn('Supabase fetch critical failure, using local storage fallback', error);
       setProducts(storage.getProducts(user.id));
       setCustomers(storage.getCustomers(user.id));
@@ -264,7 +274,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       
       const docs = await documentDB.getAll(user.id);
       setDocuments(docs);
-      setDbStatus('error');
+      
+      const caughtMsg = error?.message || String(error || '');
+      const lowerCaught = caughtMsg.toLowerCase();
+      
+      if (lowerCaught.includes('fetch') || lowerCaught.includes('network') || lowerCaught.includes('typeerror') || lowerCaught.includes('load failed') || lowerCaught.includes('cors')) {
+        setDbStatus('offline');
+        setDbError('Connected in Local Mode. Data will be saved to your browser.');
+      } else {
+        setDbStatus('error');
+        setDbError(caughtMsg);
+      }
     }
   };
 

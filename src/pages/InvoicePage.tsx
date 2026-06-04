@@ -105,33 +105,38 @@ export const InvoicePage = () => {
         document.activeElement.blur();
       }
 
-      // Add printing class to trigger print-specific CSS for html2canvas
+      // Add printing class to trigger print-specific CSS with setTimeout to let render complete
       element.classList.add('is-printing');
 
-      const opt = {
-        margin: 0,
-        filename: `${invoiceData.invoiceNo || 'Invoice'}.pdf`,
-        image: { type: 'jpeg' as const, quality: 1.0 },
-        html2canvas: { 
-          scale: 4, 
-          useCORS: true,
-          letterRendering: true,
-          scrollX: 0,
-          scrollY: 0,
-          windowWidth: element.clientWidth,
-          logging: false,
-          ignoreElements: (el: Element) => el.classList.contains('no-print')
-        },
-        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
-      };
+      setTimeout(() => {
+        const opt = {
+          margin: 0,
+          filename: `${invoiceData.invoiceNo || 'Invoice'}.pdf`,
+          image: { type: 'jpeg' as const, quality: 1.0 },
+          html2canvas: { 
+            scale: 3, 
+            useCORS: true,
+            letterRendering: true,
+            scrollX: 0,
+            scrollY: 0,
+            logging: false,
+            ignoreElements: (el: Element) => el.classList.contains('no-print')
+          },
+          jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
+        };
 
-      html2pdf()
-        .set(opt)
-        .from(element)
-        .save()
-        .then(() => {
-          element.classList.remove('is-printing');
-        });
+        html2pdf()
+          .set(opt)
+          .from(element)
+          .save()
+          .then(() => {
+            element.classList.remove('is-printing');
+          })
+          .catch((err) => {
+            console.error("html2pdf generation failed:", err);
+            element.classList.remove('is-printing');
+          });
+      }, 150);
     } catch (e) {
       console.error("Download failed:", e);
       element.classList.remove('is-printing');
@@ -868,6 +873,397 @@ export const InvoicePage = () => {
             }
             @page { size: A4; margin: 0; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+
+        /* --- PERFECT ON-SCREEN DARK MODE COMPATIBILITY --- */
+        [data-theme='dark'] .invoice-card:not(.is-printing) {
+            background-color: #0b1220 !important;
+            color: #f1f5f9 !important;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        }
+
+        /* Template 1 Dark Mode */
+        [data-theme='dark'] .invoice-card:not(.is-printing) .shop-name {
+            color: #60a5fa !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .shop-info {
+            color: #94a3b8 !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .inv-title {
+            color: #ffffff !important;
+            opacity: 1 !important;
+            text-shadow: 0 0 5px rgba(255,255,255,0.1);
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .meta-data {
+            color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .meta-data b {
+            color: #60a5fa !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .bill-label {
+            background: #2563eb !important;
+            color: #ffffff !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .bill-to {
+            color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .bill-to strong {
+            color: #ffffff !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .items-table th {
+            background: #111827 !important;
+            color: #cbd5e1 !important;
+            border-bottom: 2px solid #2563eb !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .items-table td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+            color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .sl-no {
+            color: #60a5fa !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .row-total {
+            color: #60a5fa !important;
+            font-weight: 800;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .calc-box {
+            background: #111827 !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .calc-row {
+            color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .calc-row span:last-child {
+            color: #ffffff !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .grand-total {
+            border-top: 2px solid #2563eb !important;
+            color: #60a5fa !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .grand-total span:first-child {
+            color: #60a5fa !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .grand-total span:first-child small {
+            color: #94a3b8 !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .grand-total span:last-child {
+            color: #60a5fa !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .notes-box {
+            color: #94a3b8 !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .sig-line {
+            border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
+            color: #cbd5e1 !important;
+        }
+
+        /* Template 2 Dark Mode Overlay */
+        [data-theme='dark'] .invoice-card:not(.is-printing) .t2-company-info h2 {
+            color: #ffffff !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .t2-company-info p {
+            color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .t2-inv-meta h1 {
+            color: #c19a6b !important;
+            opacity: 1 !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .t2-inv-meta p {
+            color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .t2-inv-meta span {
+            color: #ffffff !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .t2-bill-to p {
+            color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .t2-bill-to span {
+            color: #ffffff !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .t2-table td {
+            color: #cbd5e1 !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .t2-table .print-val {
+            color: #ffffff !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .t2-table td:last-child {
+            color: #c19a6b !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .t2-totals-box {
+            background: #111827 !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .t2-totals-box span {
+            color: #ffffff !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .t2-totals-box .text-4xl {
+            color: #c19a6b !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .logo-box {
+            border-color: rgba(255, 255, 255, 0.15) !important;
+        }
+
+        /* Raw Text Elements Override inside Dark Card */
+        [data-theme='dark'] .invoice-card:not(.is-printing) .text-slate-900,
+        [data-theme='dark'] .invoice-card:not(.is-printing) .text-slate-800,
+        [data-theme='dark'] .invoice-card:not(.is-printing) .text-slate-700 {
+            color: #ffffff !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .text-slate-600,
+        [data-theme='dark'] .invoice-card:not(.is-printing) .text-slate-500 {
+            color: #cbd5e1 !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .input-cell {
+            color: #ffffff !important;
+            background: transparent !important;
+        }
+        [data-theme='dark'] .invoice-card:not(.is-printing) .input-cell::placeholder {
+            color: rgba(255, 255, 255, 0.35) !important;
+        }
+
+        /* --- STRICT SINGLE PAGE AND EXPORT LAYOUT COMPACTNESS --- */
+        /* Forces clean, light-themed, single page layouts during pdf download */
+        .is-printing.invoice-card {
+            background-color: #ffffff !important;
+            background: #ffffff !important;
+            color: #1e293b !important;
+            width: 210mm !important;
+            height: 297mm !important;
+            min-height: 297mm !important;
+            max-height: 297mm !important;
+            padding: 10mm 12mm 10mm 12mm !important; 
+            box-shadow: none !important;
+            margin: 0 !important;
+            border: none !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            box-sizing: border-box !important;
+        }
+
+        /* Enforce absolute white-theme components when printing to save ink and remain premium catalog style */
+        .is-printing .text-slate-900,
+        .is-printing .text-slate-800,
+        .is-printing .text-slate-755,
+        .is-printing .text-slate-700,
+        .is-printing .text-slate-600 {
+            color: #1e293b !important;
+        }
+        .is-printing .text-slate-500,
+        .is-printing .text-slate-400 {
+            color: #475569 !important;
+        }
+
+        /* Hide edit helper elements in PDF */
+        .is-printing .no-print,
+        .is-printing .btn-row-del {
+            display: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+        }
+
+        /* --- Template 1 Print Compactness --- */
+        .is-printing .header {
+            padding-bottom: 8px !important;
+            margin-bottom: 12px !important;
+            border-bottom: 3px solid #1a2a6c !important;
+        }
+        .is-printing .logo-box {
+            width: 110px !important;
+            height: 55px !important;
+            margin-bottom: 5px !important;
+        }
+        .is-printing .shop-name {
+            font-size: 20px !important;
+            margin-bottom: 2px !important;
+            color: #1a2a6c !important;
+        }
+        .is-printing .shop-info {
+            font-size: 11px !important;
+            line-height: 1.3 !important;
+            color: #475569 !important;
+        }
+        .is-printing .inv-title {
+            font-size: 28px !important;
+            margin-bottom: 4px !important;
+            color: #1a2a6c !important;
+            opacity: 1 !important;
+        }
+        .is-printing .meta-data {
+            font-size: 11px !important;
+            margin-bottom: 2px !important;
+            color: #334155 !important;
+        }
+        .is-printing .bill-to {
+            margin-bottom: 12px !important;
+        }
+        .is-printing .bill-label {
+            padding: 3px 8px !important;
+            font-size: 10px !important;
+            margin-bottom: 5px !important;
+            background: #1a2a6c !important;
+            color: #ffffff !important;
+            border-radius: 2px !important;
+        }
+        .is-printing .items-table {
+            margin-bottom: 12px !important;
+        }
+        .is-printing .items-table th {
+            padding: 6px 8px !important;
+            font-size: 11px !important;
+            background: #f1f5f9 !important;
+            color: #1e293b !important;
+            border-bottom: 2px solid #1a2a6c !important;
+        }
+        .is-printing .items-table td {
+            padding: 5px 8px !important;
+            font-size: 11px !important;
+            color: #1e293b !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+        }
+        .is-printing .summary-wrapper {
+            padding-top: 10px !important;
+            min-height: 90px !important;
+            margin-top: auto !important;
+            align-items: flex-start !important;
+        }
+        .is-printing .calc-box {
+            padding: 10px 14px !important;
+            border-radius: 8px !important;
+            background: #f8fafc !important;
+            border: 1px solid #e2e8f0 !important;
+            width: 42% !important;
+        }
+        .is-printing .calc-row {
+            padding: 3px 0 !important;
+            font-size: 11px !important;
+            color: #475569 !important;
+        }
+        .is-printing .calc-row.grand-total {
+            border-top: 1.5px solid #1a2a6c !important;
+            margin-top: 6px !important;
+            padding-top: 6px !important;
+            font-size: 15px !important;
+            color: #1a2a6c !important;
+        }
+        .is-printing .grand-total span:first-child small {
+            font-size: 9px !important;
+            margin-bottom: 1px !important;
+        }
+        .is-printing .grand-total span:last-child {
+            font-size: 18px !important;
+        }
+        .is-printing .notes-box {
+            width: 52% !important;
+            font-size: 10px !important;
+            color: #475569 !important;
+            line-height: 1.4 !important;
+        }
+        .is-printing .sig-section {
+            margin-top: 25px !important;
+        }
+        .is-printing .sig-line {
+            width: 140px !important;
+            font-size: 10px !important;
+            color: #475569 !important;
+            border-top: 1px solid #94a3b8 !important;
+        }
+
+        /* --- Template 2 Print Compactness --- */
+        .is-printing .t2-header {
+            margin-bottom: 8px !important;
+        }
+        .is-printing .t2-company-info h2 {
+            font-size: 16px !important;
+            color: #1e293b !important;
+        }
+        .is-printing .t2-company-info p {
+            font-size: 10px !important;
+            color: #475569 !important;
+        }
+        .is-printing .t2-inv-meta h1 {
+            font-size: 28px !important;
+            margin-bottom: 4px !important;
+            color: #c19a6b !important;
+            opacity: 1 !important;
+        }
+        .is-printing .t2-inv-meta p {
+            font-size: 11px !important;
+            color: #334155 !important;
+        }
+        .is-printing .t2-separator {
+            margin-bottom: 12px !important;
+        }
+        .is-printing .t2-bill-to {
+            margin-bottom: 12px !important;
+        }
+        .is-printing .t2-bill-to p {
+            font-size: 11px !important;
+            color: #334155 !important;
+        }
+        .is-printing .t2-bill-to span {
+            color: #1e293b !important;
+        }
+        .is-printing .t2-table-header-bar {
+            height: 32px !important;
+            margin-bottom: 1px !important;
+            background: #1a2a6c !important;
+        }
+        .is-printing .t2-table-header-bar div {
+            font-size: 9px !important;
+            color: #ffffff !important;
+        }
+        .is-printing .t2-table td {
+            padding: 5px 6px !important;
+            font-size: 11px !important;
+            color: #1e293b !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+        }
+        .is-printing .t2-table .print-val {
+            color: #1e293b !important;
+            font-size: 11px !important;
+        }
+        .is-printing .t2-table td:last-child {
+            color: #1e293b !important;
+            font-weight: 700 !important;
+        }
+        .is-printing .t2-totals-box {
+            padding: 10px 14px !important;
+            border-radius: 10px !important;
+            border: 1px solid #e2e8f0 !important;
+            min-w-[240px] !important;
+            background: #fdfbf7 !important;
+        }
+        .is-printing .t2-totals-box .flex {
+            margin-bottom: 0 !important;
+        }
+        .is-printing .t2-totals-box span {
+            font-size: 10px !important;
+            color: #475569 !important;
+        }
+        .is-printing .t2-totals-box .font-mono {
+            color: #1e293b !important;
+            font-size: 11px !important;
+        }
+        .is-printing .t2-totals-box .text-4xl {
+            font-size: 18px !important;
+            color: #1e293b !important;
+        }
+        .is-printing .t2-footer {
+            padding-top: 10px !important;
+            margin-top: auto !important;
+        }
+        .is-printing .t2-items-container {
+            flex: 1 !important;
+        }
+        .is-printing .logo-box {
+            width: 60px !important;
+            height: 45px !important;
+            margin-bottom: 3px !important;
         }
       ` }} />
     </div>
