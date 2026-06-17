@@ -723,34 +723,34 @@ export const Inventory = () => {
               
               const cardClassName = isDarkMode
                 ? (isSelected
-                    ? "group relative overflow-hidden p-6 rounded-[20px] transition-all duration-200 ease-out cursor-pointer border bg-slate-800 border-blue-500 shadow-[0_8px_24px_rgba(59,130,246,0.25)] shadow-blue-500/20 scale-[1.01]"
-                    : "group relative overflow-hidden p-6 rounded-[20px] transition-all duration-200 ease-out cursor-pointer border border-white/15 bg-slate-800 shadow-[0_8px_24px_rgba(0,0,0,0.35)] hover:-translate-y-1 hover:border-white/20 hover:brightness-110 hover:shadow-[0_12px_32px_rgba(0,0,0,0.45)]")
+                    ? "group relative overflow-hidden p-6 rounded-[22px] transition-all duration-300 ease-out cursor-pointer border bg-[#1E293B] border-blue-500 shadow-[0_0_25px_rgba(59,130,246,0.25)] ring-1 ring-blue-500/30 scale-[1.02]"
+                    : "group relative overflow-hidden p-6 rounded-[22px] transition-all duration-300 ease-out cursor-pointer border border-white/10 bg-[#1E293B] shadow-[0_10px_35px_rgba(0,0,0,0.3)] hover:-translate-y-1.5 hover:border-blue-500/40 hover:shadow-[0_15px_35px_rgba(0,0,0,0.45),_0_0_20px_rgba(59,130,246,0.15)] hover:bg-[#233147]")
                 : (isSelected
                     ? "group relative overflow-hidden p-6 rounded-[20px] transition-all duration-200 ease-out cursor-pointer border bg-blue-50/60 border-blue-500 shadow-lg shadow-blue-500/20 scale-[1.01]"
                     : "group relative overflow-hidden p-6 rounded-[20px] transition-all duration-200 ease-out cursor-pointer border border-slate-200/50 bg-white shadow-lg hover:shadow-lg hover:-translate-y-1 hover:border-blue-400 hover:brightness-110");
 
               const iconContainerClass = isDarkMode
                 ? (isSelected
-                    ? 'bg-blue-500/20 text-white scale-105'
-                    : 'bg-slate-700 text-slate-200 group-hover:text-white group-hover:scale-105 group-hover:brightness-110')
+                    ? 'bg-blue-600/30 text-blue-400 ring-2 ring-blue-400/30 scale-110 shadow-[0_0_15px_rgba(59,130,246,0.3)]'
+                    : 'bg-[#0f172a] text-slate-300 border border-white/5 shadow-inner group-hover:text-blue-400 group-hover:border-blue-500/30 group-hover:bg-[#1e293b] group-hover:scale-110 group-hover:shadow-[0_0_12px_rgba(59,130,246,0.2)]')
                 : (isSelected
                     ? 'bg-blue-100 text-blue-600 scale-105'
                     : 'bg-slate-50 text-slate-500 group-hover:scale-105 group-hover:brightness-110');
 
               const badgeClass = isDarkMode
                 ? (isSelected
-                    ? 'bg-blue-500 text-white shadow-md shadow-blue-500/20'
-                    : 'bg-slate-700 text-slate-300 group-hover:bg-slate-600')
+                    ? 'bg-blue-600 text-white font-bold border border-blue-400/30 shadow-[0_0_12px_rgba(59,130,246,0.4)]'
+                    : 'bg-[#0f172a] text-slate-400 border border-white/10 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-400/20 group-hover:shadow-[0_0_10px_rgba(59,130,246,0.3)]')
                 : (isSelected
                     ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10'
                     : 'bg-slate-50 text-slate-500 group-hover:bg-blue-50/50');
 
               const titleClass = isDarkMode
-                ? 'text-lg font-semibold text-white !text-white select-none m-0'
+                ? 'text-lg font-bold text-white !text-white tracking-tight select-none m-0 group-hover:text-blue-200 transition-colors'
                 : 'text-lg font-semibold text-slate-800 select-none m-0';
 
               const quantityClass = isDarkMode
-                ? 'text-2xl font-black select-none m-0 text-blue-400 !text-blue-400 transition-colors'
+                ? `text-2xl font-black select-none m-0 text-blue-400 !text-blue-400 transition-all ${isSelected ? 'drop-shadow-[0_0_10px_rgba(96,165,250,0.6)] scale-105 origin-left' : ''}`
                 : 'text-2xl font-black select-none m-0 text-blue-600 transition-colors';
 
               return (
@@ -762,7 +762,13 @@ export const Inventory = () => {
                   onClick={() => setSelectedCategory(isSelected ? null : cat)}
                   className={cardClassName}
                 >
-                  <div className="w-full flex flex-col justify-between h-full">
+                  {isDarkMode && (
+                    <>
+                      <div className="absolute -right-8 -bottom-8 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all duration-500 pointer-events-none" />
+                      <div className="absolute -left-8 -top-8 w-20 h-20 bg-indigo-500/5 rounded-full blur-xl group-hover:bg-[#3b82f6]/10 transition-all duration-500 pointer-events-none" />
+                    </>
+                  )}
+                  <div className="w-full flex flex-col justify-between h-full relative z-10">
                     <div className="flex justify-between items-center mb-4 w-full">
                       <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-2xl transition-all duration-200 select-none ${iconContainerClass}`}>
                         {getCategoryIcon(cat)}
