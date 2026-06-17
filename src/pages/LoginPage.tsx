@@ -126,7 +126,10 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
         setTemporaryEmail(trimmedEmail);
         setOtpType('signup');
         setShowOtpInput(true);
-        setStatus({ type: 'success', message: 'Registration initiated! A 6-digit verification code has been sent to your email.' });
+        const msg = result.devCode 
+          ? `Registration initiated! A 6-digit verification code has been sent to your email. (SANDBOX DEV CODE: ${result.devCode})`
+          : 'Registration initiated! A 6-digit verification code has been sent to your email.';
+        setStatus({ type: 'success', message: msg });
         setIsLoading(false);
       }
     } catch (error: any) {
@@ -314,24 +317,24 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-[480px] bg-white dark:bg-slate-900 rounded-[32px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border border-slate-100 dark:border-slate-800 p-10 relative z-10"
+        className="w-full max-w-[440px] bg-[#0c0f1d] rounded-[32px] shadow-[0_24px_60px_rgba(0,0,0,0.65)] border border-[#1e263d]/90 p-8 md:p-10 relative z-10"
       >
         {!showOtpInput && tab !== 'register' && tab !== 'otp-login' && tab !== 'forgot' && (
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+            <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">
               Secure Access
             </h2>
-            <p className="text-slate-500 dark:text-slate-400">
+            <p className="text-[#94a3b8] text-sm">
               Enter your credentials to proceed.
             </p>
           </div>
         )}
         {!showOtpInput && tab === 'forgot' && (
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+            <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">
               Recover Access
             </h2>
-            <p className="text-slate-500 dark:text-slate-400">
+            <p className="text-[#94a3b8] text-sm">
               Enter your email to reset your security keys.
             </p>
           </div>
@@ -387,28 +390,28 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
             >
               <div className="text-center mb-4">
                 <div className="text-4xl mb-2">📥</div>
-                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Verify Verification Code</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Please enter the 6-digit confirmation code code sent to <strong>{temporaryEmail}</strong>
+                <h2 className="text-xl font-bold text-white">Verify Verification Code</h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  Please enter the 6-digit confirmation code sent to <strong className="text-white">{temporaryEmail}</strong>
                 </p>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 tracking-wider uppercase">6-Digit Verification Code</label>
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-[#94a3b8] tracking-wider uppercase">6-Digit Verification Code</label>
                 <input
                   type="text"
                   maxLength={6}
                   value={otpToken}
                   onChange={(e) => setOtpToken(e.target.value.replace(/\D/g, ''))}
                   placeholder="123456"
-                  className="w-full text-center tracking-[0.5em] font-mono text-2xl py-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-300 placeholder:tracking-normal font-bold"
+                  className="w-full text-center tracking-[0.5em] font-mono text-2xl py-3.5 bg-white border border-transparent rounded-2xl focus:ring-4 focus:ring-[#00aece]/20 focus:border-[#00aece] outline-none transition-all text-slate-800 placeholder:text-slate-300 placeholder:tracking-normal font-bold"
                 />
               </div>
 
               <button
                 onClick={handleVerifyOTP}
                 disabled={isLoading}
-                className="w-full h-14 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white font-bold rounded-xl shadow-[0_4px_20px_-4px_rgba(20,184,166,0.4)] hover:shadow-[0_8px_25px_-4px_rgba(20,184,166,0.5)] transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none"
+                className="w-full h-[54px] bg-[#00aece] hover:bg-[#00c2e6] text-white font-bold rounded-2xl shadow-[0_4px_24px_rgba(0,174,206,0.35)] hover:shadow-[0_6px_30px_rgba(0,174,206,0.55)] transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none text-base"
               >
                 {isLoading ? (
                   <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -424,8 +427,18 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
                   onClick={async () => {
                     setIsLoading(true);
                     try {
-                      await sendOTP(temporaryEmail);
-                      setStatus({ type: 'success', message: 'Resent 6-digit verification code to your email.' });
+                      // Pass metadata context for signup to allow correct backend account creation upon verify
+                      const res = await sendOTP(
+                        temporaryEmail, 
+                        otpType === 'signup' 
+                          ? { name: fullName, password, company: companyName } 
+                          : undefined
+                      );
+                      const msg = res?.devCode
+                        ? `Resent 6-digit verification code to your email. (SANDBOX DEV CODE: ${res.devCode})`
+                        : 'Resent 6-digit verification code to your email.';
+                      setStatus({ type: 'success', message: msg });
+                      setRateLimitTimer(60); // Set cooldown timer
                     } catch (e: any) {
                       const msg = e.message || '';
                       if (msg.toLowerCase().includes('rate limit')) {
@@ -435,13 +448,13 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
                           message: 'Too many resend attempts (rate limit exceeded). Please wait 60 seconds before trying again.'
                         });
                       } else {
-                        setStatus({ type: 'error', message: msg });
+                        setStatus({ type: 'error', message: 'Failed to send verification code. Please try again.' });
                       }
                     } finally {
                       setIsLoading(false);
                     }
                   }}
-                  className="text-teal-600 dark:text-teal-400 font-bold hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
+                  className="text-[#00aece] font-bold hover:underline disabled:opacity-50 disabled:no-underline disabled:cursor-not-allowed"
                 >
                   {rateLimitTimer > 0 ? `Resend Code (${rateLimitTimer}s)` : 'Resend Code'}
                 </button>
@@ -452,7 +465,7 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
                     setShowOtpInput(false);
                     setStatus(null);
                   }}
-                  className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-bold hover:underline"
+                  className="text-slate-400 hover:text-slate-200 font-bold hover:underline"
                 >
                   Back to Form
                 </button>
@@ -466,71 +479,74 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
               exit={{ opacity: 0, x: 10 }}
               className="space-y-6"
             >
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Email or Username</label>
-                <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-teal-500 transition-colors">
-                    <User size={18} />
+              <div className="space-y-2">
+                <label className="text-[13px] font-semibold text-[#94a3b8] tracking-normal mb-1 block">Email or Username</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94a3b8]">
+                    <User size={18} strokeWidth={1.8} />
                   </div>
                   <input 
                     type="email" 
                     value={email} 
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="pilot@tradeflow.global" 
-                    className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
+                    className="w-full h-[54px] pl-12 pr-4 bg-white rounded-2xl focus:ring-4 focus:ring-[#00aece]/20 focus:border-[#00aece] border-transparent outline-none transition-all text-slate-800 placeholder:text-[#94a3b8] font-medium text-[15px]"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center px-1">
-                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Password</label>
-                  <div className="flex gap-2 text-xs font-semibold">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-[13px] font-semibold text-[#94a3b8] tracking-normal">Password</label>
+                  <div className="flex items-center gap-1.5 text-xs font-semibold">
                     <button 
                       type="button"
                       onClick={() => {
                         setTab('otp-login');
                         setStatus(null);
                       }}
-                      className="text-teal-600 hover:text-teal-700 dark:text-teal-400 transition-colors cursor-pointer"
+                      className="text-[#00aece] hover:text-[#00c2e6] transition-colors cursor-pointer"
                     >
                       Login with OTP
                     </button>
-                    <span className="text-slate-300 dark:text-slate-700">|</span>
+                    <span className="text-[#222d44] font-light">|</span>
                     <button 
                       type="button"
                       onClick={() => setTab('forgot')}
-                      className="text-teal-600 hover:text-teal-700 dark:text-teal-400 transition-colors"
+                      className="text-[#00aece] hover:text-[#00c2e6] transition-colors"
                     >
                       Forgot?
                     </button>
                   </div>
                 </div>
-                <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-teal-500 transition-colors">
-                    <Lock size={18} />
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94a3b8]">
+                    <Lock size={18} strokeWidth={1.8} />
                   </div>
                   <input 
                     type={showPassword ? "text" : "password"} 
                     value={password} 
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••" 
-                    className="w-full pl-12 pr-12 py-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
+                    placeholder="" 
+                    className="w-full h-[54px] pl-12 pr-12 bg-white rounded-2xl focus:ring-4 focus:ring-[#00aece]/20 focus:border-[#00aece] border-transparent outline-none transition-all text-slate-800 font-medium text-[15px]"
                   />
                   <button 
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showPassword ? <EyeOff size={18} strokeWidth={1.8} /> : <Eye size={18} strokeWidth={1.8} />}
                   </button>
                 </div>
               </div>
 
-              <div className="flex items-center px-1">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500 transition-all cursor-pointer shadow-sm" />
-                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200 transition-colors">
+              <div className="flex items-center">
+                <label className="flex items-center gap-3 cursor-pointer group select-none">
+                  <input 
+                    type="checkbox" 
+                    className="w-5 h-5 rounded border-[#1e2638] bg-transparent text-[#00aece] focus:ring-[#00aece]/20 focus:ring-offset-0 transition-all cursor-pointer shadow-none accent-[#00aece]" 
+                  />
+                  <span className="text-sm font-medium text-[#94a3b8] group-hover:text-slate-200 transition-colors">
                     Remember me for 30 days
                   </span>
                 </label>
@@ -539,35 +555,41 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
               <button 
                 onClick={handleLogin}
                 disabled={isLoading}
-                className="w-full h-14 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white font-bold rounded-xl shadow-[0_4px_20px_-4px_rgba(20,184,166,0.4)] hover:shadow-[0_8px_25px_-4px_rgba(20,184,166,0.5)] transition-all flex items-center justify-center gap-2 group active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none"
+                className="w-full h-[54px] bg-[#00aece] hover:bg-[#00c2e6] text-white font-bold rounded-2xl shadow-[0_4px_24px_rgba(0,174,206,0.35)] hover:shadow-[0_6px_30px_rgba(0,174,206,0.55)] transition-all flex items-center justify-center gap-2 group active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none text-[16px]"
               >
                 {isLoading ? (
                   <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    Log In <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                    Log In <ArrowRight size={18} className="transition-transform group-hover:translate-x-0.5" />
                   </>
                 )}
               </button>
 
-              <div className="relative py-4 flex items-center justify-center">
+              <div className="relative py-2 flex items-center justify-center">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-100 dark:border-slate-800"></div>
+                  <div className="w-full border-t border-[#1e263c]"></div>
                 </div>
-                <span className="relative px-4 bg-white dark:bg-slate-900 text-xs font-bold text-slate-400 uppercase tracking-widest">OR</span>
+                <span className="relative px-4 bg-[#0c0f1d] text-[11px] font-bold text-slate-500 uppercase tracking-widest">OR</span>
               </div>
 
               <button 
                 onClick={handleGoogleLogin}
                 disabled={isLoading}
-                className="w-full h-14 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl transition-all flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-900 active:scale-[0.98]"
+                className="w-full h-[54px] bg-[#131826] border border-[#222e47] hover:border-[#314264] text-slate-200 font-semibold rounded-2xl transition-all flex items-center justify-center hover:bg-[#181f32] active:scale-[0.98] text-[15px]"
               >
                 <GoogleIcon /> Continue with Google
               </button>
 
               <div className="text-center mt-6">
                 <p className="text-sm font-medium text-slate-500">
-                  Don't have an account? <button onClick={() => { setTab('register'); setStatus(null); }} className="text-teal-600 dark:text-teal-400 font-bold hover:underline">Sign Up</button>
+                  Don't have an account?{' '}
+                  <button 
+                    onClick={() => { setTab('register'); setStatus(null); }} 
+                    className="text-[#00aece] hover:text-[#00c2e6] font-bold hover:underline"
+                  >
+                    Sign Up
+                  </button>
                 </p>
               </div>
             </motion.div>
@@ -581,24 +603,24 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
             >
               <div className="text-center mb-4">
                 <div className="text-4xl mb-2">🔑</div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">OTP One-Time Login</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                <h2 className="text-xl font-bold text-white">OTP One-Time Login</h2>
+                <p className="text-xs text-[#94a3b8] mt-1">
                   Enter your email address to receive a secure login token.
                 </p>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Email Address</label>
-                <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-teal-500 transition-colors">
-                    <Mail size={18} />
+              <div className="space-y-2">
+                <label className="text-[13px] font-semibold text-[#94a3b8] tracking-normal mb-1 block">Email Address</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94a3b8]">
+                    <Mail size={18} strokeWidth={1.8} />
                   </div>
                   <input 
                     type="email" 
                     value={email} 
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="pilot@tradeflow.global" 
-                    className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-400"
+                    className="w-full h-[54px] pl-12 pr-4 bg-white rounded-2xl focus:ring-4 focus:ring-[#00aece]/20 focus:border-[#00aece] border-transparent outline-none transition-all text-slate-800 placeholder:text-[#94a3b8] font-medium text-[15px]"
                   />
                 </div>
               </div>
@@ -606,22 +628,22 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
               <button 
                 onClick={handleSendLoginOTP}
                 disabled={isLoading}
-                className="w-full h-14 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white font-bold rounded-xl shadow-[0_4px_20px_-4px_rgba(20,184,166,0.4)] hover:shadow-[0_8px_25px_-4px_rgba(20,184,166,0.5)] transition-all flex items-center justify-center gap-2 group active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none"
+                className="w-full h-[54px] bg-[#00aece] hover:bg-[#00c2e6] text-white font-bold rounded-2xl shadow-[0_4px_24px_rgba(0,174,206,0.35)] hover:shadow-[0_6px_30px_rgba(0,174,206,0.55)] transition-all flex items-center justify-center gap-2 group active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none text-base"
               >
                 {isLoading ? (
                   <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    Send Login Code <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                    Send Login Code <ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
                   </>
                 )}
               </button>
 
               <div className="text-center mt-6 flex justify-between px-2">
-                <button onClick={() => { setTab('login'); setStatus(null); }} className="text-xs text-teal-600 dark:text-teal-400 font-bold hover:underline">
+                <button onClick={() => { setTab('login'); setStatus(null); }} className="text-xs text-[#00aece] font-bold hover:underline">
                   Log in with Password
                 </button>
-                <button onClick={() => { setTab('register'); setStatus(null); }} className="text-xs text-teal-600 dark:text-teal-400 font-bold hover:underline">
+                <button onClick={() => { setTab('register'); setStatus(null); }} className="text-xs text-[#00aece] font-bold hover:underline">
                   Create Account
                 </button>
               </div>
@@ -634,62 +656,62 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
               exit={{ opacity: 0, x: -10 }}
               className="space-y-5"
             >
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 ml-1 tracking-wider uppercase">Full Name</label>
-                <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-teal-500 transition-colors">
-                    <User size={18} />
+              <div className="space-y-2">
+                <label className="text-[13px] font-semibold text-[#94a3b8] tracking-normal mb-1 block">Full Name</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94a3b8]">
+                    <User size={18} strokeWidth={1.8} />
                   </div>
                   <input 
                     type="text" 
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Jane Doe" 
-                    className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-300"
+                    className="w-full h-[54px] pl-12 pr-4 bg-white rounded-2xl focus:ring-4 focus:ring-[#00aece]/20 focus:border-[#00aece] border-transparent outline-none transition-all text-slate-800 placeholder:text-[#94a3b8] font-medium text-[15px]"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 ml-1 tracking-wider uppercase">Email Address</label>
-                <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-teal-500 transition-colors">
-                    <Mail size={18} />
+              <div className="space-y-2">
+                <label className="text-[13px] font-semibold text-[#94a3b8] tracking-normal mb-1 block">Email Address</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94a3b8]">
+                    <Mail size={18} strokeWidth={1.8} />
                   </div>
                   <input 
                     type="email" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="jane@company.com" 
-                    className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-300"
+                    className="w-full h-[54px] pl-12 pr-4 bg-white rounded-2xl focus:ring-4 focus:ring-[#00aece]/20 focus:border-[#00aece] border-transparent outline-none transition-all text-slate-800 placeholder:text-[#94a3b8] font-medium text-[15px]"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 ml-1 tracking-wider uppercase">Password</label>
-                <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-teal-500 transition-colors">
-                    <Lock size={18} />
+              <div className="space-y-2">
+                <label className="text-[13px] font-semibold text-[#94a3b8] tracking-normal mb-1 block">Password</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94a3b8]">
+                    <Lock size={18} strokeWidth={1.8} />
                   </div>
                   <input 
                     type={showPassword ? "text" : "password"} 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••" 
-                    className="w-full pl-12 pr-12 py-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-300"
+                    className="w-full h-[54px] pl-12 pr-12 bg-white rounded-2xl focus:ring-4 focus:ring-[#00aece]/20 focus:border-[#00aece] border-transparent outline-none transition-all text-slate-800 placeholder:text-[#94a3b8] font-medium text-[15px]"
                   />
                   <button 
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showPassword ? <EyeOff size={18} strokeWidth={1.8} /> : <Eye size={18} strokeWidth={1.8} />}
                   </button>
                 </div>
                 {/* Password Strength Bar */}
                 <div className="mt-2 flex items-center gap-3">
-                  <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
                     <motion.div 
                       initial={{ width: 0 }}
                       animate={{ width: `${strength}%` }}
@@ -704,14 +726,14 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 ml-1 tracking-wider uppercase">Confirm Password</label>
-                <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-teal-500 transition-colors">
+              <div className="space-y-2">
+                <label className="text-[13px] font-semibold text-[#94a3b8] tracking-normal mb-1 block">Confirm Password</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94a3b8]">
                     <div className="relative">
-                      <Lock size={18} />
-                      <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-950 rounded-full p-0.5">
-                        <div className="w-1.5 h-1.5 bg-teal-500 rounded-full" />
+                      <Lock size={18} strokeWidth={1.8} />
+                      <div className="absolute -bottom-1 -right-1 bg-[#0c0f1d] rounded-full p-0.5">
+                        <div className="w-1.5 h-1.5 bg-[#00aece] rounded-full" />
                       </div>
                     </div>
                   </div>
@@ -720,14 +742,14 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••" 
-                    className="w-full pl-12 pr-12 py-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all text-slate-900 dark:text-white placeholder:text-slate-300"
+                    className="w-full h-[54px] pl-12 pr-12 bg-white rounded-2xl focus:ring-4 focus:ring-[#00aece]/20 focus:border-[#00aece] border-transparent outline-none transition-all text-slate-800 placeholder:text-[#94a3b8] font-medium text-[15px]"
                   />
                   <button 
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   >
-                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showConfirmPassword ? <EyeOff size={18} strokeWidth={1.8} /> : <Eye size={18} strokeWidth={1.8} />}
                   </button>
                 </div>
               </div>
@@ -736,13 +758,13 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
                 <button 
                   onClick={handleRegister}
                   disabled={isLoading}
-                  className="w-full h-14 bg-transparent group hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-900 dark:text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 group active:scale-[0.98]"
+                  className="w-full h-[54px] bg-[#00aece] hover:bg-[#00c2e6] text-white font-bold rounded-2xl shadow-[0_4px_24px_rgba(0,174,206,0.35)] hover:shadow-[0_6px_30px_rgba(0,174,206,0.55)] transition-all flex items-center justify-center gap-2 group active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none text-base"
                 >
                   {isLoading ? (
-                    <div className="w-6 h-6 border-2 border-slate-300 border-t-teal-500 rounded-full animate-spin" />
+                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
-                      Create Account <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                      Create Account <ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
                     </>
                   )}
                 </button>
@@ -750,22 +772,25 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
 
               <div className="relative py-2 flex items-center justify-center">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-100 dark:border-slate-800"></div>
+                  <div className="w-full border-t border-[#1e263c]"></div>
                 </div>
-                <span className="relative px-4 bg-white dark:bg-slate-900 text-[10px] font-bold text-slate-400 uppercase tracking-widest">OR</span>
+                <span className="relative px-4 bg-[#0c0f1d] text-[10px] font-bold text-slate-400 uppercase tracking-widest">OR</span>
               </div>
 
               <button 
                 onClick={handleGoogleLogin}
                 disabled={isLoading}
-                className="w-full h-14 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl transition-all flex items-center justify-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-900 active:scale-[0.98]"
+                className="w-full h-[54px] bg-[#131826] border border-[#222e47] hover:border-[#314264] text-slate-200 font-semibold rounded-2xl transition-all flex items-center justify-center hover:bg-[#181f32] active:scale-[0.98] text-[15px]"
               >
                 <GoogleIcon /> Continue with Google
               </button>
 
               <div className="text-center mt-6">
                 <p className="text-sm font-medium text-slate-500">
-                  Already have an account? <button onClick={() => setTab('login')} className="text-teal-600 dark:text-teal-400 font-bold hover:underline">Log In</button>
+                  Already have an account?{' '}
+                  <button onClick={() => setTab('login')} className="text-[#00aece] hover:text-[#00c2e6] font-bold hover:underline">
+                    Log In
+                  </button>
                 </p>
               </div>
             </motion.div>
@@ -777,26 +802,26 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-6"
             >
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Account Email</label>
+              <div className="space-y-2">
+                <label className="text-[13px] font-semibold text-[#94a3b8] tracking-normal mb-1 block">Account Email</label>
                 <input 
                   type="email" 
                   value={email} 
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your registered email" 
-                  className="w-full px-4 py-3.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all text-slate-900 dark:text-white"
+                  className="w-full h-[54px] px-5 bg-white rounded-2xl focus:ring-4 focus:ring-[#00aece]/20 focus:border-[#00aece] border-transparent outline-none transition-all text-slate-800 font-medium text-[15px]"
                 />
               </div>
               <button 
                 onClick={handleResetPassword}
                 disabled={isLoading}
-                className="w-full h-14 bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-bold rounded-xl shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99]"
+                className="w-full h-[54px] bg-[#00aece] hover:bg-[#00c2e6] text-white font-bold rounded-2xl shadow-[0_4px_24px_rgba(0,174,206,0.35)] hover:shadow-[0_6px_30px_rgba(0,174,206,0.55)] transition-all flex items-center justify-center gap-2 group active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none text-base"
               >
                 {isLoading ? 'Sending...' : 'Send Reset Link →'}
               </button>
               <button 
                 onClick={() => setTab('login')}
-                className="w-full text-sm font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                className="w-full text-sm font-bold text-slate-400 hover:text-slate-200 transition-colors"
               >
                 ← Back to login
               </button>

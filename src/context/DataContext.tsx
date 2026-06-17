@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { Product, Customer, Expense, Transaction, AppSettings, ActivityLogItem, TradeDocument } from '../types';
 import { storage } from '../services/storage';
 import { documentDB } from '../services/db';
@@ -85,7 +85,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       defaultClientEmail: '',
       defaultClientPhone: '',
       showNotes: true,
-      templateId: 't1'
+      templateId: 't1',
+      shippingCharge: 0
     }
   });
 
@@ -302,7 +303,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }, [settings.theme]);
 
-  const addActivityLog = async (action: string, icon: string, color: string) => {
+  const addActivityLog = useCallback(async (action: string, icon: string, color: string) => {
     if (!user) return;
     const log: ActivityLogItem = {
       id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
@@ -315,21 +316,34 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     
     setActivityLogs(prev => [log, ...prev].slice(0, 50));
     storage.saveActivityLog(log);
-    await supabase.from('tf_activity_logs').insert([log]);
-  };
+    
+    (async () => {
+      try {
+        await supabase.from('tf_activity_logs').insert([log]);
+      } catch (err) {
+        console.error('Error adding activity log to Supabase:', err);
+      }
+    })();
+  }, [user]);
 
-  const clearActivityLogs = async () => {
+  const clearActivityLogs = useCallback(async () => {
     if (!user) return;
     setActivityLogs([]);
     storage.clearActivityLogs(user.id);
-    await supabase.from('tf_activity_logs').delete().eq('user_id', user.id);
-  };
+    (async () => {
+      try {
+        await supabase.from('tf_activity_logs').delete().eq('user_id', user.id);
+      } catch (err) {
+        console.error('Error clearing activity logs in Supabase:', err);
+      }
+    })();
+  }, [user]);
 
-  const addProduct = async (p: any) => {
+  const addProduct = useCallback(async (p: any) => {
     if (!user) return;
     const newProduct: Product = { 
       ...p, 
-      id: `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, 
+      id: p.id || `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, 
       user_id: user.id, 
       created_at: new Date().toISOString() 
     };
@@ -341,84 +355,109 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     // to prevent "Could not find column... in schema cache" errors
     const { sku, image, unit, ...cleanProduct } = newProduct as any;
     
-    const { error } = await supabase.from('tf_products').insert([cleanProduct]);
-    if (error) {
-      console.error('Supabase error adding product:', error.message);
-    }
-    
-    await addActivityLog(`Product added: ${p.name}`, '📦', 'var(--purple-light)');
-  };
+    (async () => {
+      try {
+        const { error } = await supabase.from('tf_products').insert([cleanProduct]);
+        if (error) {
+          console.error('Supabase error adding product:', error.message);
+        }
+        addActivityLog(`Product added: ${p.name}`, '📦', 'var(--purple-light)');
+      } catch (err) {
+        console.error('Error during background product adding sync:', err);
+      }
+    })();
+  }, [user, addActivityLog]);
 
-  const updateProduct = async (p: Product) => {
+  const updateProduct = useCallback(async (p: Product) => {
     setProducts(prev => prev.map(item => item.id === p.id ? p : item));
     storage.saveProduct(p);
     
     // Create a clean version for Supabase
     const { sku, image, unit, ...cleanProduct } = p as any;
     
-    const { error } = await supabase.from('tf_products').upsert(cleanProduct);
-    if (error) console.error('Supabase error updating product:', error.message);
-    
-    await addActivityLog(`Product updated: ${p.name}`, '📦', 'var(--accent-light)');
-  };
+    (async () => {
+      try {
+        const { error } = await supabase.from('tf_products').upsert(cleanProduct);
+        if (error) console.error('Supabase error updating product:', error.message);
+        addActivityLog(`Product updated: ${p.name}`, '📦', 'var(--accent-light)');
+      } catch (err) {
+        console.error('Error during background product updating sync:', err);
+      }
+    })();
+  }, [addActivityLog]);
 
-  const deleteProduct = async (id: string, name: string) => {
+  const deleteProduct = useCallback(async (id: string, name: string) => {
     setProducts(prev => prev.filter(item => item.id !== id));
     storage.deleteProduct(id);
     
-    const { error } = await supabase.from('tf_products').delete().eq('id', id);
-    if (error) console.error('Supabase error deleting product:', error.message);
-    
-    await addActivityLog(`Product deleted: ${name}`, '🗑️', 'var(--danger-light)');
-  };
+    (async () => {
+      try {
+        const { error } = await supabase.from('tf_products').delete().eq('id', id);
+        if (error) console.error('Supabase error deleting product:', error.message);
+        addActivityLog(`Product deleted: ${name}`, '🗑️', 'var(--danger-light)');
+      } catch (err) {
+        console.error('Error during background product deletion sync:', err);
+      }
+    })();
+  }, [addActivityLog]);
 
-  const addCustomer = async (c: any) => {
+  const addCustomer = useCallback(async (c: any) => {
     if (!user) return;
     const newCustomer: Customer = { 
       ...c, 
-      id: `c_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, 
+      id: c.id || `c_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, 
       user_id: user.id, 
-      loyalty_points: 0,
-      membership_tier: 'Bronze',
+      loyalty_points: c.loyalty_points || 0,
+      membership_tier: c.membership_tier || 'Bronze',
       created_at: new Date().toISOString() 
     };
     
     setCustomers(prev => [newCustomer, ...prev]);
     storage.saveCustomer(newCustomer);
     
-    const { error } = await supabase.from('tf_customers').insert([newCustomer]);
-    if (error) console.error('Supabase error adding customer:', error.message);
-    
-    await addActivityLog(`Customer added: ${c.name}`, '👤', 'var(--accent-light)');
-  };
+    (async () => {
+      try {
+        const { error } = await supabase.from('tf_customers').insert([newCustomer]);
+        if (error) console.error('Supabase error adding customer:', error.message);
+        addActivityLog(`Customer added: ${c.name}`, '👤', 'var(--accent-light)');
+      } catch (err) {
+        console.error('Error during background customer addition sync:', err);
+      }
+    })();
+  }, [user, addActivityLog]);
 
-  const addExpense = async (e: any) => {
+  const addExpense = useCallback(async (e: any) => {
     if (!user) return;
     const newExpense: Expense = { ...e, id: `e_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, user_id: user.id };
     
     setExpenses(prev => [newExpense, ...prev]);
     storage.saveExpense(newExpense);
     
-    const { error } = await supabase.from('tf_expenses').insert([newExpense]);
-    if (error) console.error('Supabase error adding expense:', error.message);
-    
-    await addActivityLog(`Expense recorded: ${e.title}`, '💸', 'var(--danger-light)');
-  };
+    (async () => {
+      try {
+        const { error } = await supabase.from('tf_expenses').insert([newExpense]);
+        if (error) console.error('Supabase error adding expense:', error.message);
+        addActivityLog(`Expense recorded: ${e.title}`, '💸', 'var(--danger-light)');
+      } catch (err) {
+        console.error('Error during background expense addition sync:', err);
+      }
+    })();
+  }, [user, addActivityLog]);
 
-  const addTransaction = async (t: any) => {
+  const addTransaction = useCallback(async (t: any) => {
     if (!user) return;
-    const newTransaction: Transaction = { ...t, id: `tr_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, user_id: user.id };
+    const newTransaction: Transaction = { 
+      ...t, 
+      id: t.id || `tr_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, 
+      user_id: user.id 
+    };
     
     setTransactions(prev => [newTransaction, ...prev]);
     storage.saveTransaction(newTransaction);
     
-    // Create clean version for Supabase
-    const { supplier, payment_method, exchange_rate, expiry_date, invoice_file_data, invoice_file_name, invoice_file_type, ...cleanTransaction } = newTransaction as any;
+    const productUpdatesToTrigger: Product[] = [];
+    const customerUpdatesToTrigger: Customer[] = [];
     
-    const { error } = await supabase.from('tf_transactions').insert([cleanTransaction]);
-    if (error) console.error('Supabase error adding transaction:', error.message);
-    
-    // Auto-update inventory
     if (t.items?.length > 0) {
       for (const item of t.items) {
         const p = products.find(prod => prod.id === item.product_id || prod.name === item.product_name);
@@ -430,10 +469,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             updated.cost_price = item.unit_price;
             if (item.sell_price) updated.sell_price = item.sell_price;
           }
-          await updateProduct(updated);
+          productUpdatesToTrigger.push(updated);
         } else if (t.type === 'purchase') {
           // Auto-create product if missing during purchase
-          await addProduct({
+          const newP: Product = {
+            id: `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+            user_id: user.id,
+            created_at: new Date().toISOString(),
             name: item.product_name,
             category: 'Uncategorized',
             stock: item.quantity,
@@ -441,8 +483,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             sell_price: item.sell_price || item.unit_price,
             sku: `SKU-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
             image: '',
-            unit: 'pcs'
-          });
+            unit: 'pcs',
+            hs_code: '',
+            min_stock: 10
+          };
+          setProducts(prev => [newP, ...prev]);
+          storage.saveProduct(newP);
+          (async () => {
+            try {
+              const { sku, image, unit, ...cleanP } = newP as any;
+              await supabase.from('tf_products').insert([cleanP]);
+            } catch (err) {
+              console.error(err);
+            }
+          })();
         }
       }
     } else {
@@ -455,10 +509,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           updated.cost_price = t.unit_price;
           if (t.sell_price) updated.sell_price = t.sell_price;
         }
-        await updateProduct(updated);
+        productUpdatesToTrigger.push(updated);
       } else if (t.type === 'purchase') {
         // Auto-create product if missing during purchase
-        await addProduct({
+        const newP: Product = {
+          id: `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+          user_id: user.id,
+          created_at: new Date().toISOString(),
           name: t.product_name,
           category: 'Uncategorized',
           stock: t.quantity,
@@ -466,8 +523,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           sell_price: t.sell_price || t.unit_price,
           sku: `SKU-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
           image: '',
-          unit: 'pcs'
-        });
+          unit: 'pcs',
+          hs_code: '',
+          min_stock: 10
+        };
+        setProducts(prev => [newP, ...prev]);
+        storage.saveProduct(newP);
+        (async () => {
+          try {
+            const { sku, image, unit, ...cleanP } = newP as any;
+            await supabase.from('tf_products').insert([cleanP]);
+          } catch (err) {
+            console.error(err);
+          }
+        })();
       }
     }
 
@@ -475,20 +544,55 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (t.type === 'sale' && t.customer_name && t.customer_name.trim() !== '' && t.customer_name.toLowerCase() !== 'walk-in') {
       const customerExists = customers.some(c => c.name.toLowerCase() === t.customer_name.toLowerCase());
       if (!customerExists) {
-        await addCustomer({
+        const newCustomer: Customer = { 
+          id: `c_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, 
+          user_id: user.id, 
           name: t.customer_name,
           email: '',
           phone: '',
-          address: ''
-        });
+          address: '',
+          loyalty_points: 0,
+          membership_tier: 'Bronze',
+          created_at: new Date().toISOString() 
+        };
+        setCustomers(prev => [newCustomer, ...prev]);
+        storage.saveCustomer(newCustomer);
+        customerUpdatesToTrigger.push(newCustomer);
       }
     }
 
-    const typeLabel = t.type === 'sale' ? 'Sale recorded' : 'Purchase recorded';
-    await addActivityLog(`${typeLabel}: ${t.product_name || 'Multiple'}`, t.type === 'sale' ? '💰' : '🛒', t.type === 'sale' ? 'var(--success-light)' : 'var(--purple-light)');
-  };
+    if (productUpdatesToTrigger.length > 0) {
+      setProducts(prev => prev.map(item => {
+        const matchingUpdate = productUpdatesToTrigger.find(u => u.id === item.id);
+        return matchingUpdate ? matchingUpdate : item;
+      }));
+      productUpdatesToTrigger.forEach(p => storage.saveProduct(p));
+    }
 
-  const deleteTransaction = async (id: string, name: string) => {
+    (async () => {
+      try {
+        for (const p of productUpdatesToTrigger) {
+          const { sku, image, unit, ...cleanProduct } = p as any;
+          await supabase.from('tf_products').upsert(cleanProduct);
+        }
+
+        for (const c of customerUpdatesToTrigger) {
+          await supabase.from('tf_customers').insert([c]);
+        }
+
+        const { supplier, payment_method, exchange_rate, expiry_date, invoice_file_data, invoice_file_name, invoice_file_type, ...cleanTransaction } = newTransaction as any;
+        const { error } = await supabase.from('tf_transactions').insert([cleanTransaction]);
+        if (error) console.error('Supabase error adding transaction:', error.message);
+        
+        const typeLabel = t.type === 'sale' ? 'Sale recorded' : 'Purchase recorded';
+        addActivityLog(`${typeLabel}: ${t.product_name || 'Multiple'}`, t.type === 'sale' ? '💰' : '🛒', t.type === 'sale' ? 'var(--success-light)' : 'var(--purple-light)');
+      } catch (err) {
+        console.error('Error during background transaction addition sync:', err);
+      }
+    })();
+  }, [user, products, customers, addActivityLog]);
+
+  const deleteTransaction = useCallback(async (id: string, name: string) => {
     // Find the transaction to see if we need to adjust stock
     const t = transactions.find(item => item.id === id);
     let productToUpdate: Product | null = null;
@@ -530,14 +634,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         const { error: tError } = await supabase.from('tf_transactions').delete().eq('id', id);
         if (tError) console.error('Supabase error deleting transaction:', tError.message);
         
-        await addActivityLog(`Transaction deleted: ${name}`, '🗑️', 'var(--danger-light)');
+        addActivityLog(`Transaction deleted: ${name}`, '🗑️', 'var(--danger-light)');
       } catch (err) {
         console.error('Error during background transaction deletion sync:', err);
       }
     })();
-  };
+  }, [transactions, products, addActivityLog]);
 
-  const addDocument = async (d: any) => {
+  const addDocument = useCallback(async (d: any) => {
     if (!user) return;
     const newDoc: TradeDocument = { 
       ...d, 
@@ -549,41 +653,66 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setDocuments(prev => [newDoc, ...prev]);
     await documentDB.save(newDoc);
     
-    const { error } = await supabase.from('tf_documents').insert([newDoc]);
-    if (error) console.error('Supabase error adding document:', error.message);
-    
-    await addActivityLog(`Document uploaded: ${d.name}`, '📄', 'var(--accent-light)');
-  };
+    (async () => {
+      try {
+        const { error } = await supabase.from('tf_documents').insert([newDoc]);
+        if (error) console.error('Supabase error adding document:', error.message);
+        addActivityLog(`Document uploaded: ${d.name}`, '📄', 'var(--accent-light)');
+      } catch (err) {
+        console.error('Error during background document upload sync:', err);
+      }
+    })();
+  }, [user, addActivityLog]);
 
-  const deleteDocument = async (id: string, name: string) => {
+  const deleteDocument = useCallback(async (id: string, name: string) => {
     setDocuments(prev => prev.filter(doc => doc.id !== id));
     await documentDB.delete(id);
     
-    const { error } = await supabase.from('tf_documents').delete().eq('id', id);
-    if (error) console.error('Supabase error deleting document:', error.message);
-    
-    await addActivityLog(`Document deleted: ${name}`, '🗑️', 'var(--danger-light)');
-  };
+    (async () => {
+      try {
+        const { error } = await supabase.from('tf_documents').delete().eq('id', id);
+        if (error) console.error('Supabase error deleting document:', error.message);
+        addActivityLog(`Document deleted: ${name}`, '🗑️', 'var(--danger-light)');
+      } catch (err) {
+        console.error('Error during background document deletion sync:', err);
+      }
+    })();
+  }, [addActivityLog]);
 
-  const updateSettings = async (s: AppSettings) => {
+  const updateSettings = useCallback(async (s: AppSettings) => {
     if (!user) return;
     setSettings(s);
     storage.saveSettings(user.id, s);
     
-    const { error } = await supabase.from('tf_settings').upsert({ user_id: user.id, data: s });
-    if (error) console.error('Supabase error updating settings:', error.message);
-  };
+    (async () => {
+      try {
+        await supabase.from('tf_settings').upsert({ user_id: user.id, data: s });
+      } catch (err) {
+        console.error('Supabase error updating settings:', err);
+      }
+    })();
+  }, [user]);
+
+  const contextValue = useMemo(() => ({
+    products, customers, expenses, transactions, activityLogs, documents, settings,
+    selectedInvoiceId, dbStatus, setSelectedInvoiceId,
+    addProduct, updateProduct, deleteProduct,
+    addCustomer, addExpense, addTransaction, deleteTransaction, 
+    addDocument, deleteDocument,
+    addActivityLog, clearActivityLogs, updateSettings,
+    refreshData: loadData
+  }), [
+    products, customers, expenses, transactions, activityLogs, documents, settings,
+    selectedInvoiceId, dbStatus, setSelectedInvoiceId,
+    addProduct, updateProduct, deleteProduct,
+    addCustomer, addExpense, addTransaction, deleteTransaction, 
+    addDocument, deleteDocument,
+    addActivityLog, clearActivityLogs, updateSettings,
+    loadData
+  ]);
 
   return (
-    <DataContext.Provider value={{
-      products, customers, expenses, transactions, activityLogs, documents, settings,
-      selectedInvoiceId, setSelectedInvoiceId,
-      addProduct, updateProduct, deleteProduct,
-      addCustomer, addExpense, addTransaction, deleteTransaction, 
-      addDocument, deleteDocument,
-      addActivityLog, clearActivityLogs, updateSettings,
-      refreshData: loadData
-    }}>
+    <DataContext.Provider value={contextValue}>
       {children}
       {(dbStatus === 'error' || dbStatus === 'offline') && (
         <div style={{

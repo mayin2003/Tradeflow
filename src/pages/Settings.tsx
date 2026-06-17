@@ -2,6 +2,33 @@ import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
+import { 
+  Building2, 
+  Settings2, 
+  User, 
+  ShoppingCart, 
+  DollarSign, 
+  FileText, 
+  Globe, 
+  MapPin, 
+  Mail, 
+  Briefcase, 
+  ShieldCheck, 
+  Trash2, 
+  Upload, 
+  Percent, 
+  CheckCircle2, 
+  Signature, 
+  BadgeCheck, 
+  Scale, 
+  Sparkles, 
+  BookOpen, 
+  Link2,
+  ChevronRight,
+  FileSpreadsheet,
+  CreditCard,
+  Notebook
+} from 'lucide-react';
 
 export const Settings = () => {
   const { user, updateUser } = useAuth();
@@ -10,6 +37,8 @@ export const Settings = () => {
   const [localSettings, setLocalSettings] = useState(settings);
   const [fullName, setFullName] = useState(user?.name || '');
   const [showSaved, setShowSaved] = useState(false);
+
+  const isDark = settings.theme === 'dark';
 
   // Sync local data if settings update from elsewhere
   useEffect(() => {
@@ -65,7 +94,11 @@ export const Settings = () => {
   };
 
   return (
-    <div id="page-settings" className="page active" style={{ position: 'relative' }}>
+    <div 
+      id="page-settings" 
+      className="page active w-full" 
+      style={{ position: 'relative', minHeight: '100%' }}
+    >
       <AnimatePresence>
         {showSaved && (
           <motion.div 
@@ -78,9 +111,9 @@ export const Settings = () => {
               top: '24px', 
               left: '50%', 
               zIndex: 9999,
-              background: 'var(--success)',
+              background: '#10b981',
               color: 'white',
-              padding: '12px 24px',
+              padding: '14px 28px',
               borderRadius: '16px',
               boxShadow: '0 20px 40px -10px rgba(16, 185, 129, 0.4)',
               display: 'flex',
@@ -102,495 +135,945 @@ export const Settings = () => {
         )}
       </AnimatePresence>
 
-      <div className="page-header" style={{ marginBottom: '48px' }}>
+      {/* TOP HEADER SECTION */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 mt-2">
         <div>
-          <h2 className="text-gradient" style={{ fontSize: '42px', fontWeight: 900, letterSpacing: '-0.06em' }}>Settings</h2>
-          <p style={{ color: 'var(--text-secondary)', marginTop: '8px', fontSize: '16px', fontWeight: 500 }}>Refine your platform experience and business profile</p>
+          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-gradient bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">
+            Settings
+          </h2>
+          <p className={`mt-2 font-medium text-sm md:text-base ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            Refine your trade operations parameters, invoice design, and business parameters
+          </p>
         </div>
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+
+        <div className="flex items-center gap-4">
           {showSaved && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, x: 20 }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--success)', fontSize: '14px', fontWeight: 800 }}
+              className="flex items-center gap-2 text-emerald-500 text-sm font-bold bg-emerald-500/10 px-3 py-1.5 rounded-full"
             >
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span className="flex h-3 w-3 rounded-full bg-emerald-500"></span>
-                <span className="absolute flex h-3 w-3 animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+              <div className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </div>
               Cloud Synced
             </motion.div>
           )}
+
           <motion.button 
-            whileHover={{ scale: 1.05, translateY: -4 }}
-            whileTap={{ scale: 0.95 }}
-            className="btn btn-primary" 
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            className={`flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-bold text-sm md:text-base shadow-lg transition-all duration-300 ${
+              showSaved 
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/25' 
+                : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-blue-500/20'
+            }`}
             onClick={handleSave}
             disabled={showSaved}
-            style={{ 
-              padding: '16px 40px', 
-              borderRadius: '20px',
-              fontSize: '16px',
-              fontWeight: 900,
-              transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-              background: showSaved ? 'var(--success)' : 'var(--accent)',
-              boxShadow: showSaved ? '0 0 0 0 rgba(16, 185, 129, 0)' : '0 15px 35px -8px rgba(37, 99, 235, 0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '14px',
-              border: 'none',
-              color: 'white',
-              cursor: showSaved ? 'default' : 'pointer'
-            }}
           >
             {showSaved ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '20px' }}>✓</span> Securely Saved
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5" />
+                <span>Securely Saved</span>
               </motion.div>
             ) : (
-              <><span style={{ fontSize: '20px' }}>⚡</span> Save Global Changes</>
+              <>
+                <Sparkles className="w-5 h-5 animate-pulse" />
+                <span>Save Global Changes</span>
+              </>
             )}
           </motion.button>
         </div>
       </div>
 
-      {/* Modern Profile Banner */}
-      <div className="settings-header-banner">
-        {/* Decorative Glass Particles */}
-        <div style={{ position: 'absolute', top: '10%', left: '5%', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', filter: 'blur(20px)' }}></div>
-        <div style={{ position: 'absolute', bottom: '10%', right: '15%', width: '150px', height: '150px', borderRadius: '50%', background: 'rgba(59,130,246,0.1)', filter: 'blur(30px)' }}></div>
-        
-        <div style={{ position: 'absolute', right: '40px', bottom: '20px', fontSize: '200px', opacity: 0.04, transform: 'rotate(-15deg)', pointerEvents: 'none' }}>🚢</div>
-        
-        <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '32px' }}>
+      {/* ENTERPRISE PROFILE OVERVIEW BANNER */}
+      <div className="relative overflow-hidden mb-10 rounded-3xl bg-gradient-to-br from-[#0c1322] via-[#0f1b34] to-[#142347] border border-blue-500/15 shadow-2xl p-6 md:p-10 text-white">
+        {/* Abstract futuristic network overlay art */}
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 left-[20%] w-[250px] h-[250px] bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute right-10 bottom-4 text-[120px] md:text-[180px] opacity-10 font-mono select-none pointer-events-none spin-slow">
+          🚢
+        </div>
+
+        <div className="relative z-10 flex flex-col lg:flex-row items-center lg:items-start gap-8">
+          {/* Company Brand Logo Slot */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            style={{ 
-              width: '130px', 
-              height: '130px', 
-              background: 'white', 
-              borderRadius: '30px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-              padding: '12px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-              border: '4px solid rgba(255,255,255,0.15)'
-            }}
+            className="flex-shrink-0 w-32 h-32 bg-white rounded-3xl flex items-center justify-center p-3 shadow-2xl border-4 border-white/10 overflow-hidden"
           >
             {localSettings.shopProfile.logoUrl ? (
-              <img src={localSettings.shopProfile.logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <img src={localSettings.shopProfile.logoUrl} alt="Logo" className="w-full h-full object-contain" />
             ) : (
-              <span style={{ fontSize: '64px' }}>📦</span>
+              <span className="text-5xl">📦</span>
             )}
           </motion.div>
-          
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px', flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontSize: '48px', fontWeight: 900, letterSpacing: '-0.05em', lineHeight: 1.1 }}>
+
+          {/* Profile Corporate stats */}
+          <div className="flex-1 w-full text-center lg:text-left">
+            <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start mb-3">
+              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
                 {localSettings.shopProfile.name || 'TradeFlow Business'}
               </h1>
-              <div className="glass-dark" style={{ padding: '6px 16px', borderRadius: '40px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#60a5fa', boxShadow: '0 0 10px #60a5fa' }}></span>
+              <div className="bg-blue-500/15 border border-blue-400/35 px-3 py-1 rounded-full text-[11px] font-bold text-blue-400 tracking-wider uppercase flex items-center gap-1.5 shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
                 Verified Enterprise
               </div>
             </div>
-            
-            <p style={{ opacity: 0.8, fontSize: '17px', fontWeight: 500, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '20px' }}>📍</span> {localSettings.shopProfile.address || 'Address not configured'}
+
+            <p className="opacity-80 text-sm md:text-base font-medium flex items-center justify-center lg:justify-start gap-2 mb-6">
+              <MapPin className="w-4 h-4 text-rose-400 flex-shrink-0" />
+              <span>{localSettings.shopProfile.address || 'Address not configured'}</span>
             </p>
 
-            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-              {[
-                { label: '📧 Contact', value: localSettings.shopProfile.email || 'N/A' },
-                { label: '💱 Currency', value: localSettings.currency || 'USD' },
-                { label: '📊 VAT', value: `${localSettings.taxRate}%` }
-              ].map((item, idx) => (
-                <div key={idx} className="glass-dark" style={{ padding: '10px 20px', borderRadius: '16px', fontSize: '14px', fontWeight: 600 }}>
-                  <span style={{ opacity: 0.6, marginRight: '6px' }}>{item.label}:</span> {item.value}
-                </div>
-              ))}
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 md:gap-4">
+              <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs md:text-sm font-semibold flex items-center gap-2">
+                <span className="text-white/60">Email:</span>
+                <span className="text-white">{localSettings.shopProfile.email || 'N/A'}</span>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs md:text-sm font-semibold flex items-center gap-2">
+                <span className="text-white/60">Currency:</span>
+                <span className="text-white font-mono">{localSettings.currency || 'USD'}</span>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs md:text-sm font-semibold flex items-center gap-2">
+                <span className="text-white/60">Sales Tax (VAT):</span>
+                <span className="text-white">{localSettings.taxRate}%</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="settings-tab-container">
+      {/* PREMIUM SAAS TABS */}
+      <div className={`p-1.5 rounded-2xl mb-8 flex gap-1.5 overflow-x-auto scrollbar-hide w-max max-w-full ${
+        isDark ? 'bg-slate-900 border border-slate-800' : 'bg-slate-100 border border-slate-200'
+      }`}>
         {[
-          { id: 'profile', label: 'Shop Profile', icon: '👤' },
-          { id: 'general', label: 'General', icon: '⚙️' },
-          { id: 'buy', label: 'Buy Settings', icon: '🛒' },
-          { id: 'sell', label: 'Sell Settings', icon: '💰' },
-          { id: 'invoice', label: 'Invoice Layout', icon: '🧾' }
-        ].map((tab) => (
-          <button 
-            key={tab.id}
-            className={`settings-tab-item ${activeTab === tab.id ? 'active' : ''}`} 
-            onClick={() => setActiveTab(tab.id as any)}
-          >
-            <span style={{ fontSize: '18px' }}>{tab.icon}</span>
-            {tab.label}
-          </button>
-        ))}
+          { id: 'profile', label: 'Shop Profile', icon: User },
+          { id: 'general', label: 'General Settings', icon: Settings2 },
+          { id: 'buy', label: 'Buy Settings', icon: ShoppingCart },
+          { id: 'sell', label: 'Sell Settings', icon: DollarSign },
+          { id: 'invoice', label: 'Invoice Layout', icon: FileText }
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button 
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-2 px-4 md:px-5 py-3 rounded-xl text-xs md:text-sm font-bold transition-all duration-200 whitespace-nowrap outline-none ${
+                isActive 
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' 
+                  : isDark
+                    ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="settings-content">
+      {/* SETTINGS FORM SPACE */}
+      <div className="pb-16">
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, x: 10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3 }}
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -15 }}
+          transition={{ duration: 0.22 }}
         >
           {activeTab === 'profile' && (
-            <div className="settings-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-                <h3 className="settings-section-title" style={{ margin: 0 }}>Identity & Branding</h3>
-                <span className="badge badge-info" style={{ borderRadius: '12px', padding: '6px 16px', fontWeight: 800 }}>Public Organization Data</span>
-              </div>
-              
-              <div style={{ 
-                background: 'var(--bg)', 
-                borderRadius: '32px', 
-                padding: '40px', 
-                marginBottom: '40px',
-                border: '2px solid var(--border)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '32px'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '40px', flexWrap: 'wrap' }}>
-                  <motion.div 
-                    whileHover={{ scale: 1.05, rotate: 2 }}
-                    style={{ 
-                      width: '180px', 
-                      height: '180px', 
-                      background: 'var(--card-bg)',
-                      borderRadius: '40px',
-                      border: '3px dashed var(--accent)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '20px',
-                      position: 'relative',
-                      boxShadow: '0 20px 40px -15px rgba(0,0,0,0.1)'
-                    }}
-                  >
-                    {localSettings.shopProfile.logoUrl ? (
-                      <img src={localSettings.shopProfile.logoUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                    ) : (
-                      <div style={{ textAlign: 'center', opacity: 0.6 }}>
-                        <div style={{ fontSize: '56px' }}>📁</div>
-                        <div style={{ fontSize: '12px', fontWeight: 900, marginTop: '8px' }}>BRAND LOGO</div>
-                      </div>
-                    )}
-                  </motion.div>
-                  <div style={{ flex: 1 }}>
-                    <h4 style={{ margin: '0 0 12px 0', fontSize: '22px', fontWeight: 900, color: 'var(--text-primary)' }}>Corporate Identity</h4>
-                    <p style={{ margin: '0 0 28px 0', color: 'var(--text-secondary)', fontSize: '15px', maxWidth: '400px', lineHeight: 1.6 }}>This logo will appear on all digital exports, invoices, and your public trade profile. Use a clear, high-contrast image.</p>
-                    <div style={{ display: 'flex', gap: '16px' }}>
-                      <label className="btn btn-primary" style={{ cursor: 'pointer', borderRadius: '14px', padding: '12px 28px', fontWeight: 700 }}>
-                        <span>Update Brand Logo</span>
-                        <input type="file" accept="image/*" style={{ display: 'none' }} 
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => updateProfile('logoUrl', reader.result as string);
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                        />
-                      </label>
-                      {localSettings.shopProfile.logoUrl && (
-                        <button className="btn btn-outline" style={{ color: 'var(--danger)', borderRadius: '14px', padding: '12px 24px', fontWeight: 700 }} onClick={() => updateProfile('logoUrl', '')}>Remove</button>
-                      )}
+            <div className="space-y-6">
+              {/* BRANDING SECTION */}
+              <div className={`p-6 md:p-8 rounded-2xl shadow-sm border transition-all ${
+                isDark ? 'bg-[#0f172a] border-slate-850' : 'bg-white border-slate-205'
+              }`}>
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500">
+                      <Building2 className="w-5 h-5" />
                     </div>
+                    <div>
+                      <h3 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                        Identity & Branding
+                      </h3>
+                      <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        Set your official business details and visual branding assets
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-extrabold tracking-wider uppercase px-2.5 py-1 rounded-md bg-blue-500/10 text-blue-500">
+                    Public
+                  </span>
+                </div>
+
+                <div className={`p-6 rounded-2xl border mb-6 ${
+                  isDark ? 'bg-slate-900/40 border-slate-800/80' : 'bg-slate-50 border-slate-200/50'
+                }`}>
+                  <div className="flex flex-col md:flex-row items-center gap-6">
+                    <motion.div 
+                      whileHover={{ scale: 1.02 }}
+                      className={`relative w-36 h-36 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center p-4 transition-all overflow-hidden ${
+                        isDark 
+                          ? 'border-slate-700 bg-slate-900/80 hover:border-blue-500/50' 
+                          : 'border-slate-300 bg-white hover:border-blue-500'
+                      }`}
+                    >
+                      {localSettings.shopProfile.logoUrl ? (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <img 
+                            src={localSettings.shopProfile.logoUrl} 
+                            alt="Logo preview" 
+                            className="w-full h-full object-contain" 
+                          />
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+                          <span className={`text-[10px] font-bold block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                            BRAND LOGO
+                          </span>
+                        </div>
+                      )}
+                    </motion.div>
+
+                    <div className="flex-1 text-center md:text-left space-y-3">
+                      <h4 className={`text-base font-bold ${isDark ? 'text-slate-200' : 'text-slate-850'}`}>
+                        Corporate Brand Logo
+                      </h4>
+                      <p className={`text-xs leading-relaxed max-w-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        This logo will appear on all digital exports, transactional invoices, and your public trade profile. Use a clear, high-contrast, high-resolution square image.
+                      </p>
+                      
+                      <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-1">
+                        <label className="flex items-center gap-1.5 cursor-pointer rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 px-4 shadow-sm transition-all">
+                          <Upload className="w-4 h-4" />
+                          <span>Update Logo</span>
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            style={{ display: 'none' }} 
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => updateProfile('logoUrl', reader.result as string);
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                        </label>
+                        {localSettings.shopProfile.logoUrl && (
+                          <button 
+                            className={`flex items-center gap-1.5 rounded-xl text-xs font-bold py-2.5 px-4 border shadow-sm transition-all ${
+                              isDark 
+                                ? 'bg-slate-900 border-red-500/30 text-red-400 hover:bg-red-550/10' 
+                                : 'bg-white border-red-200 text-red-600 hover:bg-red-50'
+                            }`}
+                            onClick={() => updateProfile('logoUrl', '')}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Remove</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2.5 ${
+                      isDark ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      Account Representative
+                    </label>
+                    <input 
+                      type="text" 
+                      value={fullName} 
+                      onChange={(e) => setFullName(e.target.value)} 
+                      placeholder="e.g. mizanroad800@gmail.com" 
+                      className={`w-full text-sm font-semibold px-4 py-3.5 rounded-xl border outline-none transition-all duration-200 ${
+                        isDark 
+                          ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
+                          : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2.5 ${
+                      isDark ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      Full Trading Name / Business Name
+                    </label>
+                    <input 
+                      type="text" 
+                      value={localSettings.shopProfile.name} 
+                      onChange={(e) => updateProfile('name', e.target.value)} 
+                      placeholder="e.g. TradeFlow Enterprise" 
+                      className={`w-full text-sm font-semibold px-4 py-3.5 rounded-xl border outline-none transition-all duration-200 ${
+                        isDark 
+                          ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
+                          : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <label className={`block text-xs font-bold uppercase tracking-wider mb-2.5 ${
+                    isDark ? 'text-slate-300' : 'text-slate-700'
+                  }`}>
+                    Global Headquarters Address
+                  </label>
+                  <textarea 
+                    rows={3} 
+                    value={localSettings.shopProfile.address} 
+                    onChange={(e) => updateProfile('address', e.target.value)} 
+                    placeholder="Street, City, State, Country, ZIP..." 
+                    className={`w-full text-sm font-semibold px-4 py-3.5 rounded-xl border outline-none transition-all duration-200 resize-none ${
+                      isDark 
+                        ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
+                        : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* CONTACT DETAILS PANEL */}
+              <div className={`p-6 md:p-8 rounded-2xl shadow-sm border transition-all ${
+                isDark ? 'bg-[#0f172a] border-slate-850' : 'bg-white border-slate-205'
+              }`}>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-500">
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                      Sovereign Contact channels
+                    </h3>
+                    <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Manage support contact and administrative secure endpoints
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2.5 ${
+                      isDark ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      Admin Email Address
+                    </label>
+                    <input 
+                      type="email" 
+                      value={localSettings.shopProfile.email} 
+                      onChange={(e) => updateProfile('email', e.target.value)} 
+                      placeholder="admin@enterprise.com" 
+                      className={`w-full text-sm font-semibold px-4 py-3.5 rounded-xl border outline-none transition-all duration-200 ${
+                        isDark 
+                          ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
+                          : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2.5 ${
+                      isDark ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      Support/Secondary Contact Alias
+                    </label>
+                    <input 
+                      type="email" 
+                      value={localSettings.shopProfile.secondaryEmail || ''} 
+                      onChange={(e) => updateProfile('secondaryEmail', e.target.value)} 
+                      placeholder="support@enterprise.com" 
+                      className={`w-full text-sm font-semibold px-4 py-3.5 rounded-xl border outline-none transition-all duration-200 ${
+                        isDark 
+                          ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
+                          : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                      }`}
+                    />
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }} className="form-row">
-                <div className="form-group">
-                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Account Representative</label>
-                  <input className="input-modern" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full Name" />
+              {/* REGISTRY & WEBB SITE */}
+              <div className={`p-6 md:p-8 rounded-2xl shadow-sm border transition-all ${
+                isDark ? 'bg-[#0f172a] border-slate-850' : 'bg-white border-slate-205'
+              }`}>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500">
+                    <Globe className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                      Legal & Registry Settings
+                    </h3>
+                    <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Official registration indices used on business exports & custom clearances
+                    </p>
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Full Trading Name</label>
-                  <input className="input-modern" type="text" value={localSettings.shopProfile.name} onChange={(e) => updateProfile('name', e.target.value)} placeholder="Business Name" />
-                </div>
-              </div>
 
-              <div className="form-group" style={{ marginTop: '24px' }}>
-                <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Global Headquarters Address</label>
-                <textarea className="input-modern" rows={4} value={localSettings.shopProfile.address} onChange={(e) => updateProfile('address', e.target.value)} placeholder="Street, City, State, Country, ZIP..." />
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2.5 ${
+                      isDark ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      Official Portal Website
+                    </label>
+                    <input 
+                      type="text" 
+                      value={localSettings.shopProfile.website} 
+                      onChange={(e) => updateProfile('website', e.target.value)} 
+                      placeholder="https://yourcompany.com" 
+                      className={`w-full text-sm font-semibold px-4 py-3.5 rounded-xl border outline-none transition-all duration-200 ${
+                        isDark 
+                          ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
+                          : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                      }`}
+                    />
+                  </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginTop: '24px' }} className="form-row">
-                <div className="form-group">
-                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Admin Email Address</label>
-                  <input className="input-modern" type="email" value={localSettings.shopProfile.email} onChange={(e) => updateProfile('email', e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Support/Secondary Alias</label>
-                  <input className="input-modern" type="email" value={localSettings.shopProfile.secondaryEmail || ''} onChange={(e) => updateProfile('secondaryEmail', e.target.value)} />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginTop: '24px' }} className="form-row">
-                <div className="form-group">
-                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Official Website</label>
-                  <input className="input-modern" type="text" value={localSettings.shopProfile.website} onChange={(e) => updateProfile('website', e.target.value)} placeholder="https://..." />
-                </div>
-                <div className="form-group">
-                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Corporate Tax ID</label>
-                  <input className="input-modern" type="text" value={localSettings.shopProfile.taxId} onChange={(e) => updateProfile('taxId', e.target.value)} placeholder="Registration Number" />
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2.5 ${
+                      isDark ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      Sovereign corporate tax ID
+                    </label>
+                    <input 
+                      type="text" 
+                      value={localSettings.shopProfile.taxId} 
+                      onChange={(e) => updateProfile('taxId', e.target.value)} 
+                      placeholder="e.g. VAT-92849103" 
+                      className={`w-full text-sm font-semibold px-4 py-3.5 rounded-xl border outline-none transition-all duration-200 ${
+                        isDark 
+                          ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
+                          : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                      }`}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
           {activeTab === 'general' && (
-            <div className="settings-card">
-              <h3 className="settings-section-title">Platform Experience</h3>
-              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
-                <div className="form-group">
-                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Base Transaction Currency</label>
-                  <input className="input-modern" type="text" value={localSettings.currency} onChange={(e) => setLocalSettings({...localSettings, currency: e.target.value})} placeholder="USD, EUR, GBP..." />
+            <div className={`p-6 md:p-8 rounded-2xl shadow-sm border transition-all ${
+              isDark ? 'bg-[#0f172a] border-slate-850' : 'bg-white border-slate-205'
+            }`}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500">
+                  <Settings2 className="w-5 h-5" />
                 </div>
-                <div className="form-group">
-                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Default Sales Tax (%)</label>
-                  <input className="input-modern" type="number" value={localSettings.taxRate} onChange={(e) => setLocalSettings({...localSettings, taxRate: +e.target.value})} />
+                <div>
+                  <h3 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                    Platform Experience
+                  </h3>
+                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Define the baseline global variables and localizations of the workspace
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className={`block text-xs font-bold uppercase tracking-wider mb-2.5 ${
+                    isDark ? 'text-slate-300' : 'text-slate-700'
+                  }`}>
+                    Base Transaction currency
+                  </label>
+                  <input 
+                    type="text" 
+                    value={localSettings.currency} 
+                    onChange={(e) => setLocalSettings({...localSettings, currency: e.target.value})} 
+                    placeholder="e.g. USD, EUR, BDT, GBP" 
+                    className={`w-full text-sm font-semibold px-4 py-3.5 rounded-xl border outline-none transition-all duration-200 ${
+                      isDark 
+                        ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
+                        : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                    }`}
+                  />
+                  <p className="mt-2 text-[11px] text-slate-400">
+                    Determines unit representation globally on reports, charts, and invoice documents
+                  </p>
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-bold uppercase tracking-wider mb-2.5 ${
+                    isDark ? 'text-slate-300' : 'text-slate-700'
+                  }`}>
+                    Default Sales Tax (%)
+                  </label>
+                  <input 
+                    type="number" 
+                    value={localSettings.taxRate} 
+                    onChange={(e) => setLocalSettings({...localSettings, taxRate: +e.target.value})} 
+                    placeholder="e.g. 5" 
+                    className={`w-full text-sm font-semibold px-4 py-3.5 rounded-xl border outline-none transition-all duration-200 ${
+                      isDark 
+                        ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
+                        : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                    }`}
+                  />
+                  <p className="mt-2 text-[11px] text-slate-400">
+                    The default fallback VAT / processing tariff applied directly in newly drafted transactions
+                  </p>
                 </div>
               </div>
             </div>
           )}
 
           {activeTab === 'buy' && (
-            <div className="settings-card">
-              <h3 className="settings-section-title">Inbound Logistics Control</h3>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '15px' }}>Optimize your inventory acquisition workflow with granular visibility controls.</p>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
+            <div className={`p-6 md:p-8 rounded-2xl shadow-sm border transition-all ${
+              isDark ? 'bg-[#0f172a] border-slate-850' : 'bg-white border-slate-205'
+            }`}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2.5 rounded-xl bg-orange-500/10 text-orange-500">
+                  <ShoppingCart className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                    Inbound Logistics Control
+                  </h3>
+                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Configure custom duty flags, freight charges routing, and chronological constraints
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[
-                  { id: 'enableShippingCost', label: 'Logistics Expenses', desc: 'Add dedicated lines for freight and shipping charges' },
-                  { id: 'enableCustomsDuty', label: 'Customs & Port Fees', desc: 'Track international clearance and duty payments' },
+                  { id: 'enableShippingCost', label: 'Logistics Expenses', desc: 'Add dedicated lanes for freight and shipping charges' },
+                  { id: 'enableCustomsDuty', label: 'Customs & Port Fees', desc: 'Track international clearance and duty payments spec' },
                   { id: 'enableOtherCosts', label: 'Handling & Surcharges', desc: 'Capture miscellaneous processing or storage fees' },
-                  { id: 'requireDate', label: 'Mandatory Acquisition Date', desc: 'Enforce strict chronological record keeping' }
-                ].map(item => (
-                  <motion.div 
-                    key={item.id} 
-                    whileHover={{ scale: 1.02 }}
-                    className="toggle-card" 
-                    onClick={() => toggleBuy(item.id as any)}
-                    style={{ padding: '24px' }}
-                  >
-                    <div style={{ flex: 1, marginRight: '24px' }}>
-                      <span style={{ fontSize: '17px', fontWeight: 800, display: 'block', marginBottom: '4px' }}>{item.label}</span>
-                      <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>{item.desc}</p>
+                  { id: 'requireDate', label: 'Mandatory Acquisition Date', desc: 'Enforce strict chronological transaction tracking' }
+                ].map((item) => {
+                  const isChecked = localSettings.buy[item.id as keyof typeof localSettings.buy];
+                  return (
+                    <div 
+                      key={item.id}
+                      onClick={() => toggleBuy(item.id as any)}
+                      className={`group p-5 rounded-2xl border flex items-center justify-between gap-6 cursor-pointer select-none transition-all duration-200 ${
+                        isDark 
+                          ? 'border-slate-800 bg-slate-900/30 hover:border-slate-700 hover:bg-slate-900/60' 
+                          : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100/50'
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <span className={`text-sm md:text-base font-bold block mb-1 group-hover:text-blue-500 transition-colors ${
+                          isDark ? 'text-slate-200' : 'text-slate-900'
+                        }`}>
+                          {item.label}
+                        </span>
+                        <span className={`text-xs block leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {item.desc}
+                        </span>
+                      </div>
+
+                      {/* SWITCH/TOGGLE BODY */}
+                      <div className={`relative w-14 h-7 rounded-full p-0.5 transition-colors duration-200 flex-shrink-0 ${
+                        isChecked ? 'bg-blue-600' : isDark ? 'bg-slate-800' : 'bg-slate-250'
+                      }`}>
+                        <motion.div 
+                          layout
+                          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                          className="w-6 h-6 rounded-full bg-white shadow-md"
+                          style={{
+                            float: isChecked ? 'right' : 'left'
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div style={{ 
-                      width: '56px', 
-                      height: '30px', 
-                      background: localSettings.buy[item.id as keyof typeof localSettings.buy] ? 'var(--success)' : 'var(--border)',
-                      borderRadius: '40px',
-                      position: 'relative',
-                      transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                      flexShrink: 0
-                    }}>
-                      <motion.div 
-                        initial={false}
-                        animate={{ x: localSettings.buy[item.id as keyof typeof localSettings.buy] ? 28 : 2 }}
-                        style={{ 
-                          width: '26px', 
-                          height: '26px', 
-                          background: 'white', 
-                          borderRadius: '50%', 
-                          marginTop: '2px',
-                          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                        }}
-                      />
-                    </div>
-                  </motion.div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
 
           {activeTab === 'sell' && (
-            <div className="settings-card">
-              <h3 className="settings-section-title">Trade Velocity Engine</h3>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '15px' }}>Precision controls for your sales and outbound transaction engine.</p>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px', marginBottom: '40px' }}>
-                {[
-                  { id: 'enableMultipleProducts', label: 'Bulk Sale Mode', desc: 'Support multiple unique line items in a single trade' },
-                  { id: 'enableVat', label: 'Automated VAT Engine', desc: 'Real-time tax calculation and compliance checks' },
-                  { id: 'enableCustomerName', label: 'Entity Identification', desc: 'Mandatory customer name tracking for audit logs' },
-                  { id: 'enableCurrencySelection', label: 'Global Trade Sync', desc: 'Support per-transaction currency overrides' }
-                ].map(item => (
-                  <motion.div 
-                    key={item.id} 
-                    whileHover={{ scale: 1.02 }}
-                    className="toggle-card" 
-                    onClick={() => toggleSell(item.id as any)}
-                    style={{ padding: '24px' }}
-                  >
-                    <div style={{ flex: 1, marginRight: '24px' }}>
-                      <span style={{ fontSize: '17px', fontWeight: 800, display: 'block', marginBottom: '4px' }}>{item.label}</span>
-                      <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 }}>{item.desc}</p>
-                    </div>
-                    <div style={{ 
-                      width: '56px', 
-                      height: '30px', 
-                      background: localSettings.sell[item.id as keyof typeof localSettings.sell] ? 'var(--accent)' : 'var(--border)',
-                      borderRadius: '40px',
-                      position: 'relative',
-                      transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                      flexShrink: 0
-                    }}>
-                      <motion.div 
-                        initial={false}
-                        animate={{ x: localSettings.sell[item.id as keyof typeof localSettings.sell] ? 28 : 2 }}
-                        style={{ 
-                          width: '26px', 
-                          height: '26px', 
-                          background: 'white', 
-                          borderRadius: '50%', 
-                          marginTop: '2px',
-                          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                        }}
-                      />
-                    </div>
-                  </motion.div>
-                ))}
+            <div className={`p-6 md:p-8 rounded-2xl shadow-sm border transition-all ${
+              isDark ? 'bg-[#0f172a] border-slate-850' : 'bg-white border-slate-205'
+            }`}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-500">
+                  <DollarSign className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                    Trade Velocity Engine
+                  </h3>
+                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Formulate sales workflows, multi-item constraints, tracking filters, and tax engines
+                  </p>
+                </div>
               </div>
 
-              <div className="form-group" style={{ maxWidth: '400px' }}>
-                <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Default Transaction VAT (%)</label>
-                <div style={{ position: 'relative' }}>
-                  <input className="input-modern" type="number" value={localSettings.sell.defaultVat} onChange={(e) => setLocalSettings({...localSettings, sell: {...localSettings.sell, defaultVat: +e.target.value}})} style={{ width: '100%', paddingRight: '50px' }} />
-                  <span style={{ position: 'absolute', right: '20px', top: '50%', transform: 'translateY(-50%)', fontWeight: 900, opacity: 0.4 }}>%</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {[
+                  { id: 'enableMultipleProducts', label: 'Bulk Sale Mode', desc: 'Support multiple unique line items in a single trade' },
+                  { id: 'enableVat', label: 'Automated VAT Engine', desc: 'Real-time tax calculation and compliance controls' },
+                  { id: 'enableCustomerName', label: 'Entity Identification', desc: 'Mandatory customer name tracking for logs' },
+                  { id: 'enableCurrencySelection', label: 'Global Trade Sync', desc: 'Support per-transaction currency overrides' }
+                ].map((item) => {
+                  const isChecked = localSettings.sell[item.id as keyof typeof localSettings.sell];
+                  return (
+                    <div 
+                      key={item.id}
+                      onClick={() => toggleSell(item.id as any)}
+                      className={`group p-5 rounded-2xl border flex items-center justify-between gap-6 cursor-pointer select-none transition-all duration-200 ${
+                        isDark 
+                          ? 'border-slate-800 bg-slate-900/30 hover:border-slate-700 hover:bg-slate-900/60' 
+                          : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100/50'
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <span className={`text-sm md:text-base font-bold block mb-1 group-hover:text-blue-500 transition-colors ${
+                          isDark ? 'text-slate-200' : 'text-slate-900'
+                        }`}>
+                          {item.label}
+                        </span>
+                        <span className={`text-xs block leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {item.desc}
+                        </span>
+                      </div>
+
+                      {/* SWITCH/TOGGLE BODY */}
+                      <div className={`relative w-14 h-7 rounded-full p-0.5 transition-colors duration-200 flex-shrink-0 ${
+                        isChecked ? 'bg-blue-600' : isDark ? 'bg-slate-800' : 'bg-slate-250'
+                      }`}>
+                        <motion.div 
+                          layout
+                          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                          className="w-6 h-6 rounded-full bg-white shadow-md"
+                          style={{
+                            float: isChecked ? 'right' : 'left'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="max-w-md">
+                <label className={`block text-xs font-bold uppercase tracking-wider mb-2.5 ${
+                  isDark ? 'text-slate-300' : 'text-slate-700'
+                }`}>
+                  Default Transaction VAT (%)
+                </label>
+                <div className="relative">
+                  <input 
+                    type="number" 
+                    value={localSettings.sell.defaultVat} 
+                    onChange={(e) => setLocalSettings({
+                      ...localSettings, 
+                      sell: {
+                        ...localSettings.sell, 
+                        defaultVat: +e.target.value
+                      }
+                    })} 
+                    className={`w-full text-sm font-semibold pl-4 pr-12 py-3.5 rounded-xl border outline-none transition-all duration-200 ${
+                      isDark 
+                        ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
+                        : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                    }`}
+                  />
+                  <div className="absolute inset-y-0 right-4 flex items-center pr-1 pointer-events-none text-sm font-bold text-slate-400">
+                    %
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
           {activeTab === 'invoice' && (
-            <div className="settings-card">
-              <h3 className="settings-section-title">Invoice Architecture</h3>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', fontSize: '15px' }}>Design the ultimate document experience for your clients.</p>
-              
-              <motion.div 
-                whileHover={{ scale: 1.01 }}
-                className="toggle-card" 
-                style={{ marginBottom: '40px', padding: '24px 32px', borderRadius: '28px' }} 
-                onClick={() => updateInvoice('showLogo', !localSettings.invoice.showLogo)}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-                  <div style={{ fontSize: '32px', background: 'var(--card-bg)', padding: '12px', borderRadius: '16px', boxShadow: '0 10px 20px -5px rgba(0,0,0,0.05)' }}>💼</div>
+            <div className="space-y-6">
+              <div className={`p-6 md:p-8 rounded-2xl shadow-sm border transition-all ${
+                isDark ? 'bg-[#0f172a] border-slate-850' : 'bg-white border-slate-205'
+              }`}>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-500">
+                    <FileText className="w-5 h-5" />
+                  </div>
                   <div>
-                    <span style={{ fontSize: '18px', fontWeight: 800 }}>Project Branding on Export</span>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.5 }}>Automatically render your corporate identity on all generated PDF invoices.</p>
+                    <h3 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                      Invoice Architecture
+                    </h3>
+                    <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Structure visual templates, executive authorizations, standard legal clauses, and discounts
+                    </p>
                   </div>
                 </div>
-                <div style={{ 
-                  width: '60px', 
-                  height: '32px', 
-                  background: localSettings.invoice.showLogo ? 'var(--accent)' : 'var(--border)',
-                  borderRadius: '40px',
-                  position: 'relative',
-                  transition: '0.4s'
-                }}>
-                  <motion.div 
-                    animate={{ x: localSettings.invoice.showLogo ? 30 : 2 }}
-                    style={{ width: '28px', height: '28px', background: 'white', borderRadius: '50%', marginTop: '2px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)' }} 
-                  />
-                </div>
-              </motion.div>
 
-              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '32px' }}>
-                <div className="form-group">
-                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Payment Instructions (Primary)</label>
-                  <input className="input-modern" type="text" value={localSettings.invoice.bankInfo} onChange={(e) => updateInvoice('bankInfo', e.target.value)} placeholder="Email / PayPal / Crypto" />
-                </div>
-                <div className="form-group">
-                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Accepted Credit Networks</label>
-                  <input className="input-modern" type="text" value={localSettings.invoice.cardPayment || ''} onChange={(e) => updateInvoice('cardPayment', e.target.value)} placeholder="Visa, Mastercard, Amex..." />
-                </div>
-              </div>
+                {/* SHOW LOGO TOGGLE GRID */}
+                <div 
+                  onClick={() => updateInvoice('showLogo', !localSettings.invoice.showLogo)}
+                  className={`group p-5 rounded-2xl border flex items-center justify-between gap-6 cursor-pointer select-none transition-all duration-200 mb-6 ${
+                    isDark 
+                      ? 'border-slate-800 bg-slate-900/30 hover:border-slate-700 hover:bg-slate-900/60' 
+                      : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100/50'
+                  }`}
+                >
+                  <div className="flex-1">
+                    <span className={`text-sm md:text-base font-bold block mb-1 group-hover:text-blue-500 transition-colors ${
+                      isDark ? 'text-slate-200' : 'text-slate-900'
+                    }`}>
+                      Project Branding on Export
+                    </span>
+                    <span className={`text-xs block leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Automatically render corporate visual logo on all digital PDF exports or physical invoice sheets
+                    </span>
+                  </div>
 
-              <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '40px' }}>
-                <div className="form-group">
-                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Standard VAT (%)</label>
-                  <input className="input-modern" type="number" value={localSettings.invoice.taxRate} onChange={(e) => updateInvoice('taxRate', +e.target.value)} />
+                  {/* SWITCH/TOGGLE BODY */}
+                  <div className={`relative w-14 h-7 rounded-full p-0.5 transition-colors duration-200 flex-shrink-0 ${
+                    localSettings.invoice.showLogo ? 'bg-blue-600' : isDark ? 'bg-slate-800' : 'bg-slate-250'
+                  }`}>
+                    <motion.div 
+                      layout
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      className="w-6 h-6 rounded-full bg-white shadow-md"
+                      style={{
+                        float: localSettings.invoice.showLogo ? 'right' : 'left'
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Standard Trade Discount (%)</label>
-                  <input className="input-modern" type="number" value={localSettings.invoice.discount} onChange={(e) => updateInvoice('discount', +e.target.value)} />
-                </div>
-              </div>
 
-              <div style={{ padding: '40px', background: 'var(--bg)', borderRadius: '32px', border: '2px dashed var(--accent)', marginBottom: '48px', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: '-20px', right: '-20px', fontSize: '120px', opacity: 0.03, transform: 'rotate(15deg)' }}>🖋️</div>
-                <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '40px', flexWrap: 'wrap' }}>
-                  <motion.div 
-                    whileHover={{ scale: 1.02 }}
-                    style={{ width: '220px', height: '120px', background: 'white', borderRadius: '20px', border: '2px solid var(--border)', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}
-                  >
-                    {localSettings.invoice.signatureUrl ? (
-                      <img src={localSettings.invoice.signatureUrl} alt="Sign" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                    ) : (
-                      <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 900, letterSpacing: '0.1em' }}>PLACEHOLDER SIGNATURE</span>
-                    )}
-                  </motion.div>
-                  <div style={{ flex: 1 }}>
-                    <h4 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 900, color: 'var(--text-primary)' }}>Executive Authorization</h4>
-                    <p style={{ margin: '0 0 24px 0', fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>Upload a high-fidelity digital signature to automate document authentication across your global trades.</p>
-                    <label className="btn btn-outline" style={{ cursor: 'pointer', borderRadius: '14px', padding: '12px 28px', fontWeight: 700 }}>
-                      <span>Add/Change Signature Identity</span>
-                      <input type="file" accept="image/*" style={{ display: 'none' }} 
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => updateInvoice('signatureUrl', reader.result as string);
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                      />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2.5 ${
+                      isDark ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      Payment Instructions (Primary)
                     </label>
+                    <input 
+                      type="text" 
+                      value={localSettings.invoice.bankInfo} 
+                      onChange={(e) => updateInvoice('bankInfo', e.target.value)} 
+                      placeholder="e.g. Bank Account details / PayPal account" 
+                      className={`w-full text-sm font-semibold px-4 py-3.5 rounded-xl border outline-none transition-all duration-200 ${
+                        isDark 
+                          ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
+                          : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2.5 ${
+                      isDark ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      Accepted Credit Networks
+                    </label>
+                    <input 
+                      type="text" 
+                      value={localSettings.invoice.cardPayment || ''} 
+                      onChange={(e) => updateInvoice('cardPayment', e.target.value)} 
+                      placeholder="e.g. Visa, Mastercard, American Express" 
+                      className={`w-full text-sm font-semibold px-4 py-3.5 rounded-xl border outline-none transition-all duration-200 ${
+                        isDark 
+                          ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
+                          : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2.5 ${
+                      isDark ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      Standard VAT (%)
+                    </label>
+                    <input 
+                      type="number" 
+                      value={localSettings.invoice.taxRate} 
+                      onChange={(e) => updateInvoice('taxRate', +e.target.value)} 
+                      placeholder="VAT Percentage" 
+                      className={`w-full text-sm font-semibold px-4 py-3.5 rounded-xl border outline-none transition-all duration-200 ${
+                        isDark 
+                          ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
+                          : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2.5 ${
+                      isDark ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      Standard Trade Discount (%)
+                    </label>
+                    <input 
+                      type="number" 
+                      value={localSettings.invoice.discount} 
+                      onChange={(e) => updateInvoice('discount', +e.target.value)} 
+                      placeholder="Discount Percentage" 
+                      className={`w-full text-sm font-semibold px-4 py-3.5 rounded-xl border outline-none transition-all duration-200 ${
+                        isDark 
+                          ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
+                          : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                      }`}
+                    />
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '40px' }} className="form-row">
-                <div className="form-group">
-                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Authorized Signatory</label>
-                  <input className="input-modern" type="text" value={localSettings.invoice.signatureName || ''} onChange={(e) => updateInvoice('signatureName', e.target.value)} placeholder="Full Legal Name" />
+              {/* EXECUTIVE SIGNATURE CONTAINER */}
+              <div className={`p-6 md:p-8 rounded-2xl shadow-sm border transition-all ${
+                isDark ? 'bg-[#0f172a] border-slate-850' : 'bg-white border-slate-205'
+              }`}>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-500">
+                    <Signature className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                      Executive Authorization Signature
+                    </h3>
+                    <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Verify professional authorization parameters & digital autograph identity on docs
+                    </p>
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label style={{ fontWeight: 800, marginBottom: '12px', color: 'var(--text-secondary)', display: 'block' }}>Professional Title</label>
-                  <input className="input-modern" type="text" placeholder="e.g. Managing Director" />
+
+                <div className={`p-6 rounded-2xl border mb-6 ${
+                  isDark ? 'bg-slate-900/40 border-slate-800/80' : 'bg-slate-50 border-slate-200/50'
+                }`}>
+                  <div className="flex flex-col md:flex-row items-center gap-6">
+                    <motion.div 
+                      whileHover={{ scale: 1.02 }}
+                      className={`relative w-48 h-24 bg-white rounded-xl border flex flex-col items-center justify-center p-3 shadow-sm overflow-hidden ${
+                        isDark ? 'border-slate-800' : 'border-slate-200'
+                      }`}
+                    >
+                      {localSettings.invoice.signatureUrl ? (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <img 
+                            src={localSettings.invoice.signatureUrl} 
+                            alt="Signature preview" 
+                            className="max-w-full max-h-full object-contain" 
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-bold block select-none uppercase tracking-widest text-center">
+                          NO AUTOGRAPH
+                        </span>
+                      )}
+                    </motion.div>
+
+                    <div className="flex-1 text-center md:text-left space-y-2">
+                      <h4 className={`text-md font-bold ${isDark ? 'text-slate-200' : 'text-slate-850'}`}>
+                        Autograph Template Document
+                      </h4>
+                      <p className={`text-xs leading-relaxed max-w-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        Upload a premium high-contrast digital signature transparent png to automate authorization stamp parameters across transactional documents.
+                      </p>
+                      
+                      <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-1">
+                        <label className="flex items-center gap-1.5 cursor-pointer rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-4 shadow-sm transition-all animate-none">
+                          <Upload className="w-4.5 h-4.5" />
+                          <span>Upload Signature</span>
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            style={{ display: 'none' }} 
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => updateInvoice('signatureUrl', reader.result as string);
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2.5 ${
+                      isDark ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      Authorized Signatory Name
+                    </label>
+                    <input 
+                      type="text" 
+                      value={localSettings.invoice.signatureName || ''} 
+                      onChange={(e) => updateInvoice('signatureName', e.target.value)} 
+                      placeholder="e.g. Mahabub Alom" 
+                      className={`w-full text-sm font-semibold px-4 py-3.5 rounded-xl border outline-none transition-all duration-200 ${
+                        isDark 
+                          ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
+                          : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2.5 ${
+                      isDark ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      Professional Position / Title
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Managing Director" 
+                      className={`w-full text-sm font-semibold px-4 py-3.5 rounded-xl border outline-none transition-all duration-200 ${
+                        isDark 
+                          ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
+                          : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                      }`}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div style={{ padding: '40px', background: 'var(--bg)', borderRadius: '32px', border: '2px solid var(--border)', position: 'relative' }}>
-                <h4 style={{ margin: '0 0 28px 0', fontSize: '20px', fontWeight: 900, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '28px' }}>📜</span> Global Trade Terms
-                </h4>
-                <textarea 
-                  className="input-modern" 
-                  rows={6} 
-                  value={localSettings.invoice.termsAndConditions} 
-                  onChange={(e) => updateInvoice('termsAndConditions', e.target.value)}
-                  placeholder="Define your business policies, returns, and sovereign trade terms..."
-                  style={{ width: '100%', lineHeight: 1.7, background: 'var(--card-bg) !important' }}
-                />
-                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700 }}>Auto-rendered on every document footer</span>
+              {/* TERMS CONTROLLER */}
+              <div className={`p-6 md:p-8 rounded-2xl shadow-sm border transition-all ${
+                isDark ? 'bg-[#0f172a] border-slate-850' : 'bg-white border-slate-205'
+              }`}>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2.5 rounded-xl bg-orange-500/10 text-orange-500">
+                    <Notebook className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className={`text-lg font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                      Global Legal Trade terms
+                    </h3>
+                    <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Write general transaction clauses, returns policy parameters, and terms details
+                    </p>
+                  </div>
                 </div>
+
+                <textarea 
+                  rows={5} 
+                  value={localSettings.invoice.termsAndConditions} 
+                  onChange={(e) => updateInvoice('termsAndConditions', e.target.value)} 
+                  placeholder="e.g. All goods delivered remain the sole properties of TradeFlow until payment completed in full..." 
+                  className={`w-full text-sm font-semibold px-4 py-3.5 rounded-xl border outline-none transition-all duration-200 ${
+                    isDark 
+                      ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
+                      : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+                  }`}
+                />
+                <span className="text-[11px] block mt-2 text-right font-medium text-slate-400">
+                  Automatically embedded at the footer of invoice document templates
+                </span>
               </div>
             </div>
           )}

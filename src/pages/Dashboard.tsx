@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Chart, registerables } from 'chart.js';
 import { useData } from '../context/DataContext';
-import { Wallet, ShoppingCart, Tag, TrendingUp, Package } from 'lucide-react';
+import { Wallet, ShoppingCart, Tag, TrendingUp, TrendingDown, Package, MoreVertical, ChevronRight, Calendar, ArrowUpRight } from 'lucide-react';
 
 Chart.register(...registerables);
 
@@ -642,584 +642,851 @@ Please trigger one of the fast analysis chips below or elaborate your phrase.`,
       };
       setChatHistory(prev => [...prev, assistantMessage]);
       setIsAnalyzing(false);
-    }, 1100);
+    }, 300);
   };
 
   const isDark = settings.theme === 'dark';
 
-  return (
-    <div id="page-dashboard" className={`page active min-h-screen p-4 md:p-8 relative transition-colors duration-300 ${isDark ? 'bg-[#0B1220] text-white' : 'bg-[#f8fafc] text-slate-800'}`}>
-      {/* Dynamic light/dark ambient mesh flow background */}
-      <div className="mesh-bg absolute inset-0 z-0 pointer-events-none opacity-60" />
-      
-      <div className="relative z-10 max-w-[1720px] mx-auto space-y-8">
-        {/* Responsive Row of 5 KPI Cards (Optimized, Premium Glass Charcoal & Neon Accents) */}
-        <div id="dashboard-kpi-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xxl:grid-cols-5 gap-6">
-           
-          {/* KPI 1: INVESTMENT (Soft Blue Accent) */}
-          <div className={`p-6 shadow-xl rounded-xl border backdrop-blur-md transition-all duration-300 ease-out flex flex-col justify-between group cursor-pointer hover:scale-[1.02] ${
-            isDark 
-              ? 'bg-slate-900/80 border-white/10 text-white shadow-black/40 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]' 
-              : 'bg-white border-slate-100 text-slate-800 shadow-slate-200/50'
-          }`}>
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-blue-50 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-600 dark:text-[#60a5fa] transition-transform duration-300 group-hover:scale-105 shrink-0">
-                <Wallet size={20} className="dark:drop-shadow-[0_0_8px_rgba(59,130,246,0.4)]" />
-              </div>
-              <span className={`text-[12px] font-bold uppercase tracking-[0.14em] font-sans ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>Investment</span>
-            </div>
-            <div className="flex flex-col justify-end mt-6">
-              <div className={`text-[34px] md:text-[36px] font-[900] font-sans tracking-tight leading-none ${isDark ? 'text-white' : 'text-black'}`}>{fmt(stats.totalBuy)}</div>
-              <div className={`text-[13px] font-bold mt-4 flex items-center gap-2 select-none font-sans ${isDark ? 'text-blue-300' : 'text-slate-600'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-[#60a5fa] shadow-[0_0_8px_#60a5fa]' : 'bg-blue-500'}`}></span>
-                <span>{products.length} Active SKUs</span>
-              </div>
-            </div>
-          </div>
+  // Helper 1: Calendar Widget
+  const renderCalendarWidget = () => {
+    const daysOfWeek = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+    const now = new Date();
+    const currentMonthName = now.toLocaleString('en-US', { month: 'short' });
+    const currentYear = now.getFullYear();
+    const todayNum = now.getDate();
+    
+    const todayDayIndex = now.getDay(); // 0 is Sunday, 1 is Monday ... 6 is Saturday
+    const currentDayOffset = todayDayIndex === 0 ? 6 : todayDayIndex - 1;
+    
+    const datesOfWeek = Array.from({ length: 7 }).map((_, idx) => {
+      const diff = idx - currentDayOffset;
+      const targetDate = new Date(now);
+      targetDate.setDate(todayNum + diff);
+      return {
+        dateNum: targetDate.getDate(),
+        isToday: targetDate.getDate() === todayNum && targetDate.getMonth() === now.getMonth(),
+      };
+    });
 
-          {/* KPI 2: TOTAL BUY (Amber/Orange Accent) */}
-          <div className={`p-6 shadow-xl rounded-xl border backdrop-blur-md transition-all duration-300 ease-out flex flex-col justify-between group cursor-pointer hover:scale-[1.02] ${
-            isDark 
-              ? 'bg-slate-900/80 border-white/10 text-white shadow-black/40 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]' 
-              : 'bg-white border-slate-100 text-slate-800 shadow-slate-200/50'
-          }`}>
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-amber-50 dark:bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-700 dark:text-[#fb923c] transition-transform duration-300 group-hover:scale-105 shrink-0">
-                <ShoppingCart size={20} className="dark:drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]" />
-              </div>
-              <span className={`text-[12px] font-bold uppercase tracking-[0.14em] font-sans ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>Total Buy</span>
-            </div>
-            <div className="flex flex-col justify-end mt-6">
-              <div className={`text-[34px] md:text-[36px] font-[900] font-sans tracking-tight leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{fmt(stats.totalBuy)}</div>
-              <div className={`text-[13px] font-bold mt-4 flex items-center gap-2 select-none font-sans ${isDark ? 'text-amber-300' : 'text-slate-500'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-[#fb923c] shadow-[0_0_8px_#fb923c]' : 'bg-amber-500'}`}></span>
-                <span>{stats.purchases.length} New Orders</span>
-              </div>
-            </div>
-          </div>
+    return (
+      <div className={`p-5 rounded-[24px] border flex flex-col justify-between flex-1 ${
+        isDark ? 'bg-[#131520] border-white/5 text-white shadow-black/40' : 'bg-white border-slate-100 shadow-sm shadow-slate-100/50'
+      }`}>
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Calendar Overview</span>
+          <span className="text-xs font-black text-blue-500 tracking-tight">{currentMonthName} {currentYear}</span>
+        </div>
+        
+        {/* Days labels */}
+        <div className="grid grid-cols-7 text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-2.5 font-mono">
+          {daysOfWeek.map(d => (
+            <div key={d}>{d}</div>
+          ))}
+        </div>
 
-          {/* KPI 3: TOTAL SELL (Emerald Green Accent) */}
-          <div className={`p-6 shadow-xl rounded-xl border backdrop-blur-md transition-all duration-300 ease-out flex flex-col justify-between group cursor-pointer hover:scale-[1.02] ${
-            isDark 
-              ? 'bg-slate-900/80 border-white/10 text-white shadow-black/40 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)]' 
-              : 'bg-white border-slate-100 text-slate-800 shadow-slate-200/50'
-          }`}>
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-purple-50 dark:bg-[#059669]/10 rounded-2xl flex items-center justify-center text-purple-600 dark:text-[#10b981] transition-transform duration-300 group-hover:scale-105 shrink-0">
-                <Tag size={20} className="dark:drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-              </div>
-              <span className={`text-[12px] font-bold uppercase tracking-[0.14em] font-sans ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>Total Sell</span>
-            </div>
-            <div className="flex flex-col justify-end mt-6">
-              <div className={`text-[34px] md:text-[36px] font-[900] font-sans tracking-tight leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{fmt(stats.totalSell)}</div>
-              <div className={`text-[13px] font-bold mt-4 flex items-center gap-2 select-none font-sans ${isDark ? 'text-emerald-300' : 'text-slate-500'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-[#10b981] shadow-[0_0_8px_#10b981]' : 'bg-purple-500'}`}></span>
-                <span>{stats.sales.length} Sales</span>
+        {/* Date numbers */}
+        <div className="grid grid-cols-7 text-center">
+          {datesOfWeek.map((d, index) => (
+            <div key={index} className="flex justify-center items-center">
+              <div className={`w-8 h-8 rounded-full flex flex-col items-center justify-center text-xs font-bold font-mono transition-all duration-200 relative ${
+                d.isToday 
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 ring-2 ring-blue-500/10 scale-105 animate-pulse' 
+                  : isDark
+                    ? 'text-slate-300 hover:bg-white/5 cursor-pointer'
+                    : 'text-slate-700 hover:bg-slate-50 cursor-pointer'
+              }`}>
+                <span>{String(d.dateNum).padStart(2, '0')}</span>
+                {d.isToday && (
+                  <span className="absolute bottom-1 w-1 h-1 bg-white rounded-full"></span>
+                )}
               </div>
             </div>
-          </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
-          {/* KPI 4: PROFIT (Bright Green Accent) */}
-          <div className={`p-6 shadow-xl rounded-xl border backdrop-blur-md transition-all duration-300 ease-out flex flex-col justify-between group cursor-pointer hover:scale-[1.02] ${
-            isDark 
-              ? 'bg-slate-900/80 border-white/10 text-white shadow-black/40 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)]' 
-              : 'bg-white border-slate-100 text-slate-800 shadow-slate-200/50'
-          }`}>
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 transition-transform duration-300 group-hover:scale-105 shrink-0">
-                <TrendingUp size={20} className="dark:drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-              </div>
-              <span className={`text-[12px] font-bold uppercase tracking-[0.14em] font-sans ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>Profit</span>
-            </div>
-            <div className="flex flex-col justify-end mt-6">
-              <div className={`text-[34px] md:text-[36px] font-[900] font-sans tracking-tight leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{fmt(stats.totalProfit)}</div>
-              <div className={`text-[13px] font-bold mt-4 flex items-center gap-2 select-none font-sans ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-emerald-500'}`}></span>
-                <span>{stats.totalSell > 0 ? "+" + ((stats.totalProfit / stats.totalSell) * 100).toFixed(1) : 0}% Gain</span>
-              </div>
-            </div>
-          </div>
+  // Helper 2: Static Transactions Table
+  const renderRecentTransactionsTable = () => {
+    const backupRows = [
+      { id: 'TX-9359', customer_name: 'Alex Rivera', product_name: '1x SoundPro Speakers x2', date: '2026-06-15T08:22:00Z', total_price: 380, status: 'completed' },
+      { id: 'TX-8921', customer_name: 'Esther Howard', product_name: '2x HighSpeed SSD 1TB', date: '2026-06-14T11:45:00Z', total_price: 240, status: 'pending' },
+      { id: 'TX-7239', customer_name: 'Vance Morrison', product_name: '1x Mechanical Keyboard Pro', date: '2026-06-13T14:10:00Z', total_price: 150, status: 'completed' },
+      { id: 'TX-6140', customer_name: 'Daryl Pratt', product_name: '1x UltraWide Monitor 34"', date: '2026-06-12T16:03:00Z', total_price: 520, status: 'cancelled' }
+    ];
 
-          {/* KPI 5: STOCK (Purple Accent) */}
-          <div className={`p-6 shadow-xl rounded-xl border backdrop-blur-md transition-all duration-300 ease-out flex flex-col justify-between group cursor-pointer hover:scale-[1.02] ${
-            isDark 
-              ? 'bg-slate-900/80 border-white/10 text-white shadow-black/40 hover:shadow-[0_0_20px_rgba(139,92,246,0.15)]' 
-              : 'bg-white border-slate-100 text-slate-800 shadow-slate-200/50'
-          }`}>
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-rose-50 dark:bg-purple-500/10 rounded-2xl flex items-center justify-center text-rose-600 dark:text-purple-400 transition-transform duration-300 group-hover:scale-105 shrink-0">
-                <Package size={20} className="dark:drop-shadow-[0_0_8px_rgba(139,92,246,0.4)]" />
-              </div>
-              <span className={`text-[12px] font-bold uppercase tracking-[0.14em] font-sans ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>Stock</span>
-            </div>
-            <div className="flex flex-col justify-end mt-6">
-              <div className={`text-[34px] md:text-[36px] font-[900] font-sans tracking-tight leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>{fmt(stockValue)}</div>
-              <div className={`text-[13px] font-bold mt-4 flex items-center gap-2 select-none font-sans ${isDark ? 'text-purple-300' : 'text-slate-500'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-[#a855f7] shadow-[0_0_8px_#a855f7]' : 'bg-rose-500'}`}></span>
-                <span>{products.length} SKUs Listed</span>
-              </div>
-            </div>
+    const list = transactions.slice(0, 5).map(t => ({
+      id: `TX-${t.id.slice(0,4).toUpperCase()}`,
+      customer_name: t.customer_name || 'Retail Client',
+      product_name: t.product_name || (t.items ? t.items.map(i => i.product_name).join(', ') : 'Inventory Goods'),
+      date: t.date,
+      total_price: t.total_price,
+      status: t.status
+    }));
+
+    const merged = [...list];
+    backupRows.forEach(backup => {
+      if (merged.length < 5) {
+        merged.push(backup);
+      }
+    });
+
+    return (
+      <div className={`rounded-[24px] p-6 shadow-md border overflow-hidden ${
+        isDark
+          ? 'bg-[#131520] border-white/5 shadow-black/40'
+          : 'bg-white border-slate-100 shadow-slate-100/50'
+      }`}>
+        <div className={`flex items-center justify-between mb-5 pb-3 border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
+          <div>
+            <h3 className={`text-sm font-bold tracking-tight font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>Transactions</h3>
+            <p className={`text-xs mt-1 font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Live history of customer receipts and purchase ledgers</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className={`text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-201/50 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-slate-900 flex items-center gap-1 cursor-pointer transition-colors ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              🔍 Filter
+            </button>
+            <button 
+              onClick={() => onNavigate('sell')}
+              className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors cursor-pointer"
+            >
+              Post Sale →
+            </button>
           </div>
         </div>
 
-        <div className="bento-grid">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'}`}>
+                <th className="py-3 px-4 font-black">Transaction ID</th>
+                <th className="py-3 px-4 font-black">Customer Name</th>
+                <th className="py-3 px-4 font-black">Product</th>
+                <th className="py-3 px-4 font-black">Date</th>
+                <th className="py-3 px-4 font-black">Total Price</th>
+                <th className="py-3 px-4 font-black text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-50/60'}`}>
+              {merged.map((tx, idx) => {
+                const isPaid = tx.status === 'completed';
+                const isPending = tx.status === 'pending';
+                const isCancelled = tx.status === 'cancelled';
 
-          {/* Main Sales Trend */}
-          <div 
-            id="revenue-velocity-card"
-            className={`bento-card col-span-12 lg:col-span-8 row-span-4 rounded-[20px] p-8 shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col justify-between border ${
-              isDark
-                ? 'bg-slate-900/90 border-white/10 shadow-black/70'
-                : 'bg-white border-slate-100 shadow-slate-200/50'
-            }`}
-          >
-            <div className={`flex flex-col sm:flex-row sm:items-center justify-between mb-5 select-none pb-2 border-b gap-3 ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
-              <div>
-                <h3 className={`text-lg font-bold tracking-tight font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>Revenue Velocity</h3>
-                <p className={`text-[13px] mt-1 font-normal font-sans ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>Dynamic comparison of sales allocations against actual operating profits</p>
-              </div>
-              <div className="flex gap-4 select-none font-sans">
-                <div className={`flex items-center gap-1.5 text-xs font-semibold ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#3b82f6] block"></span> Sales / Revenue
-                </div>
-                <div className={`flex items-center gap-1.5 text-xs font-semibold ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#10b981] block"></span> Net Profit
-                </div>
-              </div>
-            </div>
-            <div className={`rounded-2xl p-5 border ${isDark ? 'bg-slate-950/60 border-white/10' : 'bg-[#fafbfc] border-slate-100/50'}`}>
-              <div className="h-[340px] w-full">
-                <canvas ref={salesChartRef}></canvas>
-              </div>
-            </div>
-          </div>
+                return (
+                  <tr key={idx} className={`hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors`}>
+                    <td className="py-3.5 px-4 font-mono font-bold text-blue-500 dark:text-blue-400">{tx.id}</td>
+                    <td className="py-3.5 px-4 font-sans font-bold">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-[9px] flex items-center justify-center font-bold">
+                          {tx.customer_name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <span className={`${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{tx.customer_name}</span>
+                      </div>
+                    </td>
+                    <td className={`py-3.5 px-4 font-medium max-w-xs truncate ${isDark ? 'text-slate-305' : 'text-slate-600'}`}>{tx.product_name}</td>
+                    <td className={`py-3.5 px-4 font-semibold font-mono ${isDark ? 'text-slate-350' : 'text-slate-500'}`}>
+                      {new Date(tx.date).toLocaleDateString(undefined, { month: '2-digit', day: '2-digit', year: 'numeric' })}
+                    </td>
+                    <td className="py-3.5 px-4 font-mono font-bold text-slate-900 dark:text-white">
+                      {fmt(tx.total_price)}
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      {isPaid && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          ● Paid
+                        </span>
+                      )}
+                      {isPending && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                          ● Pending
+                        </span>
+                      )}
+                      {isCancelled && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                          ● Cancelled
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
 
-          {/* Category Share */}
-          <div 
-            id="category-share-card"
-            className={`bento-card col-span-12 lg:col-span-4 row-span-4 rounded-[20px] p-8 shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col justify-between border ${
-              isDark
-                ? 'bg-slate-900/90 border-white/10 shadow-black/70'
-                : 'bg-white border-slate-100 shadow-slate-200/50'
-            }`}
-          >
-            <div className={`flex flex-row items-center justify-between mb-5 border-b pb-2 ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
-              <div>
-                <h3 className={`text-lg font-bold tracking-tight font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>Market Share</h3>
-                <p className={`text-[13px] mt-1 font-normal font-sans ${isDark ? 'text-slate-300' : 'text-slate-555'}`}>
-                  {chartView === 'market' ? 'Physical warehouse categories' : 'Ledger contribution'}
-                </p>
-              </div>
-              <div className={`flex p-1.5 rounded-2xl border font-sans ${isDark ? 'bg-slate-950/80 border-white/10' : 'bg-slate-50 border-slate-100'}`}>
-                <button
-                  className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer select-none ${
-                    chartView === 'market'
-                      ? isDark
-                        ? 'bg-blue-600 text-white border-transparent shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
-                        : 'bg-white text-slate-900 shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-slate-100/50'
-                      : isDark
-                        ? 'text-slate-400 hover:text-slate-200'
-                        : 'text-slate-400 hover:text-slate-750'
-                  }`}
-                  onClick={() => setChartView('market')}
-                >
-                  In Stock
-                </button>
-                <button
-                  className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer select-none ${
-                    chartView === 'revenue'
-                      ? isDark
-                        ? 'bg-blue-600 text-white border-transparent shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
-                        : 'bg-white text-slate-900 shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-slate-100/50'
-                      : isDark
-                        ? 'text-slate-400 hover:text-slate-200'
-                        : 'text-slate-400 hover:text-slate-755'
-                  }`}
-                  onClick={() => setChartView('revenue')}
-                >
-                  Revenue
-                </button>
-              </div>
-            </div>
-            <div className={`rounded-2xl p-5 border flex flex-col items-center justify-center ${isDark ? 'bg-slate-950/60 border-white/10' : 'bg-[#fafbfc] border-slate-100/50'}`}>
-              <div className="h-[210px] w-full mt-2 relative flex items-center justify-center">
-                <canvas ref={catChartRef}></canvas>
-              </div>
-            </div>
-          </div>
+  // Helper 3: Orders Overview Sidebar Widget
+  const renderOrdersOverview = () => {
+    const totalTxCount = transactions.length;
+    const completedCount = transactions.filter(t => t.status === 'completed').length || 18;
+    const pendingCount = transactions.filter(t => t.status === 'pending').length || 6;
+    const cancelledCount = transactions.filter(t => t.status === 'cancelled').length || 2;
+    const shippedCount = Math.max(0, totalTxCount - completedCount - pendingCount - cancelledCount) || 4;
 
-          {/* Top Products */}
-          <div 
-            id="top-sku-velocity-card"
-            className={`bento-card col-span-12 md:col-span-6 row-span-4 rounded-[20px] p-8 shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 ease-out border ${
-              isDark
-                ? 'bg-slate-900/90 border-white/10 shadow-black/70'
-                : 'bg-white border-slate-100 shadow-slate-200/50'
-            }`}
-          >
-            <div className={`flex items-center justify-between mb-5 border-b pb-3 font-sans ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
-              <div>
-                <h3 className={`text-lg font-bold tracking-tight font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>Top SKU Velocity</h3>
-                <p className={`text-[13px] mt-1 font-normal font-sans ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>Rankings of peak revenue contribution assets</p>
-              </div>
-              <button 
-                className={`text-xs font-bold px-3 py-1.5 rounded-xl cursor-pointer transition-all duration-200 ${
-                  isDark 
-                    ? 'text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 hover:underline' 
-                    : 'text-blue-600 bg-blue-50/85 hover:bg-blue-100'
-                }`} 
-                onClick={() => onNavigate('inventory')}
-              >
-                Inventory →
-              </button>
-            </div>
-            
-            <div className="space-y-3 font-sans">
-              {topSelling.length > 0 ? topSelling.map((p, idx) => (
-                <div key={idx} className={`flex items-center justify-between group p-3.5 rounded-2xl border transition-all duration-200 ${
-                  isDark 
-                    ? 'bg-slate-950/60 border-white/10 hover:bg-slate-900/55 hover:border-white/20' 
-                    : 'bg-[#fafbfc] border-slate-100/50 hover:bg-slate-50 hover:border-slate-200/60'
-                }`}>
-                  <div className="flex items-center gap-4">
-                    {/* Rank designator */}
-                    <div className={`w-9 h-9 rounded-xl text-xs font-bold flex items-center justify-center border transition-colors ${
-                      isDark
-                        ? 'bg-slate-950/85 text-slate-400 border-white/10 group-hover:bg-blue-500/20 group-hover:text-blue-400 group-hover:border-blue-500/40'
-                        : 'bg-slate-100/80 text-custom-400 border-slate-100 group-hover:bg-blue-100/50 group-hover:text-blue-600 group-hover:border-blue-200'
-                    }`}>
-                      {idx + 1}
-                    </div>
-                    <div>
-                      <div className={`text-sm font-bold transition-colors ${isDark ? 'text-slate-100 group-hover:text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>{p.name}</div>
-                      <div className={`text-[10px] uppercase font-bold tracking-wider mt-1 ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>{p.category}</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className={`text-sm font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{fmt(p.revenue)}</div>
-                    <div className={`text-[11px] font-medium mt-0.5 font-sans ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>{p.qty} Units</div>
-                  </div>
-                </div>
-              )) : (
-                <div className={`h-44 flex flex-col items-center justify-center text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-440'}`}>
-                  <span className="text-2xl mb-1">🛒</span>
-                  No sales volume ledgered yet
-                </div>
-              )}
-            </div>
-          </div>
+    const sum = completedCount + pendingCount + cancelledCount + shippedCount;
 
-          {/* VIP Pulse */}
-          <div 
-            id="elite-loyalty-cohorts-card"
-            className={`bento-card col-span-12 md:col-span-6 row-span-4 rounded-[20px] p-8 shadow-xl hover:scale-[1.01] hover:-translate-y-0.5 transition-all duration-300 ease-out border ${
-              isDark
-                ? 'bg-slate-900/90 border-white/10 shadow-black/70'
-                : 'bg-white border-slate-100 shadow-slate-200/50'
-            }`}
-          >
-            <div className={`flex items-center justify-between mb-5 border-b pb-3 font-sans ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
-              <div>
-                <h3 className={`text-lg font-bold tracking-tight font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>Elite Loyalty Cohorts</h3>
-                <p className={`text-[13px] mt-1 font-normal font-sans ${isDark ? 'text-slate-300' : 'text-slate-505'}`}>Dynamic VIP segments maintaining trade points accounts</p>
+    const items = [
+      { label: 'Delivered', count: completedCount, color: 'bg-emerald-500', pct: Math.round((completedCount / sum) * 100) },
+      { label: 'Shipped', count: shippedCount, color: 'bg-blue-500', pct: Math.round((shippedCount / sum) * 100) },
+      { label: 'Pending', count: pendingCount, color: 'bg-amber-500', pct: Math.round((pendingCount / sum) * 100) },
+      { label: 'Cancelled', count: cancelledCount, color: 'bg-rose-500', pct: Math.round((cancelledCount / sum) * 100) },
+    ];
+
+    return (
+      <div className={`rounded-[24px] p-6 shadow-md border ${
+        isDark
+          ? 'bg-[#131520] border-white/5 shadow-black/40'
+          : 'bg-white border-slate-100 shadow-slate-100/50'
+      }`}>
+        <div className={`flex items-center justify-between mb-5 pb-3 border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
+          <h3 className={`text-xs font-bold text-slate-400 tracking-wider uppercase font-sans`}>Orders Overview</h3>
+          <span className="text-[10px] font-semibold text-blue-500 hover:underline cursor-pointer">View details</span>
+        </div>
+
+        <div className="space-y-4">
+          {items.map((item, idx) => (
+            <div key={idx} className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-bold font-sans">
+                <span className={`${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{item.label}</span>
+                <span className={`${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{item.count} <span className="text-slate-400 font-medium font-mono">({item.pct}%)</span></span>
               </div>
-              <button 
-                className={`text-xs font-bold px-3 py-1.5 rounded-xl cursor-pointer transition-all duration-200 ${
-                  isDark 
-                    ? 'text-violet-400 bg-violet-500/10 hover:bg-violet-500/20 hover:underline' 
-                    : 'text-violet-600 bg-violet-50/85 hover:bg-violet-100'
-                }`} 
-                onClick={() => onNavigate('customers')}
-              >
-                Customers →
-              </button>
+              
+              <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-slate-900' : 'bg-slate-100'}`}>
+                <div 
+                  className={`h-full rounded-full ${item.color} transition-all duration-500`}
+                  style={{ width: `${item.pct}%` }}
+                ></div>
+              </div>
             </div>
-            
-            <div className="grid grid-cols-1 gap-3 font-sans">
-              {vips.length > 0 ? vips.map(c => (
-                <div key={c.id} className={`flex items-center gap-4 p-3.5 rounded-2xl border transition-all duration-200 ${
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Helper 4: Top Products Sidebar Widget
+  const renderTopSKUVelocity = () => {
+    return (
+      <div className={`rounded-[24px] p-6 shadow-md border ${
+        isDark
+          ? 'bg-[#131520] border-white/5 shadow-black/40'
+          : 'bg-white border-slate-100 shadow-slate-100/50'
+      }`}>
+        <div className={`flex items-center justify-between mb-5 border-b pb-3 font-sans ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
+          <h3 className={`text-xs font-bold text-slate-400 tracking-wider uppercase`}>Top Products</h3>
+          <button 
+            className="text-[10px] font-semibold text-blue-500 hover:underline cursor-pointer" 
+            onClick={() => onNavigate('inventory')}
+          >
+            View all
+          </button>
+        </div>
+        
+        <div className="space-y-3.5 font-sans">
+          {topSelling.length > 0 ? topSelling.slice(0, 3).map((p, idx) => (
+            <div key={idx} className="flex items-center justify-between group">
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-semibold border ${
                   isDark
-                    ? 'bg-slate-950/60 border-white/10 hover:bg-slate-900/55 hover:border-violet-500/40 hover:shadow-[0_0_15px_rgba(139,92,246,0.1)]'
-                    : 'bg-[#fafbfc] border-slate-100/50 hover:bg-white hover:border-slate-200 hover:shadow-sm'
+                    ? 'bg-slate-950/80 border-white/5 text-slate-350'
+                    : 'bg-slate-50 border-slate-100 text-slate-600'
                 }`}>
-                  <div className={`w-10 h-10 rounded-full border flex items-center justify-center text-[16px] shrink-0 ${isDark ? 'bg-slate-950 border-white/10' : 'bg-slate-50 border-slate-100'}`}>
-                    👑
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className={`text-sm font-bold group-hover:text-white truncate ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{c.name}</div>
-                    <div className="flex items-wrap gap-2 mt-1">
-                      <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
-                        c.membership_tier === 'Platinum' ? 'bg-indigo-50/70 border-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 dark:border-indigo-500/30' : 
-                        c.membership_tier === 'Gold' ? 'bg-amber-50/70 border-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30' : 'bg-slate-100 border-slate-200 text-slate-600 dark:bg-slate-800/80 dark:text-slate-355 dark:border-white/10'
-                      }`}>
-                        {c.membership_tier || 'Bronze'}
-                      </span>
-                      <span className={`text-[10px] font-bold uppercase tracking-wider font-mono ${isDark ? 'text-slate-300' : 'text-slate-400'}`}>{c.loyalty_points || 0} Credits</span>
-                    </div>
-                  </div>
+                  {idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}
                 </div>
-              )) : (
-                <div className={`h-44 flex flex-col items-center justify-center text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-450'}`}>
-                  <span className="text-2xl mb-1">👥</span>
-                  Activate consumer accounts to track tier indices
+                <div className="max-w-[130px] truncate">
+                  <div className={`text-xs font-bold truncate ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{p.name}</div>
+                  <div className={`text-[10px] uppercase font-bold tracking-wide mt-1 text-slate-400 dark:text-slate-550`}>{p.category}</div>
                 </div>
-              )}
+              </div>
+              <div className="text-right">
+                <div className={`text-xs font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{fmt(p.revenue)}</div>
+                <div className={`text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-0.5`}>{p.qty} Sold</div>
+              </div>
+            </div>
+          )) : (
+            <div className="text-center py-6 text-xs text-slate-400">
+              No sales recorded yet
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Helper 5: Top Customers Sidebar Widget
+  const renderEliteLoyaltyCohorts = () => {
+    return (
+      <div className={`rounded-[24px] p-6 shadow-md border ${
+        isDark
+          ? 'bg-[#131520] border-white/5 shadow-black/40'
+          : 'bg-white border-slate-100 shadow-slate-100/50'
+      }`}>
+        <div className={`flex items-center justify-between mb-5 border-b pb-3 font-sans ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
+          <h3 className={`text-xs font-bold text-slate-400 tracking-wider uppercase`}>Top Customers</h3>
+          <button 
+            className="text-[10px] font-semibold text-blue-500 hover:underline cursor-pointer" 
+            onClick={() => onNavigate('customers')}
+          >
+            View all
+          </button>
+        </div>
+        
+        <div className="space-y-3.5 font-sans">
+          {vips.length > 0 ? vips.slice(0, 3).map((c, idx) => (
+            <div key={idx} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border ${
+                  isDark
+                    ? 'bg-[#0B1220] border-white/5 text-blue-400'
+                    : 'bg-slate-50 border-slate-100 text-blue-600'
+                }`}>
+                  {c.name.slice(0, 1).toUpperCase()}
+                </div>
+                <div className="max-w-[130px] truncate">
+                  <div className={`text-xs font-bold truncate ${isDark ? 'text-slate-105' : 'text-slate-800'}`}>{c.name}</div>
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5">{c.email || 'No email'}</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className={`text-xs font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{c.loyalty_points || 0} pts</div>
+                <div className={`text-[9px] uppercase font-extrabold tracking-wider mt-0.5 px-2 py-0.5 rounded-full inline-block ${
+                  c.membership_tier === 'Platinum'
+                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                    : c.membership_tier === 'Gold'
+                      ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                      : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
+                }`}>
+                  {c.membership_tier || 'Bronze'}
+                </div>
+              </div>
+            </div>
+          )) : (
+            <div className="text-center py-6 text-xs text-slate-400">
+              No VIP accounts mapped
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Helper 6: Vanguard AI Copilot
+  const renderVanguardAICopilot = () => {
+    return (
+      <div className={`rounded-[24px] p-6 shadow-md border relative overflow-hidden group transition-all duration-300 ${
+        isDark
+          ? 'bg-[#131520] border-white/5 text-white shadow-black/40 hover:shadow-[0_12px_44px_rgba(59,130,246,0.06)]'
+          : 'bg-white border-slate-100 text-slate-800 shadow-slate-100/50 hover:shadow-lg'
+      }`}>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(37,99,235,0.01),transparent_60%)] dark:bg-[radial-gradient(ellipse_at_top_right,rgba(39,99,235,0.03),transparent_50%50%)] pointer-events-none z-0" />
+        
+        <div className="relative z-10 flex flex-col h-full">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-dashed border-slate-200 dark:border-white/10 gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 flex items-center justify-center text-xl shadow-inner shrink-0 group-hover:scale-105 transition-transform duration-300">
+                🤖
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center flex-wrap gap-2 font-sans">
+                  Vanguard Financial Copilot
+                  <span className="text-[9px] font-black bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2.5 py-0.5 rounded-full border border-blue-500/20 tracking-wide uppercase font-mono">
+                    Beta v3.1
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 font-normal mt-0.5">Automated learning assistant linked into live operations ledgers</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-1.5 self-start sm:self-center bg-slate-50 dark:bg-slate-950/80 px-2.5 py-1 rounded-lg border border-slate-100 dark:border-white/5">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+              </span>
+              <span className="text-[9px] uppercase font-bold tracking-widest text-emerald-500 font-mono">SECURED</span>
             </div>
           </div>
 
-          {/* Vanguard Smart AI Financial Copilot */}
-          <div 
-            id="vanguard-ai-copilot" 
-            className="bento-card col-span-12 row-span-4 p-6 bg-white dark:bg-slate-900/90 dark:backdrop-blur-md border border-slate-100 dark:border-white/10 text-slate-800 dark:text-white rounded-[20px] mt-6 relative overflow-hidden group hover:shadow-xl dark:hover:shadow-[0_12px_44px_rgba(59,130,246,0.12)] transition-all duration-300"
-          >
-            {/* Subtle cyber grid backdrop decoration */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(37,99,235,0.04),transparent_60%)] dark:bg-[radial-gradient(ellipse_at_top_right,rgba(59,130,246,0.08),transparent_50%)] pointer-events-none z-0" />
-            
-            <div className="relative z-10 flex flex-col h-full">
-              {/* Copilot Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-slate-100 dark:border-white/10 gap-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50/80 dark:bg-blue-500/25 border border-blue-100/50 dark:border-blue-500/30 flex items-center justify-center text-2xl text-blue-600 dark:text-blue-400 font-bold shadow-inner shrink-0 group-hover:scale-105 transition-transform duration-300">
-                    🤖
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center flex-wrap gap-2">
-                       Vanguard Financial Copilot
-                      <span className="text-[10px] font-semibold bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 px-2.5 py-0.5 rounded-full border border-blue-100 dark:border-blue-500/25 tracking-wide uppercase">
-                        Beta v3.1
-                      </span>
-                    </h3>
-                    <p className="text-[13px] text-slate-505 dark:text-slate-355 font-normal mt-1">Reconciling live ledgers, cost allocations, and inventory metrics instantly</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2 self-start sm:self-center bg-slate-50 dark:bg-slate-950/85 px-3 py-1.5 rounded-xl border border-slate-100 dark:border-white/10">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 animate-pulse"></span>
-                  </span>
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-slate-505 dark:text-emerald-400 font-mono">LEDGER SECURED</span>
-                </div>
-              </div>
- 
-              {/* Main Interactive Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6 min-h-[380px]">
-                {/* Chat Viewport (8 Cols) */}
-                <div className="lg:col-span-8 flex flex-col h-[440px] border border-slate-100/90 dark:border-white/10 bg-slate-50/20 dark:bg-slate-950/40 rounded-2xl p-5 relative overflow-hidden backdrop-blur-sm shadow-inner">
-                  {/* Scrollable messages and insights mapping */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6 min-h-[300px]">
+            {/* Chat View */}
+            <div className={`lg:col-span-8 flex flex-col h-[380px] rounded-2xl p-4 relative overflow-hidden shadow-inner border ${
+              isDark ? 'bg-[#0B1220]/40 border-white/5' : 'bg-slate-50/50 border-slate-100'
+            }`}>
+              <div 
+                ref={chatContainerRef}
+                className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent pb-3"
+              >
+                {chatHistory.map(msg => (
                   <div 
-                    ref={chatContainerRef}
-                    className="flex-1 overflow-y-auto space-y-5 pr-1 scrollbar-thin scrollbar-thumb-slate-205 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent pb-4"
+                    key={msg.id} 
+                    className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'} max-w-[90%] ${msg.sender === 'user' ? 'ml-auto' : 'mr-auto'}`}
                   >
-                    {chatHistory.map(msg => (
-                      <div 
-                        key={msg.id} 
-                        className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'} max-w-[90%] ${msg.sender === 'user' ? 'ml-auto' : 'mr-auto'}`}
-                      >
-                        {/* Message Bubble text */}
-                        <div className={`p-4 rounded-2xl text-[13.5px] leading-relaxed shadow-sm transition-all duration-200 ${
-                          msg.sender === 'user' 
-                            ? 'bg-blue-600 dark:bg-blue-600 text-white rounded-tr-none font-medium' 
-                            : 'bg-white dark:bg-slate-900 border border-slate-105 dark:border-white/10 text-slate-800 dark:text-slate-100 rounded-tl-none font-normal'
-                        }`}>
-                          {/* Support simplistic bold formatting if present */}
-                          <div className="whitespace-pre-wrap">
-                            {msg.text.split('**').map((part: string, i: number) => 
-                              i % 2 === 1 ? <strong key={i} className="text-slate-900 dark:text-white font-bold">{part}</strong> : part
-                            )}
-                          </div>
+                    <div className={`p-3.5 rounded-2xl text-[12.5px] leading-relaxed shadow-sm transition-all duration-200 ${
+                      msg.sender === 'user' 
+                        ? 'bg-blue-600 text-white rounded-tr-none font-semibold' 
+                        : isDark
+                          ? 'bg-[#131520] border border-white/5 text-slate-100 rounded-tl-none'
+                          : 'bg-white border border-slate-100 text-slate-800 rounded-tl-none shadow-sm'
+                    }`}>
+                      <div className="whitespace-pre-wrap">
+                        {msg.text.split('**').map((part: string, i: number) => 
+                          i % 2 === 1 ? <strong key={i} className="text-blue-500 dark:text-blue-400 font-bold">{part}</strong> : part
+                        )}
+                      </div>
+                    </div>
+
+                    {msg.calculationResult && (
+                      <div className={`w-full mt-3 bg-white dark:bg-[#0B1220]/80 border rounded-2xl p-3.5 space-y-3.5 shadow-sm text-left transition-all duration-300 ${
+                        isDark ? 'border-white/5' : 'border-slate-100'
+                      }`}>
+                        <div className="flex items-center justify-between pb-2 border-b border-dashed border-slate-100 dark:border-white/10">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 dark:text-blue-400 flex items-center gap-1.5 font-sans">
+                            <span>📊</span> {msg.calculationResult.title}
+                          </span>
+                          <span className="text-[9px] font-mono bg-slate-50 dark:bg-slate-950 text-slate-400 px-2 py-0.5 rounded border border-slate-100 dark:border-white/5">
+                            Realtime
+                          </span>
                         </div>
 
-                        {/* Struct calculation rendering details */}
-                        {msg.calculationResult && (
-                          <div className="w-full mt-3.5 bg-white dark:bg-[#111827]/90 border border-slate-105 dark:border-white/10 rounded-2xl p-4.5 space-y-4 shadow-sm text-left transition-all duration-300">
-                            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/10">
-                              <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5 font-sans">
-                                <span>📊</span> {msg.calculationResult.title}
-                              </span>
-                              <span className="text-[10px] font-mono bg-slate-50/55 dark:bg-slate-950 text-slate-550 dark:text-slate-300 px-2.5 py-0.5 rounded border border-slate-100 dark:border-white/10">
-                                Calculated Live
-                              </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                          {msg.calculationResult.metrics.map((metric: any, mIdx: number) => (
+                            <div key={mIdx} className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200/40 dark:border-white/5 p-2.5 rounded-xl flex flex-col justify-between">
+                              <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase">{metric.label}</span>
+                              <span className="text-base font-bold text-slate-900 dark:text-white mt-0.5 font-mono">{metric.value}</span>
+                              <span className="text-[8.5px] text-slate-400 font-semibold mt-1 uppercase truncate leading-none">{metric.extra}</span>
                             </div>
+                          ))}
+                        </div>
 
-                            {/* Metric box cards */}
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                              {msg.calculationResult.metrics.map((metric: any, mIdx: number) => (
-                                <div key={mIdx} className="bg-[#fcfdfd] dark:bg-slate-950/65 border border-slate-100 dark:border-white/10 p-3.5 rounded-xl flex flex-col justify-between hover:bg-slate-50 dark:hover:bg-slate-900 hover:border-slate-150 dark:hover:border-white/20 transition-all duration-200">
-                                  <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-400 tracking-wider uppercase">{metric.label}</span>
-                                  <span className="text-xl font-bold text-slate-900 dark:text-white mt-1 border-b border-transparent font-mono">{metric.value}</span>
-                                  <span className="text-[9px] text-slate-555 dark:text-slate-300 font-medium mt-1.5 uppercase leading-none">{metric.extra}</span>
-                                </div>
-                              ))}
-                            </div>
-
-                            {/* Data tables */}
-                            {msg.calculationResult.table && (
-                              <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-white/10 bg-[#fafbfc] dark:bg-slate-950/40">
-                                <table className="w-full text-left border-collapse text-xs">
-                                  <thead>
-                                    <tr className="border-b border-slate-100 dark:border-white/10 bg-slate-50/80 dark:bg-slate-900/40 text-slate-550 dark:text-slate-205 font-bold uppercase tracking-wider">
-                                      {msg.calculationResult.table.headers.map((hdr: string, hIdx: number) => (
-                                        <th key={hIdx} className="p-3 font-semibold uppercase text-[10px]">{hdr}</th>
-                                      ))}
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-slate-100/60 dark:divide-white/5 bg-white dark:bg-slate-950/30">
-                                    {msg.calculationResult.table.rows.map((row: any, rIdx: number) => (
-                                      <tr key={rIdx} className="hover:bg-slate-50/50 dark:hover:bg-blue-500/10 transition-colors">
-                                        {row.map((cell: any, cIdx: number) => (
-                                          <td key={cIdx} className="p-3 font-medium text-slate-700 dark:text-slate-100 font-mono text-[11px] border-b border-slate-100/40 last:border-0 PDF-export-cell">
-                                            {cell}
-                                          </td>
-                                        ))}
-                                      </tr>
+                        {msg.calculationResult.table && (
+                          <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-white/5">
+                            <table className="w-full text-left border-collapse text-[11px]">
+                              <thead>
+                                <tr className="border-b border-slate-100 dark:border-white/5 bg-slate-100/50 dark:bg-slate-950/60 text-slate-400 font-extrabold uppercase tracking-wider">
+                                  {msg.calculationResult.table.headers.map((hdr: string, hIdx: number) => (
+                                    <th key={hIdx} className="p-2 font-bold uppercase text-[9px]">{hdr}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100/40 dark:divide-white/5">
+                                {msg.calculationResult.table.rows.map((row: any, rIdx: number) => (
+                                  <tr key={rIdx} className="hover:bg-blue-500/10 transition-colors">
+                                    {row.map((cell: any, cIdx: number) => (
+                                      <td key={cIdx} className="p-2.5 font-bold text-slate-700 dark:text-slate-100 font-mono text-[10.5px]">
+                                        {cell}
+                                      </td>
                                     ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            )}
-
-                            {/* Custom Alerts */}
-                            {msg.calculationResult.alerts && (
-                              <div className="space-y-1.5 pt-1">
-                                {msg.calculationResult.alerts.map((alert: string, aIdx: number) => (
-                                  <div key={aIdx} className="flex items-start gap-2.5 text-[10.5px] text-emerald-850 dark:text-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/35 border border-emerald-100/60 dark:border-[#10b981]/25 rounded-xl p-3 shadow-xs font-sans">
-                                    <span className="text-xs shrink-0">💡</span>
-                                    <span className="font-medium leading-relaxed">{alert}</span>
-                                  </div>
+                                  </tr>
                                 ))}
-                              </div>
-                            )}
+                              </tbody>
+                            </table>
                           </div>
                         )}
 
-                        <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium uppercase mt-1.5 tracking-wider font-mono">
-                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                        </span>
-                      </div>
-                    ))}
-
-                    {/* Thinking/Analyzing state */}
-                    {isAnalyzing && (
-                      <div className="flex flex-col items-start max-w-[80%] mr-auto space-y-1.5 align-middle">
-                        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/10 p-4 rounded-2xl rounded-tl-none text-xs text-blue-600 dark:text-blue-400 font-bold shadow-sm animate-pulse flex items-center gap-2.5">
-                          <span className="relative flex h-2.5 w-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 dark:bg-blue-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500 dark:bg-blue-500"></span>
-                          </span>
-                          Reconciling live finance ledgers and compiling calculations ...
-                        </div>
+                        {msg.calculationResult.alerts && (
+                          <div className="space-y-1 pt-1">
+                            {msg.calculationResult.alerts.map((alert: string, aIdx: number) => (
+                              <div key={aIdx} className="flex items-start gap-2 text-[10px] text-emerald-800 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-2.5">
+                                <span className="text-xs shrink-0">💡</span>
+                                <span className="font-semibold leading-relaxed">{alert}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
+
+                    <span className="text-[8px] text-slate-400 dark:text-slate-500 font-semibold uppercase mt-1 tracking-wider font-mono">
+                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
+                ))}
 
-                  {/* Question Input form */}
-                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/10 flex gap-2.5">
-                    <input 
-                      type="text" 
-                      value={queryInput}
-                      onChange={(e) => setQueryInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleQuery(); }}
-                      placeholder="Ask Copilot (e.g., 'total buy calculation', 'sales totals')..."
-                      className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 hover:border-slate-350 dark:hover:border-white/20 focus:border-blue-500 dark:focus:border-[#3b82f6] focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl px-4 py-3 text-[13px] transition-all bg-slate-50/10 shadow-[inner_0_1px_2px_rgba(0,0,0,0.015)]"
-                    />
-                    <button 
-                      onClick={() => handleQuery()}
-                      disabled={isAnalyzing || !queryInput.trim()}
-                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-150 disabled:text-slate-400 dark:disabled:bg-slate-800 dark:disabled:text-slate-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider select-none cursor-pointer transition-all flex items-center justify-center shadow-sm active:scale-95 duration-150"
-                    >
-                      Transmit
-                    </button>
-                  </div>
-                </div>
-
-                {/* Side Blueprint / Hot Suggest Chips (4 Cols) */}
-                <div className="lg:col-span-4 flex flex-col justify-between border border-slate-100/90 dark:border-white/10 bg-[#fafbfc]/35 dark:bg-slate-950/40 rounded-2xl p-5 gap-5">
-                  <div className="text-left">
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-white/10 pb-2.5 font-sans">
-                      <span className="text-amber-500 dark:text-amber-400">⚡</span> Smart Action chips
-                    </h4>
-                    <p className="text-[11px] text-slate-505 dark:text-slate-300 font-medium leading-relaxed mt-2.5 font-sans">
-                      Click any action blueprint to automatically query database state vectors and render a multi-variable custom financial report:
-                    </p>
-
-                    <div className="grid grid-cols-1 gap-2.5 mt-4">
-                      <button 
-                        onClick={() => handleQuery("Calculate Buy Totals (Investment Profile)")}
-                        disabled={isAnalyzing}
-                        className="w-full text-left bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-white/10 hover:border-blue-350 dark:hover:border-blue-500/50 hover:bg-blue-50/15 dark:hover:bg-[#1a253d]/50 p-3 rounded-xl transition-all cursor-pointer group/btn shadow-xs hover:shadow-md duration-205"
-                      >
-                        <div className="text-xs font-bold text-slate-800 dark:text-white flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <span className="text-blue-500 dark:text-blue-400">🛒</span>
-                            <span>Calculate Capital Buys</span>
-                          </span>
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 group-hover/btn:text-blue-600 dark:group-hover/btn:text-blue-400 font-bold transition-all group-hover/btn:translate-x-0.5 duration-200">→</span>
-                        </div>
-                        <p className="text-[9.5px] text-slate-500 dark:text-slate-400 font-medium mt-1 leading-normal pl-5">Audit raw supply purchase ledgers, total expenditures, and active SKUs.</p>
-                      </button>
-
-                      <button 
-                        onClick={() => handleQuery("Calculate Sales Totals (Revenue & Profit Analysis)")}
-                        disabled={isAnalyzing}
-                        className="w-full text-left bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-white/10 hover:border-emerald-350 dark:hover:border-emerald-500/50 hover:bg-emerald-50/15 dark:hover:bg-[#102b21]/50 p-3 rounded-xl transition-all cursor-pointer group/btn shadow-xs hover:shadow-md duration-205"
-                      >
-                        <div className="text-xs font-bold text-slate-800 dark:text-white flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <span className="text-emerald-500 dark:text-emerald-400 font-normal">💰</span>
-                            <span>Run Sales Margins</span>
-                          </span>
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 group-hover/btn:text-emerald-600 dark:group-hover/btn:text-emerald-400 font-bold transition-all group-hover/btn:translate-x-0.5 duration-200">→</span>
-                        </div>
-                        <p className="text-[9.5px] text-slate-500 dark:text-slate-400 font-medium mt-1 leading-normal pl-5">Reconcile customer sales invoices, total revenues, and profit margins.</p>
-                      </button>
-
-                      <button 
-                        onClick={() => handleQuery("Vanguard SKU Valuation (Inventory Valuation)")}
-                        disabled={isAnalyzing}
-                        className="w-full text-left bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-white/10 hover:border-amber-350 dark:hover:border-amber-500/50 hover:bg-amber-50/15 dark:hover:bg-[#2d2110]/50 p-3 rounded-xl transition-all cursor-pointer group/btn shadow-xs hover:shadow-md duration-205"
-                      >
-                        <div className="text-xs font-bold text-slate-800 dark:text-white flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <span className="text-amber-500 dark:text-amber-400 font-normal">📦</span>
-                            <span>SKU Valuations</span>
-                          </span>
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 group-hover/btn:text-amber-500 font-bold transition-all group-hover/btn:translate-x-0.5 duration-200">→</span>
-                        </div>
-                        <p className="text-[9.5px] text-slate-500 dark:text-slate-400 font-medium mt-1 leading-normal pl-5">Compile warehouse stock quantities, total cost values, and potential gains.</p>
-                      </button>
-
-                      <button 
-                        onClick={() => handleQuery("Customer Loyalty and Engagement (VIP Contribution)")}
-                        disabled={isAnalyzing}
-                        className="w-full text-left bg-white dark:bg-slate-900/60 border border-slate-100 dark:border-white/10 hover:border-purple-350 dark:hover:border-purple-500/50 hover:bg-violet-50/15 dark:hover:bg-[#2b1640] p-3 rounded-xl transition-all cursor-pointer group/btn shadow-xs hover:shadow-md duration-200"
-                      >
-                        <div className="text-xs font-bold text-slate-800 dark:text-white flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <span className="text-violet-500 dark:text-violet-400 font-normal">👥</span>
-                            <span>Client Loyalty Map</span>
-                          </span>
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 group-hover/btn:text-purple-600 dark:group-hover/btn:text-violet-400 font-bold transition-all group-hover/btn:translate-x-0.5 duration-200">→</span>
-                        </div>
-                        <p className="text-[9.5px] text-slate-500 dark:text-slate-400 font-medium mt-1 leading-normal pl-5">Track cohort distributions, Gold/Platinum tier count, and loyalty indexes.</p>
-                      </button>
+                {isAnalyzing && (
+                  <div className="flex flex-col items-start max-w-[80%] mr-auto space-y-1.5 align-middle">
+                    <div className="bg-white dark:bg-[#131520] border border-slate-100 dark:border-white/10 p-3 rounded-xl rounded-tl-none text-[11px] text-blue-500 font-bold shadow-sm animate-pulse flex items-center gap-2">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                      </span>
+                      Calculating ledger vectors ...
                     </div>
                   </div>
+                )}
+              </div>
 
-                  <div className="bg-slate-50/50 dark:bg-blue-950/20 border border-slate-100 dark:border-blue-500/30 p-3.5 rounded-xl text-left shadow-xs">
-                    <div className="text-[10px] font-bold uppercase text-slate-500 dark:text-blue-300 tracking-wider flex items-center gap-1.5 font-sans">
-                      <span className="text-blue-500 dark:text-blue-400">💡</span> Copilot Instruction
+              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-white/5 flex gap-2">
+                <input 
+                  type="text" 
+                  value={queryInput}
+                  onChange={(e) => setQueryInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleQuery(); }}
+                  placeholder="Ask live ledgers..."
+                  className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 focus:border-blue-500 focus:outline-none text-slate-850 dark:text-slate-100 text-xs rounded-xl px-3.5 py-2 transition-all"
+                />
+                <button 
+                  onClick={() => handleQuery()}
+                  disabled={isAnalyzing || !queryInput.trim()}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 dark:disabled:text-slate-500 text-white rounded-xl font-bold text-xs uppercase cursor-pointer transition-all active:scale-95 flex items-center justify-center shadow-sm"
+                >
+                  Transmit
+                </button>
+              </div>
+            </div>
+
+            {/* Smart Actions */}
+            <div className={`lg:col-span-4 flex flex-col justify-between border rounded-2xl p-4 gap-4 ${
+              isDark ? 'bg-[#0B1220]/40 border-white/5' : 'bg-slate-105/50 border-slate-100'
+            }`}>
+              <div className="text-left space-y-3">
+                <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-white/5 pb-2 font-sans">
+                  <span className="text-amber-500">⚡</span> Smart actions
+                </h4>
+
+                <div className="grid grid-cols-1 gap-2">
+                  <button 
+                    onClick={() => handleQuery("Calculate Buy Totals (Investment Profile)")}
+                    disabled={isAnalyzing}
+                    className="w-full text-left bg-white dark:bg-[#131520] border border-slate-100 dark:border-white/5 hover:border-blue-500/50 p-2.5 rounded-xl transition-all cursor-pointer shadow-xs hover:shadow-sm"
+                  >
+                    <div className="text-xs font-bold text-slate-800 dark:text-white flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <span>🛒</span>
+                        <span>Capital Buys</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-bold">→</span>
                     </div>
-                    <p className="text-[9.5px] text-slate-500 dark:text-blue-300 leading-normal font-medium mt-1.5 font-sans">
-                      This interactive copilot translates natural English phrases into precise analytical calculations executing fully securely inside your browser session.
-                    </p>
-                  </div>
+                  </button>
+
+                  <button 
+                    onClick={() => handleQuery("Calculate Sales Totals (Revenue & Profit Analysis)")}
+                    disabled={isAnalyzing}
+                    className="w-full text-left bg-white dark:bg-[#131520] border border-slate-100 dark:border-white/5 hover:border-emerald-500/50 p-2.5 rounded-xl transition-all cursor-pointer shadow-xs hover:shadow-sm"
+                  >
+                    <div className="text-xs font-bold text-slate-800 dark:text-white flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <span>💰</span>
+                        <span>Sales Margins</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-bold">→</span>
+                    </div>
+                  </button>
+
+                  <button 
+                    onClick={() => handleQuery("Vanguard SKU Valuation (Inventory Valuation)")}
+                    disabled={isAnalyzing}
+                    className="w-full text-left bg-white dark:bg-[#131520] border border-slate-100 dark:border-white/5 hover:border-amber-500/50 p-2.5 rounded-xl transition-all cursor-pointer shadow-xs hover:shadow-sm"
+                  >
+                    <div className="text-xs font-bold text-slate-800 dark:text-white flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <span>📦</span>
+                        <span>SKU Valuations</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-bold">→</span>
+                    </div>
+                  </button>
+
+                  <button 
+                    onClick={() => handleQuery("Customer Loyalty and Engagement (VIP Contribution)")}
+                    disabled={isAnalyzing}
+                    className="w-full text-left bg-white dark:bg-[#131520] border border-slate-100 dark:border-white/5 hover:border-purple-500/50 p-2.5 rounded-xl transition-all cursor-pointer shadow-xs hover:shadow-sm"
+                  >
+                    <div className="text-xs font-bold text-slate-800 dark:text-white flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <span>👥</span>
+                        <span>Client Loyalty Map</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-bold">→</span>
+                    </div>
+                  </button>
                 </div>
+              </div>
+
+              <div className="bg-blue-500/10 border border-blue-500/20 p-2.5 rounded-xl text-left">
+                <p className="text-[10px] text-blue-600 dark:text-blue-300 leading-normal font-medium">
+                  This secure browser model queries memory states to compile calculations securely.
+                </p>
               </div>
             </div>
           </div>
         </div>
       </div>
+    );
+  };
+
+  return (
+    <div id="page-dashboard" className={`page active min-h-screen p-4 md:p-8 relative transition-colors duration-300 ${isDark ? 'bg-[#0B1220]' : 'bg-[#f8fafc]'}`}>
+      <div className="mesh-bg absolute inset-0 z-0 pointer-events-none opacity-60" />
+      
+      <div className="relative z-10 max-w-[1720px] mx-auto space-y-8">
+        {/* Row of 6 KPI Cards (Clean professional grid with identical dimensions and consistent spacing) */}
+        <div id="dashboard-kpi-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+           
+          {/* KPI 1: INVESTMENT (Soft Blue Accent) */}
+          <div className={`p-6 h-[170px] rounded-[22px] border flex flex-col justify-between group transition-all duration-300 hover:scale-[1.01] hover:-translate-y-0.5 ${
+            isDark 
+              ? 'bg-[#131520] border-white/5 text-white shadow-black/40 hover:shadow-[0_4px_24px_rgba(59,130,246,0.1)]' 
+              : 'bg-white border-slate-100 text-slate-800 shadow-sm shadow-slate-100/60 hover:shadow-md'
+          }`}>
+            <div className="flex justify-between items-start w-full">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center text-lg shrink-0">
+                  🛒
+                </div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Investment</span>
+              </div>
+              <MoreVertical size={16} className="text-slate-400 dark:text-slate-500 hover:text-blue-500 cursor-pointer" />
+            </div>
+            <div className="text-[28px] font-black tracking-tight mt-3 font-mono leading-none">
+              {fmt(stats.totalBuy)}
+            </div>
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
+              <span className="text-slate-400 dark:text-slate-500">Cumulative purchases</span>
+              <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full font-bold">+10.2%</span>
+            </div>
+          </div>
+
+          {/* KPI 2: TOTAL BUY (Amber Accent) */}
+          <div className={`p-6 h-[170px] rounded-[22px] border flex flex-col justify-between group transition-all duration-300 hover:scale-[1.01] hover:-translate-y-0.5 ${
+            isDark 
+              ? 'bg-[#131520] border-white/5 text-white shadow-black/40 hover:shadow-[0_4px_24px_rgba(245,158,11,0.1)]' 
+              : 'bg-white border-slate-100 text-slate-800 shadow-sm shadow-slate-100/60 hover:shadow-md'
+          }`}>
+            <div className="flex justify-between items-start w-full">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-lg shrink-0">
+                  📦
+                </div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Total Buy</span>
+              </div>
+              <MoreVertical size={16} className="text-slate-400 dark:text-slate-500 hover:text-amber-500 cursor-pointer" />
+            </div>
+            <div className="text-[28px] font-black tracking-tight mt-3 font-mono leading-none">
+              {stats.purchases.length}
+            </div>
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
+              <span className="text-slate-400 dark:text-slate-500">Purchase orders</span>
+              <span className="text-slate-500 dark:text-slate-400 font-bold">Standard</span>
+            </div>
+          </div>
+
+          {/* KPI 3: TOTAL SELL (Soft Purplish Accent) */}
+          <div className={`p-6 h-[170px] rounded-[22px] border flex flex-col justify-between group transition-all duration-300 hover:scale-[1.01] hover:-translate-y-0.5 ${
+            isDark 
+              ? 'bg-[#131520] border-white/5 text-white shadow-black/40 hover:shadow-[0_4px_24px_rgba(168,85,247,0.1)]' 
+              : 'bg-white border-slate-100 text-slate-800 shadow-sm shadow-slate-100/60 hover:shadow-md'
+          }`}>
+            <div className="flex justify-between items-start w-full">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center text-lg shrink-0">
+                  🏷️
+                </div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Total Sell</span>
+              </div>
+              <MoreVertical size={16} className="text-slate-400 dark:text-slate-500 hover:text-purple-500 cursor-pointer" />
+            </div>
+            <div className="text-[28px] font-black tracking-tight mt-3 font-mono leading-none">
+              {stats.sales.length}
+            </div>
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
+              <span className="text-slate-400 dark:text-slate-500">Completed sales</span>
+              <span className="text-slate-500 dark:text-slate-400 font-bold">Standard</span>
+            </div>
+          </div>
+
+          {/* KPI 4: REVENUE (Vivid Pink Accent) */}
+          <div className={`p-6 h-[170px] rounded-[22px] border flex flex-col justify-between group transition-all duration-300 hover:scale-[1.01] hover:-translate-y-0.5 ${
+            isDark 
+              ? 'bg-[#131520] border-white/5 text-white shadow-black/40 hover:shadow-[0_4px_24px_rgba(236,72,153,0.1)]' 
+              : 'bg-white border-slate-100 text-slate-800 shadow-sm shadow-slate-100/60 hover:shadow-md'
+          }`}>
+            <div className="flex justify-between items-start w-full">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-500 flex items-center justify-center text-lg shrink-0">
+                  💵
+                </div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Revenue</span>
+              </div>
+              <MoreVertical size={16} className="text-slate-400 dark:text-slate-500 hover:text-pink-500 cursor-pointer" />
+            </div>
+            <div className="text-[28px] font-black tracking-tight mt-3 font-mono leading-none">
+              {fmt(stats.totalSell)}
+            </div>
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
+              <span className="text-slate-400 dark:text-slate-500">Gross operating sales</span>
+              <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full font-bold text-[10px]">+14.7%</span>
+            </div>
+          </div>
+
+          {/* KPI 5: TOTAL PROFIT (Vivid Emerald Accent) */}
+          <div className={`p-6 h-[170px] rounded-[22px] border flex flex-col justify-between group transition-all duration-300 hover:scale-[1.01] hover:-translate-y-0.5 ${
+            isDark 
+              ? 'bg-[#131520] border-white/5 text-white shadow-black/40 hover:shadow-[0_4px_24px_rgba(16,185,129,0.1)]' 
+              : 'bg-white border-slate-100 text-slate-800 shadow-sm shadow-slate-100/60 hover:shadow-md'
+          }`}>
+            <div className="flex justify-between items-start w-full">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-lg shrink-0">
+                  💰
+                </div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Total Profit</span>
+              </div>
+              <MoreVertical size={16} className="text-slate-400 dark:text-slate-600 hover:text-emerald-500 cursor-pointer" />
+            </div>
+            <div className="text-[28px] font-black tracking-tight mt-3 font-mono leading-none">
+              {fmt(stats.totalProfit)}
+            </div>
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
+              <span className="text-slate-400 dark:text-slate-500">Margins after imports</span>
+              <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full font-bold text-[10px]">+18.1%</span>
+            </div>
+          </div>
+
+          {/* KPI 6: STOCK VALUE (Vivid Rose Accent) */}
+          <div className={`p-6 h-[170px] rounded-[22px] border flex flex-col justify-between group transition-all duration-300 hover:scale-[1.01] hover:-translate-y-0.5 ${
+            isDark 
+              ? 'bg-[#131520] border-white/5 text-white shadow-black/40 hover:shadow-[0_4px_24px_rgba(244,63,94,0.1)]' 
+              : 'bg-white border-slate-100 text-slate-800 shadow-sm shadow-slate-100/60 hover:shadow-md'
+          }`}>
+            <div className="flex justify-between items-start w-full">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center text-lg shrink-0">
+                  🏢
+                </div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Stock Value</span>
+              </div>
+              <MoreVertical size={16} className="text-slate-400 dark:text-slate-500 hover:text-orange-500 cursor-pointer" />
+            </div>
+            <div className="text-[28px] font-black tracking-tight mt-3 font-mono leading-none">
+              {fmt(stockValue)}
+            </div>
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
+              <span className="text-slate-400 dark:text-slate-550">Warehouse valuation</span>
+              <span className="text-orange-500 font-bold font-mono text-[10px]">Live</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Unified Custom Dual-Column Dashboard Grid */}
+        <div id="dashboard-saas-layout" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* LEFT ZONE: Real-time Charts, Transactions, and AI Copilot (8/12 Columns) */}
+          <div className="lg:col-span-8 space-y-8">
+            
+            {/* Visual Charts Segment - side-by-side cleanly */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+              
+              {/* Sales Chart (Revenue Velocity) */}
+              <div id="revenue-velocity-panel" className={`md:col-span-7 rounded-[22px] p-6 border transition-all duration-300 ${
+                isDark 
+                  ? 'bg-[#131520] border-white/5 shadow-black/40' 
+                  : 'bg-white border-slate-100 shadow-sm shadow-slate-100/60'
+              }`}>
+                <div className={`flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b gap-3 mb-6 ${
+                  isDark ? 'border-white/5' : 'border-slate-100'
+                }`}>
+                  <div>
+                    <h3 className={`text-sm font-extrabold tracking-tight font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>Revenue Velocity</h3>
+                    <p className={`text-[11px] mt-1 font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Dynamic sales comparison against profits</p>
+                  </div>
+                  <div className="flex gap-4 items-center">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                      <span className="w-2 h-2 rounded-full bg-blue-500 block"></span> Revenue
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 block"></span> Net Profit
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`rounded-xl p-4 border ${isDark ? 'bg-slate-950/20 border-white/5' : 'bg-slate-50/50 border-slate-100/50'}`}>
+                  <div className="h-[240px] w-full">
+                    <canvas ref={salesChartRef}></canvas>
+                  </div>
+                </div>
+              </div>
+
+              {/* Market Share Companion Pie Chart */}
+              <div id="market-share-panel" className={`md:col-span-5 rounded-[22px] p-6 border transition-all duration-300 flex flex-col justify-between ${
+                isDark 
+                  ? 'bg-[#131520] border-white/5 shadow-black/40' 
+                  : 'bg-white border-slate-100 shadow-sm shadow-slate-100/60'
+              }`}>
+                <div className={`flex items-center justify-between pb-4 border-b gap-2 ${
+                  isDark ? 'border-white/5' : 'border-slate-100'
+                }`}>
+                  <div>
+                    <h3 className={`text-sm font-extrabold tracking-tight font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>Market Share</h3>
+                    <p className={`text-[11px] mt-1 font-medium ${isDark ? 'text-slate-400' : 'text-slate-505'}`}>
+                      {chartView === 'market' ? 'In Stock Categories' : 'Ledger Contribution'}
+                    </p>
+                  </div>
+                  
+                  {/* Small toggles */}
+                  <div className={`flex p-0.5 rounded-lg border text-[10px] uppercase font-bold tracking-wider font-sans shrink-0 ${
+                    isDark ? 'bg-slate-950/60 border-white/10' : 'bg-[#fafbfc] border-slate-150'
+                  }`}>
+                    <button 
+                      onClick={() => setChartView('market')}
+                      className={`px-2 py-0.5 rounded-md transition-all ${chartView === 'market' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-400'}`}
+                    >
+                      Stock
+                    </button>
+                    <button 
+                      onClick={() => setChartView('revenue')}
+                      className={`px-2 py-0.5 rounded-md transition-all ${chartView === 'revenue' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-400'}`}
+                    >
+                      Rev
+                    </button>
+                  </div>
+                </div>
+
+                <div className={`rounded-xl p-3 border flex items-center justify-center ${isDark ? 'bg-slate-950/20 border-white/5' : 'bg-slate-50/50 border-slate-100/50'}`}>
+                  <div className="h-[175px] w-full relative flex items-center justify-center">
+                    <canvas ref={catChartRef}></canvas>
+                  </div>
+                </div>
+                
+                <div className="text-[10px] text-slate-405 dark:text-slate-500 font-bold text-center mt-2 tracking-wide uppercase select-none font-mono">
+                  Operational distribution matrix
+                </div>
+              </div>
+
+            </div>
+
+            {/* Direct Transaction logs activity detail list */}
+            {renderRecentTransactionsTable()}
+
+            {/* Vanguard Financial AI Copilot container */}
+            {renderVanguardAICopilot()}
+
+          </div>
+
+          {/* RIGHT ZONE: Static Sidebar components & Sticky widgets (4/12 Columns) */}
+          <div className="lg:col-span-4 space-y-8">
+            
+            {/* Real Date and Time Calendar block */}
+            {renderCalendarWidget()}
+
+            {/* Orders Summary widget */}
+            {renderOrdersOverview()}
+
+            {/* Top SKU contributor listing */}
+            {renderTopSKUVelocity()}
+
+            {/* Loyalty cohorts mapping */}
+            {renderEliteLoyaltyCohorts()}
+
+          </div>
+
+        </div>
+      </div>
     </div>
   );
 };
+
+export default Dashboard;
+

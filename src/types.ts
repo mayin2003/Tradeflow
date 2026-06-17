@@ -136,7 +136,8 @@ export interface AppSettings {
     discount?: number;
     taxRate?: number;
     showNotes?: boolean;
-    templateId?: 't1' | 't2';
+    templateId?: 't1' | 't2' | 't3' | 't4';
+    shippingCharge?: number;
     // Default client info for the sample
     defaultClientName?: string;
     defaultClientAddress?: string;

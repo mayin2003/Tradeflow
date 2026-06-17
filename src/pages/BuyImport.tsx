@@ -1,11 +1,132 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { QrCode, Camera, Calendar, X, Sparkles, Watch, Truck, CreditCard, DollarSign, Percent, AlertCircle, Upload, FileText, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 
+const RECORD_CATEGORIES = [
+  'Fashion', 'Electronics', 'Home', 'Beauty', 'Health', 'Sports', 'Toys', 'Automotive', 
+  'Books', 'Groceries', 'Kitchen', 'Tools', 'Office', 'Pets', 'Travel', 'Baby', 
+  'Jewelry', 'Fitness', 'Music', 'Garden', 'Others'
+];
+
+const CATEGORY_MAPPING: Record<string, string[]> = {
+  Fashion: ['T-shirt', 'Jeans', 'Sneakers', 'Socks', 'Jacket', 'Sunglass', 'Wallet', 'Watch Strap', 'Backpack', 'Raincoat'],
+  Electronics: ['Smartphone', 'Power Bank', 'Earbuds', 'Smart Plug', 'Cable', 'Adapter', 'Multiplug', 'Speaker', 'Ring Light', 'Router'],
+  Home: ['Bedsheet', 'Pillow', 'Curtain', 'Doormat', 'LED Bulb', 'Hanger', 'Wall Clock', 'Storage Box', 'Basket', 'Freshener'],
+  Beauty: ['Facewash', 'Moisturizer', 'Sunscreen', 'Lip Balm', 'Perfume', 'Shampoo', 'Hair Oil', 'Body Wash', 'Hand Cream', 'Comb'],
+  Health: ['Mask', 'Sanitizer', 'Bandage', 'Ointment', 'Vitamins', 'Thermometer', 'BP Monitor', 'Mosquito Cream', 'Pain Spray', 'Scale'],
+  Sports: ['Football', 'Cricket Bat', 'Racket', 'Shuttlecock', 'Jersey', 'Wristband', 'Jump Rope', 'Water Bottle', 'Running Shoes', 'Knee Cap'],
+  Toys: ['Rubik\'s Cube', 'RC Car', 'Teddy Bear', 'Blocks', 'Chess', 'Ludo', 'Spinner', 'Doll', 'Puzzle', 'Slime'],
+  Automotive: ['Phone Mount', 'Car Charger', 'Helmet', 'Bike Cover', 'Air Purifier', 'Cloth', 'Cushion', 'Key Ring', 'Car Perfume', 'Tyre Pump'],
+  Books: ['Novel', 'Story Book', 'Diary', 'Notebook', 'Drawing Book', 'Self-Help Book', 'Comic', 'Calendar', 'Dictionary', 'Coloring Book'],
+  Groceries: ['Rice', 'Oil', 'Salt', 'Sugar', 'Onion', 'Lentils', 'Milk', 'Tea', 'Spices', 'Eggs'],
+  Kitchen: ['Knife', 'Bottle', 'Lunch Box', 'Pan', 'Spice Jar', 'Board', 'Dish Soap', 'Towel', 'Kettle', 'Blender'],
+  Tools: ['Screwdriver', 'Hammer', 'Tape Measure', 'Pliers', 'Glue', 'Scissors', 'Flashlight', 'Tape', 'Padlock', 'Pocket Knife'],
+  Office: ['Pen', 'A4 Paper', 'Stapler', 'Sticky Notes', 'Organizer', 'Mouse Pad', 'Scissors', 'Highlighter', 'Clips', 'Folder'],
+  Pets: ['Cat Food', 'Dog Food', 'Shampoo', 'Litter', 'Collar', 'Bowl', 'Toy Ball', 'Brush', 'Pet Bed', 'Bird Seed'],
+  Travel: ['Suitcase', 'Neck Pillow', 'Passport Case', 'Pouch', 'Eye Mask', 'Adapter', 'Tag', 'Umbrella', 'Lock', 'Towel'],
+  Baby: ['Diapers', 'Wipes', 'Lotion', 'Feeder', 'Romper', 'Pacifier', 'Bib', 'Rattle', 'Shampoo', 'Stroller'],
+  Jewelry: ['Ring', 'Necklace', 'Earrings', 'Bracelet', 'Nose Pin', 'Anklet', 'Hair Clip', 'Jewelry Box', 'Brooch', 'Bangles'],
+  Fitness: ['Yoga Mat', 'Dumbbell', 'Band', 'Shaker', 'Waist Belt', 'Push Up Bar', 'Gloves', 'Sweatband', 'Scale', 'Roller'],
+  Music: ['Guitar', 'Ukulele', 'Harmonica', 'Picks', 'Tuner', 'Mic', 'Pop Filter', 'Stand', 'Audio Cable', 'Drumsticks'],
+  Garden: ['Spray Bottle', 'Pot', 'Seeds', 'Fertilizer', 'Gloves', 'Trowel', 'Shears', 'Watering Can', 'Plant Stick', 'Grass Mat']
+};
+
+const inferCategory = (productName: string): string => {
+  const name = productName.trim().toLowerCase();
+  if (!name) return 'Others';
+
+  // 1. Direct item substring matching from database (case insensitive)
+  for (const [category, items] of Object.entries(CATEGORY_MAPPING)) {
+    for (const item of items) {
+      const itemLower = item.toLowerCase();
+      if (name.includes(itemLower)) {
+        return category;
+      }
+      
+      // Handle hyphenation
+      if (itemLower.includes('-')) {
+        const itemNoHyphen = itemLower.replace('-', '');
+        const itemSpace = itemLower.replace('-', ' ');
+        if (name.includes(itemNoHyphen) || name.includes(itemSpace)) {
+          return category;
+        }
+      }
+      if (itemLower.includes(' ')) {
+        const itemNoSpace = itemLower.replace(/\s+/g, '');
+        if (name.includes(itemNoSpace)) {
+          return category;
+        }
+      }
+
+      // Plural check
+      if (itemLower.endsWith('s') && itemLower.length > 3) {
+        const singular = itemLower.slice(0, -1);
+        if (name.includes(singular)) {
+          return category;
+        }
+      }
+    }
+  }
+
+  // 2. Word token matches
+  const nameWords = name.split(/[^a-zA-Z0-9_\-+']+/).filter(w => w.length > 2);
+  for (const word of nameWords) {
+    for (const [category, items] of Object.entries(CATEGORY_MAPPING)) {
+      for (const item of items) {
+        const itemLower = item.toLowerCase();
+        const itemWords = itemLower.split(/[^a-zA-Z0-9_\-+']+/);
+        const isMatch = itemWords.some(itemWord => {
+          if (itemWord === word) return true;
+          if (itemWord.endsWith('s') && itemWord.slice(0, -1) === word) return true;
+          if (word.endsWith('s') && word.slice(0, -1) === itemWord) return true;
+          return false;
+        });
+        if (isMatch) {
+          return category;
+        }
+      }
+    }
+  }
+
+  // 3. Substring matching of generic helpers
+  const extraKeywords: Record<string, string[]> = {
+    Fashion: ['shirt', 'pant', 'garments', 'cloth', 'apparel', 'fashion', 'clothing', 'jeans', 'saree', 'dress', 'cotton'],
+    Electronics: ['tv', 'led', 'samsung', 'phone', 'camera', 'laptop', 'display', 'screen', 'charger', 'cable', 'adapter', 'electronics', 'device', 'computer', 'monitor', 'headphone', 'gadget', 'smartphone', 'earbud'],
+    Home: ['bed', 'chair', 'table', 'furniture', 'curtain', 'pillow', 'sofa', 'home', 'houseware'],
+    Beauty: ['cosmetics', 'makeup', 'soap', 'shampoo', 'perfume', 'fragrance', 'lotion', 'skincare', 'beauty', 'facewash', 'personal care'],
+    Health: ['medicine', 'pill', 'supplement', 'clinical', 'health', 'wellness', 'mask', 'sanitizer'],
+    Sports: ['sports', 'outdoor', 'football', 'cricket', 'bat', 'ball', 'jersey'],
+    Toys: ['toy', 'game', 'puzzle', 'hobby', 'doll', 'play'],
+    Automotive: ['car', 'bike', 'motor', 'automotive', 'vehicle', 'accessory', 'tire', 'helmet'],
+    Books: ['book', 'pen', 'notebook', 'paper', 'pencil', 'diary', 'stationery', 'novel'],
+    Groceries: ['food', 'beverage', 'drink', 'coke', 'juice', 'water', 'snack', 'biscuit', 'chips', 'tea', 'coffee', 'sugar', 'oil', 'onion', 'garlic', 'milk', 'egg', 'groceries', 'gourmet'],
+    Kitchen: ['kitchen', 'cooking', 'pan', 'pot', 'knife', 'cookware', 'stove', 'bottle'],
+    Tools: ['drill', 'pump', 'gear', 'tool', 'engine', 'generator', 'compressor', 'hammer', 'screwdriver', 'wrench'],
+    Office: ['office', 'desk', 'stapler', 'calculator', 'pen'],
+    Pets: ['pet', 'dog', 'cat', 'bird', 'animal'],
+    Travel: ['travel', 'baggage', 'suitcase', 'backpack', 'luggage', 'passport'],
+    Baby: ['baby', 'diaper', 'infant', 'toddler', 'stroller', 'cradle'],
+    Jewelry: ['jewelry', 'jewellery', 'gold', 'silver', 'ring', 'necklace', 'earring', 'bracelet', 'diamond'],
+    Fitness: ['fitness', 'gym', 'workout', 'treadmill', 'dumbbell', 'yoga'],
+    Music: ['music', 'song', 'guitar', 'piano', 'instrument', 'microphone', 'drum'],
+    Garden: ['garden', 'plants', 'seeds', 'flower', 'lawn', 'potting', 'fertilizer', 'soil']
+  };
+
+  for (const [category, keywords] of Object.entries(extraKeywords)) {
+    for (const kw of keywords) {
+      if (name.includes(kw)) {
+        return category;
+      }
+    }
+  }
+
+  return 'Others';
+};
+
 export const BuyImport = () => {
-  const { products, transactions, addTransaction, deleteTransaction, settings } = useData();
+  const { products, transactions, addTransaction, deleteTransaction, settings, addProduct, updateProduct } = useData();
   const [showModal, setShowModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -89,6 +210,7 @@ export const BuyImport = () => {
   const [formData, setFormData] = useState({
     product_id: '',
     product_name: '',
+    category: 'Others',
     qty: 0,
     price: 0,
     sell_price: 0,
@@ -104,6 +226,27 @@ export const BuyImport = () => {
     expiry_date: '',
     invoice_image: null as File | null
   });
+
+  const [categorySearch, setCategorySearch] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredCategories = useMemo(() => {
+    return RECORD_CATEGORIES.filter(cat => 
+      cat.toLowerCase().includes(categorySearch.toLowerCase())
+    );
+  }, [categorySearch]);
 
   const calculations = useMemo(() => {
     const prodVal = formData.price * formData.qty * formData.exchange_rate;
@@ -129,11 +272,41 @@ export const BuyImport = () => {
     
     // Default sell_price to purchase price if not set
     const finalSellPrice = formData.sell_price || formData.price;
+    const selectedCategory = formData.category || 'Others';
 
-    const submitData = (invoiceData?: { data: string; name: string; type: string }) => {
-      addTransaction({
+    const submitData = async (invoiceData?: { data: string; name: string; type: string }) => {
+      // Find if the product exists in products (by case-insensitive name matching)
+      const existingProduct = products.find(p => p.name.trim().toLowerCase() === formData.product_name.trim().toLowerCase());
+      
+      let finalProductId = formData.product_id;
+      
+      if (existingProduct) {
+        // If product already exists, update its category to match our selection
+        await updateProduct({
+          ...existingProduct,
+          category: selectedCategory
+        });
+        finalProductId = existingProduct.id;
+      } else {
+        // If product does NOT exist, pre-create the product first with the correct category
+        const newProductGeneratedId = `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+        await addProduct({
+          id: newProductGeneratedId,
+          name: formData.product_name,
+          category: selectedCategory,
+          stock: 0, // addTransaction will add the units
+          cost_price: formData.price,
+          sell_price: finalSellPrice,
+          sku: `SKU-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+          image: '',
+          unit: 'pcs'
+        });
+        finalProductId = newProductGeneratedId;
+      }
+
+      await addTransaction({
         type: 'purchase',
-        product_id: formData.product_id || `manual_${Date.now()}`,
+        product_id: finalProductId || `manual_${Date.now()}`,
         product_name: formData.product_name,
         quantity: formData.qty,
         unit_price: formData.price,
@@ -160,6 +333,7 @@ export const BuyImport = () => {
       setFormData({
         product_id: '',
         product_name: '',
+        category: 'Others',
         qty: 0,
         price: 0,
         sell_price: 0,
@@ -463,7 +637,7 @@ export const BuyImport = () => {
               </div>
               
               <div className="retro-modal-body custom-scrollbar">
-                {/* Product & Supplier Row */}
+                {/* Product & Category Row */}
                 <div className="retro-form-row">
                   <div className="retro-form-group">
                     <label>Product *</label>
@@ -476,12 +650,14 @@ export const BuyImport = () => {
                         onChange={(e) => {
                           const name = e.target.value;
                           const existing = products.find(p => p.name === name);
+                          const detectedCategory = inferCategory(name);
                           setFormData({
                             ...formData, 
                             product_name: name,
                             product_id: existing ? existing.id : '',
                             price: existing ? existing.cost_price : formData.price,
-                            sell_price: existing ? existing.sell_price : formData.sell_price
+                            sell_price: existing ? existing.sell_price : formData.sell_price,
+                            category: existing ? (existing.category || detectedCategory) : detectedCategory
                           });
                         }}
                         placeholder="e.g. Samsung TV" 
@@ -492,6 +668,102 @@ export const BuyImport = () => {
                     </datalist>
                   </div>
                   
+                  {/* Category Field with Custom Searchable Dropdown */}
+                  <div className="retro-form-group relative" ref={dropdownRef}>
+                    <label>Category *</label>
+                    <div 
+                      className="retro-input-wrapper cursor-pointer select-none"
+                      onClick={() => {
+                        setDropdownOpen(!dropdownOpen);
+                        setCategorySearch('');
+                        setFocusedIndex(-1);
+                      }}
+                    >
+                      <div className="retro-input flex items-center justify-between min-h-[42px] px-3">
+                        <span className="font-semibold text-slate-750 dark:text-slate-300">
+                          {formData.category || 'Select Category'}
+                        </span>
+                        <span className="text-slate-400 text-xs">▼</span>
+                      </div>
+                    </div>
+
+                    {dropdownOpen && (
+                      <div className="absolute left-0 right-0 top-[100%] mt-1 z-[999] rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl p-2 flex flex-col gap-1">
+                        {/* Search Input inside Dropdown */}
+                        <div className="p-1">
+                          <input
+                            type="text"
+                            className="w-full text-xs bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-teal-500 font-medium text-slate-755 dark:text-slate-300"
+                            placeholder="Type to search category..."
+                            value={categorySearch}
+                            onChange={(e) => {
+                              setCategorySearch(e.target.value);
+                              setFocusedIndex(0);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => {
+                              if (e.key === 'ArrowDown') {
+                                e.preventDefault();
+                                setFocusedIndex(prev => Math.min(filteredCategories.length - 1, prev + 1));
+                              } else if (e.key === 'ArrowUp') {
+                                e.preventDefault();
+                                setFocusedIndex(prev => Math.max(0, prev - 1));
+                              } else if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (focusedIndex >= 0 && focusedIndex < filteredCategories.length) {
+                                  const selected = filteredCategories[focusedIndex];
+                                  setFormData({ ...formData, category: selected });
+                                  setDropdownOpen(false);
+                                }
+                              } else if (e.key === 'Escape') {
+                                setDropdownOpen(false);
+                              }
+                            }}
+                            autoFocus
+                          />
+                        </div>
+                        {/* Categories List */}
+                        <div className="max-h-[160px] overflow-y-auto custom-scrollbar flex flex-col pt-1">
+                          {filteredCategories.length > 0 ? (
+                            filteredCategories.map((cat, idx) => {
+                              const isFocused = idx === focusedIndex;
+                              const isSelected = formData.category === cat;
+                              return (
+                                <button
+                                  key={cat}
+                                  type="button"
+                                  className={`w-full text-left rounded-lg text-xs font-semibold px-3 py-2 transition-all flex items-center justify-between
+                                    ${isSelected 
+                                      ? 'bg-teal-500 text-white' 
+                                      : isFocused 
+                                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100' 
+                                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/10'
+                                    }`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFormData({ ...formData, category: cat });
+                                    setDropdownOpen(false);
+                                  }}
+                                  onMouseEnter={() => setFocusedIndex(idx)}
+                                >
+                                  <span>{cat}</span>
+                                  {isSelected && <span className="text-[10px]">✓</span>}
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <div className="text-center text-[11px] text-slate-400 py-3 italic">
+                              No categories match
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Supplier & Purchase Date Row */}
+                <div className="retro-form-row">
                   <div className="retro-form-group">
                     <label>Supplier</label>
                     <div className="retro-input-wrapper">
@@ -509,10 +781,7 @@ export const BuyImport = () => {
                       {suppliers.map(s => <option key={s} value={s} />)}
                     </datalist>
                   </div>
-                </div>
 
-                {/* Date & Payment Row */}
-                <div className="retro-form-row">
                   <div className="retro-form-group">
                     <label>Purchase Date *</label>
                     <div className="retro-input-wrapper with-icon cursor-pointer group relative overflow-hidden" 
@@ -536,17 +805,20 @@ export const BuyImport = () => {
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  <div className="retro-form-group">
+                {/* Payment Method Row */}
+                <div className="retro-form-row">
+                  <div className="retro-form-group full-width">
                     <label>Payment Method</label>
                     <div className="flex gap-2">
                       {['Cash', 'Bank', 'LC'].map(method => (
                         <button
                           key={method}
                           type="button"
-                          className={`flex-1 py-2 px-1 rounded-lg border-2 transition-all flex items-center justify-center gap-1 text-sm font-semibold
+                          className={`flex-1 py-2.5 px-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 text-sm font-semibold
                             ${formData.payment_method === method 
-                              ? 'border-teal-500 bg-teal-50 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 shadow-sm' 
+                              ? 'border-teal-500 bg-teal-50/50 text-teal-700 dark:bg-teal-950/20 dark:text-teal-300 shadow-sm' 
                               : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'}`}
                           onClick={() => setFormData({...formData, payment_method: method})}
                         >

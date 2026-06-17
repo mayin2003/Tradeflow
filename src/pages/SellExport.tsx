@@ -9,7 +9,7 @@ interface SellExportProps {
 }
 
 export const SellExport = ({ onNavigate }: SellExportProps) => {
-  const { products, transactions, addTransaction, settings, setSelectedInvoiceId, customers } = useData();
+  const { products, transactions, addTransaction, settings, setSelectedInvoiceId, customers, expenses } = useData();
   const [showModal, setShowModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [redeemPoints, setRedeemPoints] = useState(false);
@@ -254,12 +254,23 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
              (t.customer_name && t.customer_name.toLowerCase().includes(searchQuery.toLowerCase())));
   }, [transactions, searchQuery]);
 
+  const getTransactionProfit = useCallback((t: any) => {
+    if (t.items && t.items.length > 0) {
+      const itemsCost = t.items.reduce((sum: number, item: any) => {
+        const prod = availableProducts.find(p => p.id === item.product_id || p.name === item.product_name);
+        return sum + (prod?.cost_price || 0) * item.quantity;
+      }, 0);
+      return t.total_price - itemsCost;
+    }
+    const prod = availableProducts.find(p => p.id === t.product_id || p.name === t.product_name);
+    return t.total_price - (prod?.cost_price || 0) * t.quantity;
+  }, [availableProducts]);
+
   const stats = useMemo(() => {
     const sales = transactions.filter(t => t.type === 'sale');
     const totalRevenueSum = sales.reduce((a, b) => a + b.total_price, 0);
     const totalProfitSum = sales.reduce((a, b) => {
-      const p = availableProducts.find(prod => prod.name === b.product_name);
-      return a + (b.total_price - (p?.cost_price || 0) * b.quantity);
+      return a + getTransactionProfit(b);
     }, 0);
 
     return { 
@@ -268,7 +279,13 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
       totalProfitSum,
       avgMargin: totalRevenueSum > 0 ? (totalProfitSum / totalRevenueSum) * 100 : 0
     };
-  }, [transactions, availableProducts]);
+  }, [transactions, getTransactionProfit]);
+
+  const calculatedProfit = useMemo(() => {
+    const revenue = stats.totalRevenueSum;
+    const totalExpenses = (expenses || []).reduce((sum, e) => sum + e.amount, 0);
+    return revenue - totalExpenses;
+  }, [stats.totalRevenueSum, expenses]);
 
   return (
     <div id="page-sell" className="page active">
@@ -278,7 +295,7 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
       </div>
 
       <div className="stat-grid">
-        <div className="stat-card">
+        <div className="stat-card" id="card-sell-revenue">
           <div className="stat-header">
             <div className="stat-icon" style={{ background: 'var(--success-light)', color: 'var(--success)' }}>💰</div>
             <div className="stat-badge badge-success">{stats.count} Sales</div>
@@ -286,14 +303,22 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
           <div className="stat-value">{fmt(stats.totalRevenueSum)}</div>
           <div className="stat-label">Total Revenue</div>
         </div>
-        <div className="stat-card">
+
+        <div className="stat-card" id="card-sell-profit">
+          <div className="stat-header">
+            <div className="stat-icon" style={{ background: 'var(--success-light)', color: 'var(--success)' }}>📈</div>
+          </div>
+          <div className="stat-value">{fmt(calculatedProfit)}</div>
+          <div className="stat-label">Profit</div>
+        </div>
+        <div className="stat-card" id="card-sell-est-profit">
           <div className="stat-header">
             <div className="stat-icon" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>📊</div>
           </div>
           <div className="stat-value">{fmt(stats.totalProfitSum)}</div>
           <div className="stat-label">Estimated Profit</div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card" id="card-sell-profit-margin">
           <div className="stat-header">
             <div className="stat-icon" style={{ background: 'var(--warning-light)', color: 'var(--warning)' }}>%</div>
           </div>
@@ -325,19 +350,25 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
                 <th>Qty</th>
                 <th>Sell Price</th>
                 <th>Revenue</th>
+                <th id="th-sell-record-profit">Profit</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {filteredTransactions.map(t => (
-                <tr key={t.id}>
-                  <td>{new Date(t.date).toLocaleDateString()}</td>
-                  <td><strong>{t.product_name}</strong></td>
-                  <td>{t.customer_name || 'Walk-in'}</td>
-                  <td>{t.quantity.toLocaleString()}</td>
-                  <td className="text-mono">{(t.currency?.match(/\((.+)\)/)?.[1] || settings.currency)}{t.unit_price.toLocaleString()}</td>
-                  <td className="text-mono">{(t.currency?.match(/\((.+)\)/)?.[1] || settings.currency)}{t.total_price.toLocaleString()}</td>
-                  <td>
+              {filteredTransactions.map(t => {
+                const rowProfit = getTransactionProfit(t);
+                return (
+                  <tr key={t.id}>
+                    <td>{new Date(t.date).toLocaleDateString()}</td>
+                    <td><strong>{t.product_name}</strong></td>
+                    <td>{t.customer_name || 'Walk-in'}</td>
+                    <td>{t.quantity.toLocaleString()}</td>
+                    <td className="text-mono">{(t.currency?.match(/\((.+)\)/)?.[1] || settings.currency)}{t.unit_price.toLocaleString()}</td>
+                    <td className="text-mono">{(t.currency?.match(/\((.+)\)/)?.[1] || settings.currency)}{t.total_price.toLocaleString()}</td>
+                    <td id={`td-sell-record-profit-${t.id}`} className="text-mono" style={{ color: rowProfit >= 0 ? 'var(--success)' : '#ef4444', fontWeight: 600 }}>
+                      {rowProfit >= 0 ? '' : '-'}{(t.currency?.match(/\((.+)\)/)?.[1] || settings.currency)}{Math.abs(Math.round(rowProfit)).toLocaleString()}
+                    </td>
+                    <td>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <span className="badge badge-success">Completed</span>
                       <button 
@@ -353,7 +384,7 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
                     </div>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>

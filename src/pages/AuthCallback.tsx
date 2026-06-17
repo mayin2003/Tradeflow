@@ -11,7 +11,15 @@ export const AuthCallback = () => {
         console.log('AuthCallback: Checking session (Attempt ' + (attempts + 1) + ')');
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (error) throw error;
+        if (error) {
+          console.warn('AuthCallback getSession error:', error.message);
+          for (const key of Object.keys(localStorage)) {
+            if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+              localStorage.removeItem(key);
+            }
+          }
+          throw error;
+        }
         
         if (session) {
           console.log('AuthCallback: Session found, sending success message');

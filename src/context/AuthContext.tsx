@@ -7,14 +7,14 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  register: (name: string, email: string, password: string, company?: string) => Promise<{ session: boolean }>;
+  register: (name: string, email: string, password: string, company?: string) => Promise<{ session: boolean; devCode?: string }>;
   resetPassword: (email: string) => Promise<void>;
   updateUser: (data: { name?: string; companyName?: string }) => Promise<void>;
   refreshSession: () => Promise<void>;
   setSession: (session: any) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
-  sendOTP: (email: string) => Promise<void>;
+  sendOTP: (email: string, registerData?: { name: string; password?: string; company?: string }) => Promise<any>;
   verifyOTP: (email: string, token: string, type: 'signup' | 'email') => Promise<void>;
 }
 
@@ -30,10 +30,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
+          console.warn('Session check returned error:', error.message);
+          // Highlight email confirmation required
           if (error.message?.includes('Email not confirmed')) {
             throw new Error('Your email address has not been confirmed yet. Please check your inbox for a verification link or disable "Confirm email" in your Supabase Auth settings.');
           }
-          throw error;
+          // For any other token/refresh error, clear storage so we don't throw or crash
+          for (const key of Object.keys(localStorage)) {
+            if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+              localStorage.removeItem(key);
+            }
+          }
+          setUser(null);
+          return;
         }
         
         if (session?.user) {
@@ -49,11 +58,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err: any) {
         const errMsg = err?.message || '';
-        if (errMsg.includes('Failed to fetch') || errMsg.includes('fetch') || errMsg.includes('NetworkError')) {
-          console.warn('Network Error during Auth check: Proceeding as unauthenticated offline user.');
-        } else {
-          console.error('Auth session fetch failed:', errMsg);
+        console.warn('Exception during initial auth getSession check:', errMsg);
+        // Safely clean storage to prevent further issues
+        for (const key of Object.keys(localStorage)) {
+          if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+            localStorage.removeItem(key);
+          }
         }
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -169,37 +181,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Please provide a valid email address (e.g., name@example.com).');
     }
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: name,
-          company_name: company,
-        }
-      }
-    });
-    
-    if (error) {
-      console.error('Signup error:', error.message);
-      if (error.message.includes('User already registered')) {
-        throw new Error('This email is already registered. Please try logging in or use a different email.');
-      }
-      throw error;
-    }
+    try {
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, password, company }),
+      });
 
-    if (data.session?.user) {
-      const appUser: User = {
-        id: data.session.user.id,
-        name: name,
-        email: email,
-        companyName: company,
-      };
-      setUser(appUser);
-      return { session: true };
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Failed to start registration. Please try again.');
+      }
+
+      const data = await res.json();
+      return { session: false, devCode: data.devCode };
+    } catch (err: any) {
+      console.error('Signup registration error:', err.message);
+      throw err;
     }
-    
-    return { session: false };
   };
 
   const resetPassword = React.useCallback(async (email: string) => {
@@ -213,7 +212,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) throw error;
+      if (error) {
+        console.warn('Session refresh returned error:', error.message);
+        for (const key of Object.keys(localStorage)) {
+          if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+            localStorage.removeItem(key);
+          }
+        }
+        setUser(null);
+        return;
+      }
       
       if (session?.user) {
         const appUser: User = {
@@ -224,9 +232,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           avatar: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
         };
         setUser(appUser);
+      } else {
+        setUser(null);
       }
     } catch (err: any) {
-      console.error('Session refresh failed:', err.message);
+      console.warn('Session refresh exception:', err.message);
+      for (const key of Object.keys(localStorage)) {
+        if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+          localStorage.removeItem(key);
+        }
+      }
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -237,7 +253,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       if (session?.user) {
         // Manually set the session in Supabase client
-        await supabase.auth.setSession(session);
+        const { error } = await supabase.auth.setSession(session);
+        if (error) {
+          console.warn('setSession returned error:', error.message);
+          for (const key of Object.keys(localStorage)) {
+            if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+              localStorage.removeItem(key);
+            }
+          }
+          setUser(null);
+          return;
+        }
         
         const appUser: User = {
           id: session.user.id,
@@ -249,14 +275,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(appUser);
       }
     } catch (err: any) {
-      console.error('Manual session set failed:', err.message);
+      console.warn('setSession exception:', err.message);
+      for (const key of Object.keys(localStorage)) {
+        if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+          localStorage.removeItem(key);
+        }
+      }
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   const logout = React.useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.warn('SignOut failed (likely offline):', err);
+    }
+    for (const key of Object.keys(localStorage)) {
+      if (key.includes('supabase.auth.token') || (key.startsWith('sb-') && key.endsWith('-auth-token'))) {
+        localStorage.removeItem(key);
+      }
+    }
     setUser(null);
   }, []);
 
@@ -281,33 +322,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
-  const sendOTP = React.useCallback(async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: true
-      }
+  const sendOTP = React.useCallback(async (email: string, registerData?: { name: string; password?: string; company?: string }) => {
+    const res = await fetch('/api/auth/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        email, 
+        name: registerData?.name, 
+        password: registerData?.password, 
+        company: registerData?.company 
+      }),
     });
-    if (error) throw error;
+    
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.error || 'Failed to send verification code. Please try again.');
+    }
+    
+    return await res.json();
   }, []);
 
   const verifyOTP = React.useCallback(async (email: string, token: string, type: 'signup' | 'email') => {
-    const { data, error } = await supabase.auth.verifyOtp({
-      email,
-      token,
-      type,
+    const res = await fetch('/api/auth/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, token }),
     });
-    if (error) throw error;
+    
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.error || 'Incorrect or expired verification code.');
+    }
 
-    if (data.session?.user) {
+    const data = await res.json();
+    if (data.user) {
       const appUser: User = {
-        id: data.session.user.id,
-        name: data.session.user.user_metadata?.full_name || data.session.user.user_metadata?.name || data.session.user.email?.split('@')[0] || 'User',
-        email: data.session.user.email || '',
-        companyName: data.session.user.user_metadata?.company_name || 'My Business',
-        avatar: data.session.user.user_metadata?.avatar_url || data.session.user.user_metadata?.picture,
+        id: data.user.id,
+        name: data.user.name || email.split('@')[0],
+        email: data.user.email,
+        companyName: data.user.companyName || 'TradeFlow',
       };
       setUser(appUser);
+      storage.setUser(appUser);
     }
   }, []);
 
