@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Chart, registerables } from 'chart.js';
 import { useData } from '../context/DataContext';
-import { Wallet, ShoppingCart, Tag, TrendingUp, TrendingDown, Package, MoreVertical, ChevronRight, Calendar, ArrowUpRight } from 'lucide-react';
+import { 
+  Wallet, ShoppingCart, Tag, TrendingUp, TrendingDown, Package, 
+  MoreVertical, ChevronRight, Calendar, ArrowUpRight, ShoppingBag, 
+  Building2, Users, Grid, DollarSign, Activity, AlertTriangle, ArrowUp, BarChart3
+} from 'lucide-react';
 
 Chart.register(...registerables);
 
@@ -134,8 +138,9 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
     const totalBuy = purchases.reduce((val, t) => val + t.total_price, 0);
     const totalSell = completedSales.reduce((val, t) => val + t.total_price, 0);
     const totalProfit = completedSales.reduce((val, t) => val + calculateProfit(t), 0);
+    const totalRevenue = totalSell;
     
-    return { purchases, sales, completedSales, totalBuy, totalSell, totalProfit };
+    return { purchases, sales, completedSales, totalBuy, totalSell, totalProfit, totalRevenue };
   }, [transactions, calculateProfit]);
 
   const activeCategoryCount = useMemo(() => {
@@ -439,6 +444,10 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
   const totalItems = useMemo(() => {
     return products.reduce((sum, p) => sum + (p.stock || 0), 0);
   }, [products]);
+
+  const totalCustomers = useMemo(() => {
+    return customers ? customers.length : 0;
+  }, [customers]);
 
   const fmt = useCallback((n: number) => settings.currency + Math.round(n).toLocaleString(), [settings.currency]);
 
@@ -775,292 +784,419 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
             {renderRecentTransactionsTable()}
 
   return (
-    <div id="page-dashboard" className={`page active min-h-screen p-4 md:p-8 relative transition-colors duration-300 ${isDark ? 'bg-[#0B1220]' : 'bg-[#f8fafc]'}`}>
-      <div className="mesh-bg absolute inset-0 z-0 pointer-events-none opacity-60" />
+    <div id="page-dashboard" className={`page active min-h-screen p-4 md:p-8 relative transition-colors duration-300 ${isDark ? 'bg-[#0B1220]' : 'bg-[#F7F9FC]'}`}>
+      <div className="mesh-bg absolute inset-0 z-0 pointer-events-none opacity-40" />
       
-      <div className="relative z-10 max-w-[1720px] mx-auto space-y-8">
-        {/* Row of 6 KPI Cards (Clean professional grid with identical dimensions and consistent spacing) */}
-        <div id="dashboard-kpi-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="relative z-10 max-w-[1720px] mx-auto space-y-6">
+        
+        {/* Top 4-Column KPI Grid with Premium Enterprise Blue Gradient & Floating Glossy Cards */}
+        <div id="dashboard-kpi-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
            
-          {/* KPI 1: INVESTMENT (Soft Blue Accent) */}
-          <div className={`p-6 h-[170px] rounded-[22px] border flex flex-col justify-between group transition-all duration-300 hover:scale-[1.01] hover:-translate-y-0.5 ${
-            isDark 
-              ? 'bg-[#131520] border-white/5 text-white shadow-black/40 hover:shadow-[0_4px_24px_rgba(59,130,246,0.1)]' 
-              : 'bg-white border-slate-100 text-slate-800 shadow-sm shadow-slate-100/60 hover:shadow-md'
-          }`}>
-            <div className="flex justify-between items-start w-full">
+          {/* KPI 1: INVESTMENT */}
+          <div 
+            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
+            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+          >
+            <div className="flex justify-between items-start w-full relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center text-lg shrink-0">
-                  🛒
+                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <ShoppingCart size={18} />
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Investment</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">INVESTMENT</span>
               </div>
-              <MoreVertical size={16} className="text-slate-400 dark:text-slate-500 hover:text-blue-500 cursor-pointer" />
+              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
             </div>
-            <div className="text-[28px] font-black tracking-tight mt-3 font-mono leading-none">
+            <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
               {fmt(stats.totalBuy)}
             </div>
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
-              <span className="text-slate-400 dark:text-slate-500">Cumulative purchases</span>
-              <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full font-bold">+10.2%</span>
+            <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+              <span className="text-white/75 font-medium">Cumulative purchases</span>
+              <span className="bg-[#0F766E]/40 text-teal-100 border border-[#0F766E]/60 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-xs">
+                ↑ 10.2%
+              </span>
             </div>
           </div>
 
-          {/* KPI 2: TOTAL BUY (Amber Accent) */}
-          <div className={`p-6 h-[170px] rounded-[22px] border flex flex-col justify-between group transition-all duration-300 hover:scale-[1.01] hover:-translate-y-0.5 ${
-            isDark 
-              ? 'bg-[#131520] border-white/5 text-white shadow-black/40 hover:shadow-[0_4px_24px_rgba(245,158,11,0.1)]' 
-              : 'bg-white border-slate-100 text-slate-800 shadow-sm shadow-slate-100/60 hover:shadow-md'
-          }`}>
-            <div className="flex justify-between items-start w-full">
+          {/* KPI 2: TOTAL BUY */}
+          <div 
+            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
+            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+          >
+            <div className="flex justify-between items-start w-full relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-lg shrink-0">
-                  📦
+                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Package size={18} />
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Total Buy</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">TOTAL BUY</span>
               </div>
-              <MoreVertical size={16} className="text-slate-400 dark:text-slate-500 hover:text-amber-500 cursor-pointer" />
+              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
             </div>
-            <div className="text-[28px] font-black tracking-tight mt-3 font-mono leading-none">
+            <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
               {fmt(stats.totalBuy)}
             </div>
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
-              <span className="text-slate-400 dark:text-slate-500">Total spent value</span>
-              <span className="text-slate-500 dark:text-slate-400 font-bold">Standard</span>
+            <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+              <span className="text-white/75 font-medium">Total spent value</span>
+              <span className="bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs">
+                Standard
+              </span>
             </div>
           </div>
 
-          {/* KPI 3: TOTAL SELL (Soft Purplish Accent) */}
-          <div className={`p-6 h-[170px] rounded-[22px] border flex flex-col justify-between group transition-all duration-300 hover:scale-[1.01] hover:-translate-y-0.5 ${
-            isDark 
-              ? 'bg-[#131520] border-white/5 text-white shadow-black/40 hover:shadow-[0_4px_24px_rgba(168,85,247,0.1)]' 
-              : 'bg-white border-slate-100 text-slate-800 shadow-sm shadow-slate-100/60 hover:shadow-md'
-          }`}>
-            <div className="flex justify-between items-start w-full">
+          {/* KPI 3: TOTAL SELL */}
+          <div 
+            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
+            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+          >
+            <div className="flex justify-between items-start w-full relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center text-lg shrink-0">
-                  🏷️
+                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Tag size={18} />
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Total Sell</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">TOTAL SELL</span>
               </div>
-              <MoreVertical size={16} className="text-slate-400 dark:text-slate-500 hover:text-purple-500 cursor-pointer" />
+              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
             </div>
-            <div className="text-[28px] font-black tracking-tight mt-3 font-mono leading-none">
+            <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
               {fmt(stats.totalSell)}
             </div>
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
-              <span className="text-slate-400 dark:text-slate-500">Total sales value</span>
-              <span className="text-slate-500 dark:text-slate-400 font-bold">Standard</span>
+            <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+              <span className="text-white/75 font-medium">Total sales value</span>
+              <span className="bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs">
+                Standard
+              </span>
             </div>
           </div>
 
-          {/* KPI 4: TOTAL CATEGORY (Vivid Pink Accent) */}
-          <div className={`p-6 h-[170px] rounded-[22px] border flex flex-col justify-between group transition-all duration-300 hover:scale-[1.01] hover:-translate-y-0.5 ${
-            isDark 
-              ? 'bg-[#131520] border-white/5 text-white shadow-black/40 hover:shadow-[0_4px_24px_rgba(236,72,153,0.1)]' 
-              : 'bg-white border-slate-100 text-slate-800 shadow-sm shadow-slate-100/60 hover:shadow-md'
-          }`}>
-            <div className="flex justify-between items-start w-full">
+          {/* KPI 4: TOTAL PROFIT */}
+          <div 
+            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
+            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+          >
+            <div className="flex justify-between items-start w-full relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-500 flex items-center justify-center text-lg shrink-0">
-                  🏷️
+                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <TrendingUp size={18} />
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Total Category</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">TOTAL PROFIT</span>
               </div>
-              <MoreVertical size={16} className="text-slate-400 dark:text-slate-500 hover:text-pink-500 cursor-pointer" />
+              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
             </div>
-            <div className="text-[28px] font-black tracking-tight mt-3 font-mono leading-none">
-              {activeCategoryCount}
-            </div>
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
-              <span className="text-slate-400 dark:text-slate-500">Active Categories</span>
-              <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full font-bold text-[10px]">Live</span>
-            </div>
-          </div>
-
-          {/* KPI 5: TOTAL PROFIT (Vivid Emerald Accent) */}
-          <div className={`p-6 h-[170px] rounded-[22px] border flex flex-col justify-between group transition-all duration-300 hover:scale-[1.01] hover:-translate-y-0.5 ${
-            isDark 
-              ? 'bg-[#131520] border-white/5 text-white shadow-black/40 hover:shadow-[0_4px_24px_rgba(16,185,129,0.1)]' 
-              : 'bg-white border-slate-100 text-slate-800 shadow-sm shadow-slate-100/60 hover:shadow-md'
-          }`}>
-            <div className="flex justify-between items-start w-full">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-lg shrink-0">
-                  💰
-                </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Total Profit</span>
-              </div>
-              <MoreVertical size={16} className="text-slate-400 dark:text-slate-600 hover:text-emerald-500 cursor-pointer" />
-            </div>
-            <div className="text-[28px] font-black tracking-tight mt-3 font-mono leading-none">
+            <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
               {fmt(stats.totalProfit)}
             </div>
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
-              <span className="text-slate-400 dark:text-slate-500">Margins after imports</span>
-              <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full font-bold text-[10px]">+18.1%</span>
+            <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+              <span className="text-white/75 font-medium">Margins after imports</span>
+              <span className="bg-[#0F766E]/40 text-teal-100 border border-[#0F766E]/60 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-xs">
+                ↑ 18.15%
+              </span>
             </div>
           </div>
 
-          {/* KPI 6: STOCK VALUE (Vivid Rose Accent) */}
-          <div className={`p-6 h-[170px] rounded-[22px] border flex flex-col justify-between group transition-all duration-300 hover:scale-[1.01] hover:-translate-y-0.5 ${
-            isDark 
-              ? 'bg-[#131520] border-white/5 text-white shadow-black/40 hover:shadow-[0_4px_24px_rgba(244,63,94,0.1)]' 
-              : 'bg-white border-slate-100 text-slate-800 shadow-sm shadow-slate-100/60 hover:shadow-md'
-          }`}>
-            <div className="flex justify-between items-start w-full">
+          {/* KPI 5: TOTAL REVENUE */}
+          <div 
+            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
+            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+          >
+            <div className="flex justify-between items-start w-full relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center text-lg shrink-0">
-                  🏢
+                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <DollarSign size={18} />
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Stock Value</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">TOTAL REVENUE</span>
               </div>
-              <MoreVertical size={16} className="text-slate-400 dark:text-slate-500 hover:text-orange-500 cursor-pointer" />
+              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
             </div>
-            <div className="text-[28px] font-black tracking-tight mt-3 font-mono leading-none">
-              {fmt(stockValue)}
+            <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+              {fmt(stats.totalRevenue)}
             </div>
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
-              <span className="text-slate-400 dark:text-slate-550">Warehouse valuation</span>
-              <span className="text-orange-500 font-bold font-mono text-[10px]">Live</span>
+            <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+              <span className="text-white/75 font-medium">Total revenue</span>
+              <span className="bg-[#0F766E]/40 text-teal-100 border border-[#0F766E]/60 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-xs">
+                ↑ 14.7%
+              </span>
             </div>
           </div>
 
-          {/* KPI 7: TOTAL ITEMS (Vivid Cyan Accent) */}
-          <div className={`p-6 h-[170px] rounded-[22px] border flex flex-col justify-between group transition-all duration-300 hover:scale-[1.01] hover:-translate-y-0.5 ${
-            isDark 
-              ? 'bg-[#131520] border-white/5 text-white shadow-black/40 hover:shadow-[0_4px_24px_rgba(6,182,212,0.1)]' 
-              : 'bg-white border-slate-100 text-slate-800 shadow-sm shadow-slate-100/60 hover:shadow-md'
-          }`}>
-            <div className="flex justify-between items-start w-full">
+          {/* KPI 6: TOTAL ITEMS */}
+          <div 
+            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
+            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+          >
+            <div className="flex justify-between items-start w-full relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center text-lg shrink-0">
-                  🗃️
+                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Package size={18} />
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Total Items</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">TOTAL ITEMS</span>
               </div>
-              <MoreVertical size={16} className="text-slate-400 dark:text-slate-500 hover:text-cyan-500 cursor-pointer" />
+              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
             </div>
-            <div className="text-[28px] font-black tracking-tight mt-3 font-mono leading-none">
+            <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
               {totalItems.toLocaleString()}
             </div>
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
-              <span className="text-slate-400 dark:text-slate-500">Inventory Units</span>
-              <span className="text-cyan-500 font-bold font-mono text-[10px]">Live</span>
+            <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+              <span className="text-white/75 font-medium">Inventory Units</span>
+              <span className="bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs">
+                Live
+              </span>
             </div>
           </div>
+
+          {/* KPI 7: TOTAL CUSTOMERS */}
+          <div 
+            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
+            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+          >
+            <div className="flex justify-between items-start w-full relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Users size={18} />
+                </div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">TOTAL CUSTOMERS</span>
+              </div>
+              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
+            </div>
+            <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+              {totalCustomers.toLocaleString()}
+            </div>
+            <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+              <span className="text-white/75 font-medium">Registered customers</span>
+              <span className="bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs">
+                Live
+              </span>
+            </div>
+          </div>
+
+          {/* KPI 8: TOTAL CATEGORY */}
+          <div 
+            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
+            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+          >
+            <div className="flex justify-between items-start w-full relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Grid size={18} />
+                </div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">TOTAL CATEGORY</span>
+              </div>
+              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
+            </div>
+            <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+              {activeCategoryCount}
+            </div>
+            <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+              <span className="text-white/75 font-medium">Active categories</span>
+              <span className="bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs">
+                Live
+              </span>
+            </div>
+          </div>
+
+          {/* KPI 9: STOCK VALUE */}
+          <div 
+            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
+            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+          >
+            <div className="flex justify-between items-start w-full relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Building2 size={18} />
+                </div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">STOCK VALUE</span>
+              </div>
+              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
+            </div>
+            <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+              {fmt(stockValue)}
+            </div>
+            <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+              <span className="text-white/75 font-medium">Warehouse valuation</span>
+              <span className="bg-[#B45309]/40 text-amber-100 border border-[#B45309]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs">
+                Live
+              </span>
+            </div>
+          </div>
+
         </div>
 
-        {/* Unified Custom Dual-Column Dashboard Grid */}
-        <div id="dashboard-saas-layout" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Middle Section: Revenue Velocity Chart + Market Share Donut + Quick Summary Panel */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           
-          {/* LEFT ZONE: Real-time Charts, Transactions, and AI Copilot (8/12 Columns) */}
-          <div className="lg:col-span-8 space-y-8">
-            
-            {/* Visual Charts Segment - side-by-side cleanly */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-              
-              {/* Sales Chart (Revenue Velocity) */}
-              <div id="revenue-velocity-panel" className={`md:col-span-7 rounded-[22px] p-6 border transition-all duration-300 ${
-                isDark 
-                  ? 'bg-[#131520] border-white/5 shadow-black/40' 
-                  : 'bg-white border-slate-100 shadow-sm shadow-slate-100/60'
-              }`}>
-                <div className={`flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b gap-3 mb-6 ${
-                  isDark ? 'border-white/5' : 'border-slate-100'
-                }`}>
-                  <div>
-                    <h3 className={`text-sm font-extrabold tracking-tight font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>Revenue Velocity</h3>
-                    <p className={`text-[11px] mt-1 font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Dynamic sales comparison against profits</p>
-                  </div>
-                  <div className="flex gap-4 items-center">
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                      <span className="w-2 h-2 rounded-full bg-blue-500 block"></span> Revenue
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 block"></span> Net Profit
-                    </div>
-                  </div>
-                </div>
-
-                <div className={`rounded-xl p-4 border ${isDark ? 'bg-slate-950/20 border-white/5' : 'bg-slate-50/50 border-slate-100/50'}`}>
-                  <div className="h-[240px] w-full">
-                    <canvas ref={salesChartRef}></canvas>
-                  </div>
-                </div>
+          {/* Revenue Velocity Chart Panel (5 Cols) */}
+          <div className={`lg:col-span-5 rounded-[22px] p-6 border transition-all duration-300 ${
+            isDark 
+              ? 'bg-[#131520] border-white/5 shadow-black/40' 
+              : 'bg-white border-slate-200/80 shadow-xs'
+          }`}>
+            <div className={`flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b gap-3 mb-5 ${
+              isDark ? 'border-white/5' : 'border-slate-100'
+            }`}>
+              <div>
+                <h3 className={`text-sm font-bold tracking-tight font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>Revenue Velocity</h3>
+                <p className={`text-[11px] mt-0.5 font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Dynamic sales comparison against profits</p>
               </div>
-
-              {/* Market Share Companion Pie Chart */}
-              <div id="market-share-panel" className={`md:col-span-5 rounded-[22px] p-6 border transition-all duration-300 flex flex-col justify-between ${
-                isDark 
-                  ? 'bg-[#131520] border-white/5 shadow-black/40' 
-                  : 'bg-white border-slate-100 shadow-sm shadow-slate-100/60'
-              }`}>
-                <div className={`flex items-center justify-between pb-4 border-b gap-2 ${
-                  isDark ? 'border-white/5' : 'border-slate-100'
+              <div className="flex gap-3 items-center">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
+                  <span className="w-2 h-2 rounded-full bg-blue-600 block"></span> Revenue
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 block"></span> Net Profit
+                </div>
+                <button className={`text-xs px-2.5 py-1 rounded-lg border font-semibold flex items-center gap-1.5 ${
+                  isDark ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700 shadow-2xs'
                 }`}>
-                  <div>
-                    <h3 className={`text-sm font-extrabold tracking-tight font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>Market Share</h3>
-                    <p className={`text-[11px] mt-1 font-medium ${isDark ? 'text-slate-400' : 'text-slate-505'}`}>
-                      {chartView === 'market' ? 'In Stock Categories' : 'Ledger Contribution'}
-                    </p>
-                  </div>
-                  
-                  {/* Small toggles */}
-                  <div className={`flex p-0.5 rounded-lg border text-[10px] uppercase font-bold tracking-wider font-sans shrink-0 ${
-                    isDark ? 'bg-slate-950/60 border-white/10' : 'bg-[#fafbfc] border-slate-150'
-                  }`}>
-                    <button 
-                      onClick={() => setChartView('market')}
-                      className={`px-2 py-0.5 rounded-md transition-all ${chartView === 'market' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-400'}`}
-                    >
-                      Stock
-                    </button>
-                    <button 
-                      onClick={() => setChartView('revenue')}
-                      className={`px-2 py-0.5 rounded-md transition-all ${chartView === 'revenue' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-400'}`}
-                    >
-                      Rev
-                    </button>
-                  </div>
-                </div>
-
-                <div className={`rounded-xl p-3 border flex items-center justify-center ${isDark ? 'bg-slate-950/20 border-white/5' : 'bg-slate-50/50 border-slate-100/50'}`}>
-                  <div className="h-[175px] w-full relative flex items-center justify-center">
-                    <canvas ref={catChartRef}></canvas>
-                  </div>
-                </div>
-                
-                <div className="text-[10px] text-slate-405 dark:text-slate-500 font-bold text-center mt-2 tracking-wide uppercase select-none font-mono">
-                  Operational distribution matrix
-                </div>
+                  <Calendar size={13} />
+                  <span>This Month</span>
+                  <ChevronRight size={12} className="rotate-90" />
+                </button>
               </div>
-
             </div>
 
-            {/* Direct Transaction logs activity detail list */}
-            {renderRecentTransactionsTable()}
-
+            <div className={`rounded-xl p-3 border ${isDark ? 'bg-slate-950/20 border-white/5' : 'bg-slate-50/40 border-slate-100'}`}>
+              <div className="h-[220px] w-full">
+                <canvas ref={salesChartRef}></canvas>
+              </div>
+            </div>
           </div>
 
-          {/* RIGHT ZONE: Static Sidebar components & Sticky widgets (4/12 Columns) */}
-          <div className="lg:col-span-4 space-y-8">
+          {/* Market Share Donut Chart Panel (4 Cols) */}
+          <div className={`lg:col-span-4 rounded-[22px] p-6 border transition-all duration-300 flex flex-col justify-between ${
+            isDark 
+              ? 'bg-[#131520] border-white/5 shadow-black/40' 
+              : 'bg-white border-slate-200/80 shadow-xs'
+          }`}>
+            <div className={`flex items-center justify-between pb-4 border-b gap-2 ${
+              isDark ? 'border-white/5' : 'border-slate-100'
+            }`}>
+              <div>
+                <h3 className={`text-sm font-bold tracking-tight font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>Market Share</h3>
+                <p className={`text-[11px] mt-0.5 font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {chartView === 'market' ? 'In Stock Categories' : 'Ledger Contribution'}
+                </p>
+              </div>
+              
+              <div className={`flex p-0.5 rounded-lg border text-[10px] uppercase font-bold tracking-wider font-sans shrink-0 ${
+                isDark ? 'bg-slate-950/60 border-white/10' : 'bg-slate-100 border-slate-200'
+              }`}>
+                <button 
+                  onClick={() => setChartView('market')}
+                  className={`px-2.5 py-1 rounded-md transition-all ${chartView === 'market' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Stock
+                </button>
+                <button 
+                  onClick={() => setChartView('revenue')}
+                  className={`px-2.5 py-1 rounded-md transition-all ${chartView === 'revenue' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
+                >
+                  Rev
+                </button>
+              </div>
+            </div>
+
+            <div className={`rounded-xl p-3 border flex items-center justify-center my-2 ${isDark ? 'bg-slate-950/20 border-white/5' : 'bg-slate-50/40 border-slate-100'}`}>
+              <div className="h-[170px] w-full relative flex items-center justify-center">
+                <canvas ref={catChartRef}></canvas>
+              </div>
+            </div>
             
-            {/* Real Date and Time Calendar block */}
-            {renderCalendarWidget()}
+            <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold text-center tracking-wider uppercase font-mono">
+              OPERATIONAL DISTRIBUTION MATRIX
+            </div>
+          </div>
 
-            {/* Orders Summary widget */}
-            {renderOrdersOverview()}
+          {/* Quick Summary Panel (3 Cols) matching reference image */}
+          <div className={`lg:col-span-3 rounded-[22px] p-6 border transition-all duration-300 flex flex-col justify-between ${
+            isDark 
+              ? 'bg-[#131520] border-white/5 shadow-black/40' 
+              : 'bg-white border-slate-200/80 shadow-xs'
+          }`}>
+            <div className={`pb-3 border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
+              <h3 className={`text-sm font-bold tracking-tight font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>Quick Summary</h3>
+            </div>
 
-            {/* Top SKU contributor listing */}
-            {renderTopSKUVelocity()}
+            <div className="space-y-3.5 my-2">
+              <div className="flex items-center justify-between text-xs py-1">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                    <Package size={14} />
+                  </div>
+                  <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Total Items</span>
+                </div>
+                <span className={`font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{totalItems.toLocaleString()}</span>
+              </div>
 
-            {/* Loyalty cohorts mapping */}
-            {renderEliteLoyaltyCohorts()}
+              <div className="flex items-center justify-between text-xs py-1">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <Building2 size={14} />
+                  </div>
+                  <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Stock Value</span>
+                </div>
+                <span className={`font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{fmt(stockValue)}</span>
+              </div>
 
+              <div className="flex items-center justify-between text-xs py-1">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                    <DollarSign size={14} />
+                  </div>
+                  <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Total Revenue</span>
+                </div>
+                <span className={`font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{fmt(stats.totalRevenue)}</span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs py-1">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                    <Users size={14} />
+                  </div>
+                  <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Total Customers</span>
+                </div>
+                <span className={`font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{totalCustomers.toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs py-1">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                    <Grid size={14} />
+                  </div>
+                  <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Active Categories</span>
+                </div>
+                <span className={`font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{activeCategoryCount}</span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs py-1">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                    <Building2 size={14} />
+                  </div>
+                  <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Warehouse Value</span>
+                </div>
+                <span className={`font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{fmt(stockValue)}</span>
+              </div>
+            </div>
           </div>
 
         </div>
+
+        {/* Lower Layout: Transactions Table & Sidebar Widgets */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* Main Transactions Table (8 Cols) */}
+          <div className="lg:col-span-8">
+            {renderRecentTransactionsTable()}
+          </div>
+
+          {/* Right Sidebar Widgets (4 Cols) */}
+          <div className="lg:col-span-4 space-y-6">
+            {renderCalendarWidget()}
+            {renderOrdersOverview()}
+            {renderTopSKUVelocity()}
+            {renderEliteLoyaltyCohorts()}
+          </div>
+
+        </div>
+
       </div>
     </div>
   );

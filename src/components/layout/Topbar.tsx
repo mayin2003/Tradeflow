@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
+import { useAuth } from '../../context/AuthContext';
 import { Moon, Sun, Search, Bell, ChevronDown } from 'lucide-react';
 
 interface TopbarProps {
@@ -10,10 +11,21 @@ interface TopbarProps {
 
 export const Topbar = ({ title, onToggleSidebar, onNavigate }: TopbarProps) => {
   const { products, settings, updateSettings } = useData();
+  const { user } = useAuth();
   const [showNotifs, setShowNotifs] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const stockAlerts = products.filter(p => p.stock <= p.min_stock);
+
+  const userName = user?.name || 'User';
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [user?.avatar]);
+
+  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=2563eb&color=ffffff&bold=true&size=128`;
+  const avatarSrc = (!avatarError && user?.avatar) ? user.avatar : defaultAvatar;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -182,18 +194,22 @@ export const Topbar = ({ title, onToggleSidebar, onNavigate }: TopbarProps) => {
           onClick={() => onNavigate('settings')}
           className="flex items-center gap-3 pl-1 sm:pl-2 py-1.5 pr-2 sm:pr-3 rounded-xl hover:bg-slate-100/75 dark:hover:bg-slate-900 cursor-pointer select-none transition-all duration-200"
         >
-          {/* Avatar Container: Zachary A. */}
+          {/* Avatar Container */}
           <div className="relative">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-white dark:ring-slate-900">
-              ZA
-            </div>
+            <img 
+              src={avatarSrc} 
+              alt={userName} 
+              onError={() => setAvatarError(true)}
+              className="w-9 h-9 rounded-full object-cover ring-2 ring-white dark:ring-slate-900 shadow-sm" 
+            />
             <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-[#0B1220] rounded-full"></span>
           </div>
 
-          {/* User Meta Text */}
-          <div className="hidden sm:flex flex-col text-left">
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-none">Zachary A.</span>
-            <span className="text-[10px] font-medium text-slate-450 dark:text-slate-400 mt-1">Owner Admin</span>
+          {/* User Meta Text - Displaying user full name only */}
+          <div className="hidden sm:flex flex-col text-left justify-center">
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">
+              {userName}
+            </span>
           </div>
 
           <ChevronDown size={14} className="text-slate-400 dark:text-slate-500 hidden sm:block ml-0.5" />

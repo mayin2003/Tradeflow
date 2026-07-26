@@ -9,7 +9,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   register: (name: string, email: string, password: string, company?: string) => Promise<{ session: boolean; devCode?: string }>;
   resetPassword: (email: string) => Promise<void>;
-  updateUser: (data: { name?: string; companyName?: string }) => Promise<void>;
+  updateUser: (data: { name?: string; companyName?: string; avatar?: string }) => Promise<void>;
   refreshSession: () => Promise<void>;
   setSession: (session: any) => Promise<void>;
   logout: () => void;
@@ -356,7 +356,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
-  const updateUser = React.useCallback(async (data: { name?: string; companyName?: string }) => {
+  const updateUser = React.useCallback(async (data: { name?: string; companyName?: string; avatar?: string }) => {
     if (!user) return;
 
     try {
@@ -364,6 +364,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data: {
           ...(data.name && { full_name: data.name }),
           ...(data.companyName && { company_name: data.companyName }),
+          ...(data.avatar !== undefined && { avatar_url: data.avatar }),
         }
       });
 
@@ -373,6 +374,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ...user,
         ...(data.name && { name: data.name }),
         ...(data.companyName && { companyName: data.companyName }),
+        ...(data.avatar !== undefined && { avatar: data.avatar }),
       };
       setUser(updatedUser);
       storage.setUser(updatedUser);
@@ -382,6 +384,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ...user,
         ...(data.name && { name: data.name }),
         ...(data.companyName && { companyName: data.companyName }),
+        ...(data.avatar !== undefined && { avatar: data.avatar }),
       };
       setUser(updatedUser);
       storage.setUser(updatedUser);

@@ -13,6 +13,8 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
   const { user, logout } = useAuth();
   const { settings } = useData();
 
+  const isDark = settings.theme === 'dark';
+
   // Set to true to temporarily hide Shipment Tracking from the UI
   const HIDE_SHIPMENT_TRACKING = true;
 
@@ -39,16 +41,22 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
       id="sidebar"
       style={{
         width: '260px',
-        background: 'linear-gradient(180deg, rgba(13, 17, 26, 0.94) 0%, rgba(8, 10, 15, 0.97) 100%)',
+        background: isDark 
+          ? 'linear-gradient(180deg, rgba(13, 17, 26, 0.94) 0%, rgba(8, 10, 15, 0.97) 100%)'
+          : 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '4px 0 24px rgba(0, 0, 0, 0.4)',
+        borderRight: isDark 
+          ? '1px solid rgba(255, 255, 255, 0.08)'
+          : '1px solid #e2e8f0',
+        boxShadow: isDark
+          ? '4px 0 24px rgba(0, 0, 0, 0.4)'
+          : '4px 0 20px rgba(0, 0, 0, 0.04)',
       }}
     >
       {/* Texture Layer to mimic subtle brushed metal */}
       <div 
-        className="absolute inset-0 pointer-events-none opacity-[0.015] mix-blend-overlay"
+        className={`absolute inset-0 pointer-events-none mix-blend-overlay ${isDark ? 'opacity-[0.015]' : 'opacity-0'}`}
         style={{
           backgroundImage: 'linear-gradient(90deg, #fff 50%, transparent 50%), linear-gradient(#fff 50%, transparent 50%)',
           backgroundSize: '3px 3px',
@@ -60,25 +68,22 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
         /* Premium custom styles for high-fidelity sidebar */
         .premium-brand-card {
           transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-          background: rgba(255, 255, 255, 0.04);
+          background: ${isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(241, 245, 249, 0.9)'};
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 8px 16px rgba(0, 0, 0, 0.25);
+          border: 1px solid ${isDark ? 'rgba(255, 255, 255, 0.15)' : '#e2e8f0'};
+          box-shadow: ${isDark ? 'inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 8px 16px rgba(0, 0, 0, 0.25)' : '0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8)'};
           border-radius: 16px;
           position: relative;
           overflow: hidden;
         }
         .premium-brand-card:hover {
           transform: translateY(-2px);
-          background: rgba(255, 255, 255, 0.06);
+          background: ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(226, 232, 240, 0.95)'};
           backdrop-filter: blur(28px);
           -webkit-backdrop-filter: blur(28px);
-          border-color: rgba(255, 255, 255, 0.25);
-          box-shadow: 
-            inset 0 1px 2px rgba(255, 255, 255, 0.25), 
-            0 12px 24px rgba(0, 0, 0, 0.35),
-            0 0 15px rgba(255, 255, 255, 0.05);
+          border-color: ${isDark ? 'rgba(255, 255, 255, 0.25)' : '#cbd5e1'};
+          box-shadow: ${isDark ? 'inset 0 1px 2px rgba(255, 255, 255, 0.25), 0 12px 24px rgba(0, 0, 0, 0.35), 0 0 15px rgba(255, 255, 255, 0.05)' : '0 4px 14px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 1)'};
         }
 
         /* Reflective light sweep effect */
@@ -97,14 +102,21 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
           left: -50%;
           width: 200%;
           height: 100%;
-          background: linear-gradient(
+          background: ${isDark ? `linear-gradient(
             to right,
             rgba(255, 255, 255, 0) 0%,
             rgba(255, 255, 255, 0.03) 30%,
             rgba(255, 255, 255, 0.12) 50%,
             rgba(255, 255, 255, 0.03) 70%,
             rgba(255, 255, 255, 0) 100%
-          );
+          )` : `linear-gradient(
+            to right,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.3) 30%,
+            rgba(255, 255, 255, 0.7) 50%,
+            rgba(255, 255, 255, 0.3) 70%,
+            rgba(255, 255, 255, 0) 100%
+          )`};
           transform: translateX(-100%) rotate(30deg);
           transition: transform 0.6s ease-out;
           pointer-events: none;
@@ -115,7 +127,7 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
         }
 
         /* Minimal high-end pulse for active elements */
-        @keyframes activePulse {
+        @keyframes activePulseDark {
           0%, 100% {
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.12);
             border-color: rgba(255, 255, 255, 0.1);
@@ -125,12 +137,24 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
             border-color: rgba(255, 255, 255, 0.16);
           }
         }
+        @keyframes activePulseLight {
+          0%, 100% {
+            box-shadow: 0 2px 10px rgba(59, 130, 246, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            border-color: rgba(147, 197, 253, 0.8);
+          }
+          50% {
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255, 255, 255, 1);
+            border-color: rgba(96, 165, 250, 0.9);
+          }
+        }
         .premium-active-item {
-          animation: activePulse 3.5s infinite ease-in-out;
+          animation: ${isDark ? 'activePulseDark 3.5s infinite ease-in-out' : 'activePulseLight 3.5s infinite ease-in-out'};
         }
       `}</style>
 
-      <div className="flex flex-col gap-3 p-5 border-b border-white/5 relative z-10 select-none">
+      <div className={`flex flex-col gap-3 p-5 border-b relative z-10 select-none ${
+        isDark ? 'border-white/5' : 'border-slate-200/80'
+      }`}>
         {/* Card 1: TradeFlow (Business Suite) */}
         <div 
           onClick={() => { onNavigate('settings'); onClose(); }}
@@ -142,10 +166,14 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
             ) : '🚢'}
           </div>
           <div className="overflow-hidden">
-            <div className="font-bold text-sm text-white/95 tracking-tight truncate leading-tight">
+            <div className={`font-bold text-sm tracking-tight truncate leading-tight ${
+              isDark ? 'text-white/95' : 'text-slate-900'
+            }`}>
               {settings?.shopProfile?.name || 'TradeFlow'}
             </div>
-            <div className="text-[9px] text-white/40 font-bold tracking-wider uppercase mt-1">
+            <div className={`text-[9px] font-bold tracking-wider uppercase mt-1 ${
+              isDark ? 'text-white/40' : 'text-slate-500'
+            }`}>
               Business Suite
             </div>
           </div>
@@ -156,7 +184,9 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
       <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-5 relative z-10 custom-scrollbar">
         {sections.map(section => (
           <div key={section} className="space-y-1.5">
-            <div className="text-[10px] font-bold text-slate-500/60 tracking-[0.2em] uppercase px-3 mb-1 select-none">
+            <div className={`text-[10px] font-bold tracking-[0.2em] uppercase px-3 mb-1 select-none ${
+              isDark ? 'text-slate-500/60' : 'text-slate-400 font-extrabold'
+            }`}>
               {section}
             </div>
             <div className="space-y-0.5">
@@ -171,19 +201,30 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
                     }}
                     className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ease-out font-medium text-sm border group select-none hover:translate-x-1 ${
                       isActive 
-                        ? 'border-white/10 text-white premium-active-item' 
-                        : 'border-transparent text-slate-400 hover:text-white/90 hover:bg-white/[0.04]'
+                        ? isDark
+                          ? 'border-white/10 text-white premium-active-item' 
+                          : 'border-blue-200 text-blue-700 font-bold premium-active-item'
+                        : isDark
+                          ? 'border-transparent text-slate-400 hover:text-white/90 hover:bg-white/[0.04]'
+                          : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/90'
                     }`}
-                    style={isActive ? {
+                    style={isActive ? (isDark ? {
                       background: 'linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.01) 100%)',
                       backdropFilter: 'blur(8px)',
                       WebkitBackdropFilter: 'blur(8px)',
                       textShadow: '0 1px 2px rgba(0, 0, 0, 0.4)',
                     } : {
+                      background: 'linear-gradient(90deg, rgba(239, 246, 255, 0.95) 0%, rgba(248, 250, 252, 0.8) 100%)',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
+                      boxShadow: '0 1px 3px rgba(59, 130, 246, 0.08)'
+                    }) : (isDark ? {
                       textShadow: '0 1px 1px rgba(0, 0, 0, 0.1)'
-                    }}
+                    } : {})}
                   >
-                    <span className="text-base select-none shrink-0 filter drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)] transition-all duration-200 ease-out group-hover:scale-110 group-hover:brightness-125">
+                    <span className={`text-base select-none shrink-0 transition-all duration-200 ease-out group-hover:scale-110 ${
+                      isDark ? 'filter drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)] group-hover:brightness-125' : ''
+                    }`}>
                       {item.icon}
                     </span> 
                     <span className="tracking-wide">{item.label}</span>
@@ -203,11 +244,19 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
       </nav>
 
       {/* Footer Profile & Logout Block */}
-      <div className="p-4 border-t border-white/5 bg-black/20 mt-auto flex flex-col gap-3 relative z-10">
+      <div className={`p-4 border-t mt-auto flex flex-col gap-3 relative z-10 ${
+        isDark 
+          ? 'border-white/5 bg-black/20' 
+          : 'border-slate-200/80 bg-slate-50/80'
+      }`}>
         {user && (
           <div 
             onClick={() => { onNavigate('settings'); onClose(); }}
-            className="flex items-center gap-3 p-2.5 rounded-2xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] hover:border-white/10 transition-all duration-200 cursor-pointer select-none"
+            className={`flex items-center gap-3 p-2.5 rounded-2xl border transition-all duration-200 cursor-pointer select-none ${
+              isDark
+                ? 'border-white/5 bg-white/[0.01] hover:bg-white/[0.03] hover:border-white/10'
+                : 'border-slate-200/80 bg-white hover:bg-slate-100/80 hover:border-slate-300'
+            }`}
           >
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-xs flex items-center justify-center shadow-[0_0_10px_rgba(99,102,241,0.2)] shrink-0 overflow-hidden">
               {settings?.shopProfile?.logoUrl ? (
@@ -217,10 +266,14 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
               )}
             </div>
             <div className="overflow-hidden flex-1">
-              <div className="text-xs font-bold text-white/95 truncate">
+              <div className={`text-xs font-bold truncate ${
+                isDark ? 'text-white/95' : 'text-slate-800'
+              }`}>
                 {settings?.shopProfile?.name || 'TradeFlow'}
               </div>
-              <div className="text-[10px] text-white/40 truncate mt-0.5 font-medium">
+              <div className={`text-[10px] truncate mt-0.5 font-medium ${
+                isDark ? 'text-white/40' : 'text-slate-500'
+              }`}>
                 {user.name}
               </div>
             </div>
@@ -229,7 +282,11 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
         
         <button 
           onClick={logout}
-          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white/[0.02] hover:bg-rose-500/10 hover:text-rose-400 text-slate-400 font-bold text-xs border border-white/5 hover:border-rose-500/10 transition-all duration-200 group active:scale-[0.98]"
+          className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl font-bold text-xs border transition-all duration-200 group active:scale-[0.98] cursor-pointer ${
+            isDark
+              ? 'bg-white/[0.02] hover:bg-rose-500/10 hover:text-rose-400 text-slate-400 border-white/5 hover:border-rose-500/10'
+              : 'bg-white hover:bg-rose-50 hover:text-rose-600 text-slate-600 border-slate-200 hover:border-rose-200 shadow-xs'
+          }`}
         >
           <span className="text-sm transition-transform duration-200 group-hover:translate-x-0.5">🚪</span>
           Logout

@@ -36,6 +36,7 @@ export const Settings = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'general' | 'buy' | 'sell' | 'invoice'>('profile');
   const [localSettings, setLocalSettings] = useState(settings);
   const [fullName, setFullName] = useState(user?.name || '');
+  const [userAvatar, setUserAvatar] = useState(user?.avatar || '');
   const [showSaved, setShowSaved] = useState(false);
 
   const isDark = settings.theme === 'dark';
@@ -44,6 +45,11 @@ export const Settings = () => {
   useEffect(() => {
     setLocalSettings(settings);
   }, [settings]);
+
+  useEffect(() => {
+    if (user?.name) setFullName(user.name);
+    if (user?.avatar !== undefined) setUserAvatar(user.avatar || '');
+  }, [user]);
 
   useEffect(() => {
     if (showSaved) {
@@ -55,8 +61,8 @@ export const Settings = () => {
   const handleSave = async () => {
     try {
       await updateSettings(localSettings);
-      if (fullName !== user?.name) {
-        await updateUser({ name: fullName });
+      if (fullName !== user?.name || userAvatar !== user?.avatar) {
+        await updateUser({ name: fullName, avatar: userAvatar });
       }
       addActivityLog('System settings updated', '⚙️', 'var(--bg)');
       setShowSaved(true);
@@ -396,13 +402,60 @@ export const Settings = () => {
                       type="text" 
                       value={fullName} 
                       onChange={(e) => setFullName(e.target.value)} 
-                      placeholder="e.g. mizanroad800@gmail.com" 
+                      placeholder="Full Name" 
                       className={`w-full text-sm font-semibold px-4 py-3.5 rounded-xl border outline-none transition-all duration-200 ${
                         isDark 
                           ? 'bg-slate-900/60 border-slate-800 text-slate-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-600' 
                           : 'bg-slate-50 border-slate-200 text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
                       }`}
                     />
+                  </div>
+
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-2.5 ${
+                      isDark ? 'text-slate-300' : 'text-slate-700'
+                    }`}>
+                      User Profile Picture
+                    </label>
+                    <div className="flex items-center gap-4 py-1">
+                      <div className="relative w-12 h-12 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex-shrink-0 shadow-sm">
+                        <img 
+                          src={userAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName || user?.name || 'User')}&background=2563eb&color=ffffff&bold=true`} 
+                          alt="User Profile" 
+                          className="w-full h-full object-cover" 
+                        />
+                      </div>
+                      <label className="cursor-pointer rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 px-4 shadow-sm transition-all flex items-center gap-1.5">
+                        <Upload className="w-4 h-4" />
+                        <span>Upload Photo</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                if (typeof reader.result === 'string') {
+                                  setUserAvatar(reader.result);
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                      {userAvatar && (
+                        <button 
+                          type="button" 
+                          onClick={() => setUserAvatar('')} 
+                          className="text-xs font-semibold text-rose-500 hover:text-rose-600 transition-colors"
+                        >
+                          Remove Photo
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div>
