@@ -1,6 +1,22 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import {
+  Home,
+  Package,
+  Users,
+  ShoppingCart,
+  Tag,
+  Globe,
+  Receipt,
+  Wallet,
+  BarChart3,
+  Folder,
+  ClipboardList,
+  Settings,
+  LogOut,
+  Building2,
+} from 'lucide-react';
 
 interface SidebarProps {
   current: string;
@@ -18,278 +34,240 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
   // Set to true to temporarily hide Shipment Tracking from the UI
   const HIDE_SHIPMENT_TRACKING = true;
 
+  const getIcon = (id: string, active: boolean) => {
+    const iconProps = {
+      size: 20,
+      className: `shrink-0 transition-colors duration-200 ${
+        active
+          ? 'text-white'
+          : isDark
+          ? 'text-slate-400 group-hover:text-blue-400'
+          : 'text-slate-500 group-hover:text-[#244A8F]'
+      }`,
+    };
+
+    switch (id) {
+      case 'dashboard':
+        return <Home {...iconProps} />;
+      case 'inventory':
+        return <Package {...iconProps} />;
+      case 'customers':
+        return <Users {...iconProps} />;
+      case 'buy':
+        return <ShoppingCart {...iconProps} />;
+      case 'sell':
+        return <Tag {...iconProps} />;
+      case 'tracking':
+        return <Globe {...iconProps} />;
+      case 'invoice':
+        return <Receipt {...iconProps} />;
+      case 'payroll':
+        return <Wallet {...iconProps} />;
+      case 'reports':
+        return <BarChart3 {...iconProps} />;
+      case 'documents':
+        return <Folder {...iconProps} />;
+      case 'activity':
+        return <ClipboardList {...iconProps} />;
+      case 'settings':
+        return <Settings {...iconProps} />;
+      default:
+        return <Home {...iconProps} />;
+    }
+  };
+
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '🏠', section: 'Main' },
-    { id: 'inventory', label: 'Inventory', icon: '📦', section: 'Main', badge: 3 },
-    { id: 'customers', label: 'Customers', icon: '👥', section: 'Main' },
-    { id: 'buy', label: 'Buy (Import)', icon: '🛒', section: 'Trade' },
-    { id: 'sell', label: 'Sell (Export)', icon: '💰', section: 'Trade' },
-    { id: 'tracking', label: 'Shipment Tracking', icon: '🌐', section: 'Trade', hidden: HIDE_SHIPMENT_TRACKING },
-    { id: 'invoice', label: 'Invoices', icon: '🧾', section: 'Trade' },
-    { id: 'payroll', label: 'Staff Payroll', icon: '💰', section: 'Human Resources' },
-    { id: 'reports', label: 'Reports', icon: '📊', section: 'Analysis' },
-    { id: 'documents', label: 'Documents', icon: '📁', section: 'Analysis' },
-    { id: 'activity', label: 'Activity Log', icon: '📋', section: 'Analysis' },
-    { id: 'settings', label: 'Settings', icon: '⚙️', section: 'Settings' },
-  ].filter(item => !item.hidden);
+    { id: 'dashboard', label: 'Dashboard', section: 'Main' },
+    { id: 'inventory', label: 'Inventory', section: 'Main', badge: 3 },
+    { id: 'customers', label: 'Customers', section: 'Main' },
+    { id: 'buy', label: 'Buy (Import)', section: 'Trade' },
+    { id: 'sell', label: 'Sell (Export)', section: 'Trade' },
+    { id: 'tracking', label: 'Shipment Tracking', section: 'Trade', hidden: HIDE_SHIPMENT_TRACKING },
+    { id: 'invoice', label: 'Invoices', section: 'Trade' },
+    { id: 'payroll', label: 'Staff Payroll', section: 'Human Resources' },
+    { id: 'reports', label: 'Reports', section: 'Analysis' },
+    { id: 'documents', label: 'Documents', section: 'Analysis' },
+    { id: 'activity', label: 'Activity Log', section: 'Analysis' },
+    { id: 'settings', label: 'Settings', section: 'Settings' },
+  ].filter((item) => !item.hidden);
 
   const sections = ['Main', 'Trade', 'Human Resources', 'Analysis', 'Settings'];
 
   return (
-    <aside 
-      className={`sidebar ${isOpen ? 'open' : ''} h-screen fixed top-0 left-0 bottom-0 z-50 flex flex-col transition-all duration-300 ease-out`}
+    <aside
       id="sidebar"
+      className={`sidebar ${
+        isOpen ? 'open' : ''
+      } h-screen fixed top-0 left-0 bottom-0 z-50 flex flex-col transition-all duration-300 ease-out`}
       style={{
         width: '260px',
-        background: isDark 
-          ? 'linear-gradient(180deg, rgba(13, 17, 26, 0.94) 0%, rgba(8, 10, 15, 0.97) 100%)'
-          : 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        borderRight: isDark 
+        backgroundColor: isDark ? '#0B1220' : '#FFFFFF',
+        borderRight: isDark
           ? '1px solid rgba(255, 255, 255, 0.08)'
-          : '1px solid #e2e8f0',
+          : '1px solid rgba(15, 23, 42, 0.06)',
         boxShadow: isDark
-          ? '4px 0 24px rgba(0, 0, 0, 0.4)'
-          : '4px 0 20px rgba(0, 0, 0, 0.04)',
+          ? '8px 0 30px rgba(0, 0, 0, 0.35)'
+          : '8px 0 30px rgba(15, 23, 42, 0.05)',
       }}
     >
-      {/* Texture Layer to mimic subtle brushed metal */}
-      <div 
-        className={`absolute inset-0 pointer-events-none mix-blend-overlay ${isDark ? 'opacity-[0.015]' : 'opacity-0'}`}
-        style={{
-          backgroundImage: 'linear-gradient(90deg, #fff 50%, transparent 50%), linear-gradient(#fff 50%, transparent 50%)',
-          backgroundSize: '3px 3px',
-        }}
-      />
-
-      {/* Floating Glass Cards: Top Branding Section */}
-      <style>{`
-        /* Premium custom styles for high-fidelity sidebar */
-        .premium-brand-card {
-          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-          background: ${isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(241, 245, 249, 0.9)'};
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border: 1px solid ${isDark ? 'rgba(255, 255, 255, 0.15)' : '#e2e8f0'};
-          box-shadow: ${isDark ? 'inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 8px 16px rgba(0, 0, 0, 0.25)' : '0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8)'};
-          border-radius: 16px;
-          position: relative;
-          overflow: hidden;
-        }
-        .premium-brand-card:hover {
-          transform: translateY(-2px);
-          background: ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(226, 232, 240, 0.95)'};
-          backdrop-filter: blur(28px);
-          -webkit-backdrop-filter: blur(28px);
-          border-color: ${isDark ? 'rgba(255, 255, 255, 0.25)' : '#cbd5e1'};
-          box-shadow: ${isDark ? 'inset 0 1px 2px rgba(255, 255, 255, 0.25), 0 12px 24px rgba(0, 0, 0, 0.35), 0 0 15px rgba(255, 255, 255, 0.05)' : '0 4px 14px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 1)'};
-        }
-
-        /* Reflective light sweep effect */
-        @keyframes sweep {
-          0% {
-            transform: translateX(-100%) rotate(30deg);
-          }
-          100% {
-            transform: translateX(100%) rotate(30deg);
-          }
-        }
-        .sweep-container::after {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -50%;
-          width: 200%;
-          height: 100%;
-          background: ${isDark ? `linear-gradient(
-            to right,
-            rgba(255, 255, 255, 0) 0%,
-            rgba(255, 255, 255, 0.03) 30%,
-            rgba(255, 255, 255, 0.12) 50%,
-            rgba(255, 255, 255, 0.03) 70%,
-            rgba(255, 255, 255, 0) 100%
-          )` : `linear-gradient(
-            to right,
-            rgba(255, 255, 255, 0) 0%,
-            rgba(255, 255, 255, 0.3) 30%,
-            rgba(255, 255, 255, 0.7) 50%,
-            rgba(255, 255, 255, 0.3) 70%,
-            rgba(255, 255, 255, 0) 100%
-          )`};
-          transform: translateX(-100%) rotate(30deg);
-          transition: transform 0.6s ease-out;
-          pointer-events: none;
-          z-index: 1;
-        }
-        .sweep-container:hover::after {
-          animation: sweep 2s ease-out;
-        }
-
-        /* Minimal high-end pulse for active elements */
-        @keyframes activePulseDark {
-          0%, 100% {
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.12);
-            border-color: rgba(255, 255, 255, 0.1);
-          }
-          50% {
-            box-shadow: 0 4px 22px rgba(255, 255, 255, 0.05), inset 0 1px 2px rgba(255, 255, 255, 0.18);
-            border-color: rgba(255, 255, 255, 0.16);
-          }
-        }
-        @keyframes activePulseLight {
-          0%, 100% {
-            box-shadow: 0 2px 10px rgba(59, 130, 246, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-            border-color: rgba(147, 197, 253, 0.8);
-          }
-          50% {
-            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255, 255, 255, 1);
-            border-color: rgba(96, 165, 250, 0.9);
-          }
-        }
-        .premium-active-item {
-          animation: ${isDark ? 'activePulseDark 3.5s infinite ease-in-out' : 'activePulseLight 3.5s infinite ease-in-out'};
-        }
-      `}</style>
-
-      <div className={`flex flex-col gap-3 p-5 border-b relative z-10 select-none ${
-        isDark ? 'border-white/5' : 'border-slate-200/80'
-      }`}>
-        {/* Card 1: TradeFlow (Business Suite) */}
-        <div 
-          onClick={() => { onNavigate('settings'); onClose(); }}
-          className="premium-brand-card sweep-container flex items-center gap-3 p-3 cursor-pointer group"
+      {/* Top Header Branding */}
+      <div
+        className={`p-5 border-b select-none ${
+          isDark ? 'border-white/5' : 'border-slate-100'
+        }`}
+      >
+        <div
+          onClick={() => {
+            onNavigate('settings');
+            onClose();
+          }}
+          className="flex items-center gap-3.5 cursor-pointer group"
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-teal-500 to-cyan-400 flex items-center justify-center text-lg shadow-[0_0_12px_rgba(20,184,166,0.3)] shrink-0 transition-transform duration-300 group-hover:scale-105">
+          <div className="w-11 h-11 rounded-[16px] bg-gradient-to-tr from-[#00C9A7] via-[#00D2B5] to-[#10B981] flex items-center justify-center text-white shrink-0 shadow-[0_8px_20px_rgba(16,185,129,0.25)] transition-transform duration-200 group-hover:scale-105">
             {settings?.shopProfile?.logoUrl ? (
-              <img src={settings.shopProfile.logoUrl} alt="Logo" className="w-5 h-5 object-contain" />
-            ) : '🚢'}
+              <img
+                src={settings.shopProfile.logoUrl}
+                alt="Logo"
+                className="w-6 h-6 object-contain"
+              />
+            ) : (
+              <Building2 size={22} className="text-white" />
+            )}
           </div>
           <div className="overflow-hidden">
-            <div className={`font-bold text-sm tracking-tight truncate leading-tight ${
-              isDark ? 'text-white/95' : 'text-slate-900'
-            }`}>
-              {settings?.shopProfile?.name || 'TradeFlow'}
+            <div
+              className={`font-bold text-[15px] tracking-tight truncate leading-tight ${
+                isDark ? 'text-white' : 'text-slate-900'
+              }`}
+            >
+              {settings?.shopProfile?.name || 'Your Company Name'}
             </div>
-            <div className={`text-[9px] font-bold tracking-wider uppercase mt-1 ${
-              isDark ? 'text-white/40' : 'text-slate-500'
-            }`}>
-              Business Suite
+            <div
+              className={`text-[10px] font-extrabold tracking-[1.5px] uppercase mt-1 ${
+                isDark ? 'text-slate-400' : 'text-[#94A3B8]'
+              }`}
+            >
+              BUSINESS SUITE
             </div>
           </div>
         </div>
       </div>
 
       {/* Navigation section */}
-      <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-5 relative z-10 custom-scrollbar">
-        {sections.map(section => (
-          <div key={section} className="space-y-1.5">
-            <div className={`text-[10px] font-bold tracking-[0.2em] uppercase px-3 mb-1 select-none ${
-              isDark ? 'text-slate-500/60' : 'text-slate-400 font-extrabold'
-            }`}>
-              {section}
+      <nav className="flex-1 overflow-y-auto px-4 py-5 space-y-5 custom-scrollbar">
+        {sections.map((section) => {
+          const sectionItems = navItems.filter((item) => item.section === section);
+          if (sectionItems.length === 0) return null;
+
+          return (
+            <div key={section} className="space-y-1.5">
+              <div
+                className={`text-[11px] font-bold tracking-[2px] uppercase px-3.5 mb-2 select-none ${
+                  isDark ? 'text-slate-400' : 'text-[#94A3B8]'
+                }`}
+              >
+                {section}
+              </div>
+              <div className="space-y-1">
+                {sectionItems.map((item) => {
+                  const isActive = current === item.id;
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        onNavigate(item.id);
+                        onClose();
+                      }}
+                      className={`flex items-center gap-3.5 px-3.5 py-2.5 rounded-[16px] cursor-pointer transition-all duration-200 ease-out select-none group ${
+                        isActive
+                          ? 'text-white font-semibold text-[15px] shadow-[0_10px_25px_rgba(36,74,143,0.18)]'
+                          : isDark
+                          ? 'text-slate-300 font-semibold text-[15px] hover:bg-slate-800/60 hover:text-blue-400'
+                          : 'text-[#475569] font-semibold text-[15px] hover:bg-[#EEF4FF] hover:text-[#244A8F]'
+                      }`}
+                      style={
+                        isActive
+                          ? {
+                              background:
+                                'linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)',
+                            }
+                          : undefined
+                      }
+                    >
+                      {getIcon(item.id, isActive)}
+                      <span className="truncate">{item.label}</span>
+                      {item.badge && (
+                        <span className="ml-auto flex items-center justify-center bg-[#EF4444] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-[0_4px_10px_rgba(239,68,68,0.35)] select-none">
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <div className="space-y-0.5">
-              {navItems.filter(item => item.section === section).map(item => {
-                const isActive = current === item.id;
-                return (
-                  <div 
-                    key={item.id}
-                    onClick={() => {
-                      onNavigate(item.id);
-                      onClose();
-                    }}
-                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ease-out font-medium text-sm border group select-none hover:translate-x-1 ${
-                      isActive 
-                        ? isDark
-                          ? 'border-white/10 text-white premium-active-item' 
-                          : 'border-blue-200 text-blue-700 font-bold premium-active-item'
-                        : isDark
-                          ? 'border-transparent text-slate-400 hover:text-white/90 hover:bg-white/[0.04]'
-                          : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/90'
-                    }`}
-                    style={isActive ? (isDark ? {
-                      background: 'linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.01) 100%)',
-                      backdropFilter: 'blur(8px)',
-                      WebkitBackdropFilter: 'blur(8px)',
-                      textShadow: '0 1px 2px rgba(0, 0, 0, 0.4)',
-                    } : {
-                      background: 'linear-gradient(90deg, rgba(239, 246, 255, 0.95) 0%, rgba(248, 250, 252, 0.8) 100%)',
-                      backdropFilter: 'blur(8px)',
-                      WebkitBackdropFilter: 'blur(8px)',
-                      boxShadow: '0 1px 3px rgba(59, 130, 246, 0.08)'
-                    }) : (isDark ? {
-                      textShadow: '0 1px 1px rgba(0, 0, 0, 0.1)'
-                    } : {})}
-                  >
-                    <span className={`text-base select-none shrink-0 transition-all duration-200 ease-out group-hover:scale-110 ${
-                      isDark ? 'filter drop-shadow-[0_1px_1px_rgba(0,0,0,0.3)] group-hover:brightness-125' : ''
-                    }`}>
-                      {item.icon}
-                    </span> 
-                    <span className="tracking-wide">{item.label}</span>
-                    {item.badge && (
-                      <span 
-                        className="ml-auto flex items-center justify-center bg-gradient-to-r from-red-500 to-rose-700 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-[0_0_12px_rgba(239,68,68,0.7)] select-none border border-white/10 transition-all duration-200 ease-out group-hover:scale-112 group-hover:shadow-[0_0_16px_rgba(239,68,68,0.95),0_0_4px_rgba(239,68,68,0.5)]"
-                      >
-                        {item.badge}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* Footer Profile & Logout Block */}
-      <div className={`p-4 border-t mt-auto flex flex-col gap-3 relative z-10 ${
-        isDark 
-          ? 'border-white/5 bg-black/20' 
-          : 'border-slate-200/80 bg-slate-50/80'
-      }`}>
+      <div
+        className={`p-4 border-t mt-auto flex flex-col gap-3.5 ${
+          isDark ? 'border-white/5 bg-[#090F1A]' : 'border-slate-100 bg-[#FAFCFF]'
+        }`}
+      >
         {user && (
-          <div 
-            onClick={() => { onNavigate('settings'); onClose(); }}
-            className={`flex items-center gap-3 p-2.5 rounded-2xl border transition-all duration-200 cursor-pointer select-none ${
+          <div
+            onClick={() => {
+              onNavigate('settings');
+              onClose();
+            }}
+            className={`flex items-center gap-3 p-3 rounded-[18px] border transition-all duration-200 cursor-pointer select-none ${
               isDark
-                ? 'border-white/5 bg-white/[0.01] hover:bg-white/[0.03] hover:border-white/10'
-                : 'border-slate-200/80 bg-white hover:bg-slate-100/80 hover:border-slate-300'
+                ? 'border-white/10 bg-[#131E32] hover:bg-[#1A2842]'
+                : 'border-slate-200/80 bg-white hover:bg-slate-50 shadow-[0_4px_20px_rgba(15,23,42,0.06),0_1px_3px_rgba(15,23,42,0.04)]'
             }`}
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-xs flex items-center justify-center shadow-[0_0_10px_rgba(99,102,241,0.2)] shrink-0 overflow-hidden">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-xs flex items-center justify-center shadow-xs shrink-0 overflow-hidden">
               {settings?.shopProfile?.logoUrl ? (
-                <img src={settings.shopProfile.logoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                <img
+                  src={settings.shopProfile.logoUrl}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                />
               ) : (
-                (settings?.shopProfile?.name || user.name).charAt(0).toUpperCase()
+                (settings?.shopProfile?.name || user.name || 'A').charAt(0).toUpperCase()
               )}
             </div>
             <div className="overflow-hidden flex-1">
-              <div className={`text-xs font-bold truncate ${
-                isDark ? 'text-white/95' : 'text-slate-800'
-              }`}>
-                {settings?.shopProfile?.name || 'TradeFlow'}
+              <div
+                className={`text-xs font-bold truncate ${
+                  isDark ? 'text-white' : 'text-slate-800'
+                }`}
+              >
+                {settings?.shopProfile?.name || 'Your Company Name'}
               </div>
-              <div className={`text-[10px] truncate mt-0.5 font-medium ${
-                isDark ? 'text-white/40' : 'text-slate-500'
-              }`}>
-                {user.name}
+              <div
+                className={`text-[11px] truncate mt-0.5 font-medium ${
+                  isDark ? 'text-slate-400' : 'text-slate-500'
+                }`}
+              >
+                {user.name || 'Admin User'}
               </div>
             </div>
           </div>
         )}
-        
-        <button 
+
+        <button
           onClick={logout}
-          className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-xl font-bold text-xs border transition-all duration-200 group active:scale-[0.98] cursor-pointer ${
+          className={`flex items-center justify-center gap-2.5 w-full py-2.5 px-4 rounded-[14px] font-semibold text-sm transition-all duration-200 cursor-pointer ${
             isDark
-              ? 'bg-white/[0.02] hover:bg-rose-500/10 hover:text-rose-400 text-slate-400 border-white/5 hover:border-rose-500/10'
-              : 'bg-white hover:bg-rose-50 hover:text-rose-600 text-slate-600 border-slate-200 hover:border-rose-200 shadow-xs'
+              ? 'bg-rose-500/15 text-rose-300 border border-rose-500/20 hover:bg-rose-500/25'
+              : 'bg-[#FFF5F5] text-[#DC2626] shadow-[0_2px_8px_rgba(220,38,38,0.1)] hover:shadow-[0_4px_14px_rgba(220,38,38,0.18)] hover:bg-[#FFEBEB]'
           }`}
         >
-          <span className="text-sm transition-transform duration-200 group-hover:translate-x-0.5">🚪</span>
-          Logout
+          <LogOut size={16} className="shrink-0" />
+          <span>Logout</span>
         </button>
       </div>
     </aside>

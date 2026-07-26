@@ -784,34 +784,36 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
             {renderRecentTransactionsTable()}
 
   return (
-    <div id="page-dashboard" className={`page active min-h-screen p-4 md:p-8 relative transition-colors duration-300 ${isDark ? 'bg-[#0B1220]' : 'bg-[#F7F9FC]'}`}>
+    <div id="page-dashboard" className={`page active min-h-screen p-4 md:p-8 relative transition-colors duration-300 ${isDark ? 'bg-[#0B1220]' : 'bg-[#EBF1FA]'}`}>
       <div className="mesh-bg absolute inset-0 z-0 pointer-events-none opacity-40" />
       
       <div className="relative z-10 max-w-[1720px] mx-auto space-y-6">
         
-        {/* Top 4-Column KPI Grid with Premium Enterprise Blue Gradient & Floating Glossy Cards */}
+        {/* Top 4-Column KPI Grid */}
         <div id="dashboard-kpi-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
            
           {/* KPI 1: INVESTMENT */}
           <div 
-            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
-            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+            className={isDark 
+              ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+              : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+            style={isDark ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
           >
             <div className="flex justify-between items-start w-full relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
+                <div className={isDark ? "w-10 h-10 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center shrink-0 border border-blue-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
                   <ShoppingCart size={18} />
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">INVESTMENT</span>
+                <span className={isDark ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>INVESTMENT</span>
               </div>
-              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
+              <MoreVertical size={16} className={isDark ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
             </div>
             <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
               {fmt(stats.totalBuy)}
             </div>
             <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
-              <span className="text-white/75 font-medium">Cumulative purchases</span>
-              <span className="bg-[#0F766E]/40 text-teal-100 border border-[#0F766E]/60 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-xs">
+              <span className={isDark ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Cumulative purchases</span>
+              <span className={isDark ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-0.5" : "bg-[#0F766E]/40 text-teal-100 border border-[#0F766E]/60 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-xs"}>
                 ↑ 10.2%
               </span>
             </div>
@@ -819,24 +821,26 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
 
           {/* KPI 2: TOTAL BUY */}
           <div 
-            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
-            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+            className={isDark 
+              ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+              : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+            style={isDark ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
           >
             <div className="flex justify-between items-start w-full relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
+                <div className={isDark ? "w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
                   <Package size={18} />
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">TOTAL BUY</span>
+                <span className={isDark ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL BUY</span>
               </div>
-              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
+              <MoreVertical size={16} className={isDark ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
             </div>
             <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
               {fmt(stats.totalBuy)}
             </div>
             <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
-              <span className="text-white/75 font-medium">Total spent value</span>
-              <span className="bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs">
+              <span className={isDark ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Total spent value</span>
+              <span className={isDark ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
                 Standard
               </span>
             </div>
@@ -844,24 +848,26 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
 
           {/* KPI 3: TOTAL SELL */}
           <div 
-            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
-            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+            className={isDark 
+              ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+              : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+            style={isDark ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
           >
             <div className="flex justify-between items-start w-full relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
+                <div className={isDark ? "w-10 h-10 rounded-xl bg-rose-500/20 text-rose-300 flex items-center justify-center shrink-0 border border-rose-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
                   <Tag size={18} />
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">TOTAL SELL</span>
+                <span className={isDark ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL SELL</span>
               </div>
-              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
+              <MoreVertical size={16} className={isDark ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
             </div>
             <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
               {fmt(stats.totalSell)}
             </div>
             <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
-              <span className="text-white/75 font-medium">Total sales value</span>
-              <span className="bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs">
+              <span className={isDark ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Total sales value</span>
+              <span className={isDark ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
                 Standard
               </span>
             </div>
@@ -869,99 +875,107 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
 
           {/* KPI 4: TOTAL PROFIT */}
           <div 
-            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
-            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+            className={isDark 
+              ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+              : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+            style={isDark ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
           >
             <div className="flex justify-between items-start w-full relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
+                <div className={isDark ? "w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0 border border-emerald-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
                   <TrendingUp size={18} />
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">TOTAL PROFIT</span>
+                <span className={isDark ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL PROFIT</span>
               </div>
-              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
+              <MoreVertical size={16} className={isDark ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
             </div>
             <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
               {fmt(stats.totalProfit)}
             </div>
             <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
-              <span className="text-white/75 font-medium">Margins after imports</span>
-              <span className="bg-[#0F766E]/40 text-teal-100 border border-[#0F766E]/60 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-xs">
+              <span className={isDark ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Margins after imports</span>
+              <span className={isDark ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-0.5" : "bg-[#0F766E]/40 text-teal-100 border border-[#0F766E]/60 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-xs"}>
                 ↑ 18.15%
               </span>
             </div>
           </div>
 
-          {/* KPI 5: TOTAL REVENUE */}
+          {/* KPI 5: STOCK VALUE */}
           <div 
-            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
-            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+            className={isDark 
+              ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+              : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+            style={isDark ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
           >
             <div className="flex justify-between items-start w-full relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <DollarSign size={18} />
+                <div className={isDark ? "w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
+                  <Building2 size={18} />
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">TOTAL REVENUE</span>
+                <span className={isDark ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>STOCK VALUE</span>
               </div>
-              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
+              <MoreVertical size={16} className={isDark ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
             </div>
             <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
-              {fmt(stats.totalRevenue)}
+              {fmt(stockValue)}
             </div>
             <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
-              <span className="text-white/75 font-medium">Total revenue</span>
-              <span className="bg-[#0F766E]/40 text-teal-100 border border-[#0F766E]/60 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-xs">
-                ↑ 14.7%
-              </span>
-            </div>
-          </div>
-
-          {/* KPI 6: TOTAL ITEMS */}
-          <div 
-            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
-            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
-          >
-            <div className="flex justify-between items-start w-full relative z-10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Package size={18} />
-                </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">TOTAL ITEMS</span>
-              </div>
-              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
-            </div>
-            <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
-              {totalItems.toLocaleString()}
-            </div>
-            <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
-              <span className="text-white/75 font-medium">Inventory Units</span>
-              <span className="bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs">
+              <span className={isDark ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Warehouse valuation</span>
+              <span className={isDark ? "bg-amber-900/40 text-amber-300 border border-amber-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#B45309]/40 text-amber-100 border border-[#B45309]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
                 Live
               </span>
             </div>
           </div>
 
-          {/* KPI 7: TOTAL CUSTOMERS */}
+          {/* KPI 6: TOTAL CUSTOMERS */}
           <div 
-            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
-            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+            className={isDark 
+              ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+              : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+            style={isDark ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
           >
             <div className="flex justify-between items-start w-full relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
+                <div className={isDark ? "w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center shrink-0 border border-purple-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
                   <Users size={18} />
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">TOTAL CUSTOMERS</span>
+                <span className={isDark ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL CUSTOMERS</span>
               </div>
-              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
+              <MoreVertical size={16} className={isDark ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
             </div>
             <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
               {totalCustomers.toLocaleString()}
             </div>
             <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
-              <span className="text-white/75 font-medium">Registered customers</span>
-              <span className="bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs">
+              <span className={isDark ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Registered customers</span>
+              <span className={isDark ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
+                Live
+              </span>
+            </div>
+          </div>
+
+          {/* KPI 7: TOTAL ITEMS */}
+          <div 
+            className={isDark 
+              ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+              : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+            style={isDark ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+          >
+            <div className="flex justify-between items-start w-full relative z-10">
+              <div className="flex items-center gap-3">
+                <div className={isDark ? "w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center shrink-0 border border-indigo-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
+                  <Package size={18} />
+                </div>
+                <span className={isDark ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL ITEMS</span>
+              </div>
+              <MoreVertical size={16} className={isDark ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
+            </div>
+            <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+              {totalItems.toLocaleString()}
+            </div>
+            <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+              <span className={isDark ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Inventory Units</span>
+              <span className={isDark ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
                 Live
               </span>
             </div>
@@ -969,50 +983,54 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
 
           {/* KPI 8: TOTAL CATEGORY */}
           <div 
-            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
-            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+            className={isDark 
+              ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+              : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+            style={isDark ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
           >
             <div className="flex justify-between items-start w-full relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
+                <div className={isDark ? "w-10 h-10 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center shrink-0 border border-blue-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
                   <Grid size={18} />
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">TOTAL CATEGORY</span>
+                <span className={isDark ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL CATEGORY</span>
               </div>
-              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
+              <MoreVertical size={16} className={isDark ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
             </div>
             <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
               {activeCategoryCount}
             </div>
             <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
-              <span className="text-white/75 font-medium">Active categories</span>
-              <span className="bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs">
+              <span className={isDark ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Active categories</span>
+              <span className={isDark ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
                 Live
               </span>
             </div>
           </div>
 
-          {/* KPI 9: STOCK VALUE */}
+          {/* KPI 9: TOTAL REVENUE */}
           <div 
-            className="border border-white/10 text-white rounded-[20px] p-5 shadow-[0_12px_24px_rgba(36,74,143,0.18),0_24px_48px_rgba(36,74,143,0.14),0_2px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_18px_36px_rgba(36,74,143,0.22),0_32px_64px_rgba(36,74,143,0.18)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"
-            style={{ background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+            className={isDark 
+              ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+              : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+            style={isDark ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
           >
             <div className="flex justify-between items-start w-full relative z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Building2 size={18} />
+                <div className={isDark ? "w-10 h-10 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center shrink-0 border border-teal-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
+                  <DollarSign size={18} />
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">STOCK VALUE</span>
+                <span className={isDark ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL REVENUE</span>
               </div>
-              <MoreVertical size={16} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
+              <MoreVertical size={16} className={isDark ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
             </div>
             <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
-              {fmt(stockValue)}
+              {fmt(stats.totalRevenue)}
             </div>
             <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
-              <span className="text-white/75 font-medium">Warehouse valuation</span>
-              <span className="bg-[#B45309]/40 text-amber-100 border border-[#B45309]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs">
-                Live
+              <span className={isDark ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Total revenue</span>
+              <span className={isDark ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-0.5" : "bg-[#0F766E]/40 text-teal-100 border border-[#0F766E]/60 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-xs"}>
+                ↑ 14.7%
               </span>
             </div>
           </div>
