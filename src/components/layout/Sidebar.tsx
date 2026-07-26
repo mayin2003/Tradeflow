@@ -13,20 +13,23 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
   const { user, logout } = useAuth();
   const { settings } = useData();
 
+  // Set to true to temporarily hide Shipment Tracking from the UI
+  const HIDE_SHIPMENT_TRACKING = true;
+
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '🏠', section: 'Main' },
     { id: 'inventory', label: 'Inventory', icon: '📦', section: 'Main', badge: 3 },
     { id: 'customers', label: 'Customers', icon: '👥', section: 'Main' },
     { id: 'buy', label: 'Buy (Import)', icon: '🛒', section: 'Trade' },
     { id: 'sell', label: 'Sell (Export)', icon: '💰', section: 'Trade' },
-    { id: 'tracking', label: 'Shipment Tracking', icon: '🌐', section: 'Trade' },
+    { id: 'tracking', label: 'Shipment Tracking', icon: '🌐', section: 'Trade', hidden: HIDE_SHIPMENT_TRACKING },
     { id: 'invoice', label: 'Invoices', icon: '🧾', section: 'Trade' },
     { id: 'payroll', label: 'Staff Payroll', icon: '💰', section: 'Human Resources' },
     { id: 'reports', label: 'Reports', icon: '📊', section: 'Analysis' },
     { id: 'documents', label: 'Documents', icon: '📁', section: 'Analysis' },
     { id: 'activity', label: 'Activity Log', icon: '📋', section: 'Analysis' },
     { id: 'settings', label: 'Settings', icon: '⚙️', section: 'Settings' },
-  ];
+  ].filter(item => !item.hidden);
 
   const sections = ['Main', 'Trade', 'Human Resources', 'Analysis', 'Settings'];
 

@@ -129,13 +129,25 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
   const stats = useMemo(() => {
     const purchases = transactions.filter(t => t.type === 'purchase');
     const sales = transactions.filter(t => t.type === 'sale');
+    const completedSales = sales.filter(t => t.status === 'completed');
     
     const totalBuy = purchases.reduce((val, t) => val + t.total_price, 0);
-    const totalSell = sales.reduce((val, t) => val + t.total_price, 0);
-    const totalProfit = sales.reduce((val, t) => val + calculateProfit(t), 0);
+    const totalSell = completedSales.reduce((val, t) => val + t.total_price, 0);
+    const totalProfit = completedSales.reduce((val, t) => val + calculateProfit(t), 0);
     
-    return { purchases, sales, totalBuy, totalSell, totalProfit };
+    return { purchases, sales, completedSales, totalBuy, totalSell, totalProfit };
   }, [transactions, calculateProfit]);
+
+  const activeCategoryCount = useMemo(() => {
+    const catSet = new Set<string>();
+    products.forEach(p => {
+      const cat = getAutoCategory(p.name, p.category);
+      if (cat && cat.trim() !== '') {
+        catSet.add(cat);
+      }
+    });
+    return catSet.size;
+  }, [products]);
 
   useEffect(() => {
     let salesChart: Chart | null = null;
@@ -424,226 +436,11 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
     return products.reduce((sum, p) => sum + ((p.stock || 0) * (p.cost_price || 0)), 0);
   }, [products]);
 
+  const totalItems = useMemo(() => {
+    return products.reduce((sum, p) => sum + (p.stock || 0), 0);
+  }, [products]);
+
   const fmt = useCallback((n: number) => settings.currency + Math.round(n).toLocaleString(), [settings.currency]);
-
-  // AI Assistant Parsing Logic and States
-  const [queryInput, setQueryInput] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [chatHistory, setChatHistory] = useState<any[]>([
-    {
-      id: 'welcome',
-      sender: 'assistant',
-      text: "Welcome, Operator. I am your **Vanguard AI Financial Copilot** linked into your active databases. I compile real-time ledger records, calculate stock valuations, itemize supply costs, and project profitability instantaneous. Ask me any question or click a smart action chip below to begin!",
-      timestamp: new Date()
-    }
-  ]);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
-  }, [chatHistory, isAnalyzing]);
-
-  const getAIResponse = (text: string) => {
-    const norm = text.toLowerCase();
-    
-    // Purchases (Buy Section)
-    if (norm.includes('buy') || norm.includes('purchas') || norm.includes('invest') || norm.includes('import') || norm.includes('cost') || norm.includes('supplier')) {
-      const purchases = transactions.filter(t => t.type === 'purchase');
-      const totalBuy = purchases.reduce((sum, t) => sum + t.total_price, 0);
-      const totalItemsCount = products.length;
-      
-      const metrics = [
-        { label: 'Capital Invested', value: fmt(totalBuy), extra: 'Invoiced supplies' },
-        { label: 'Active Supply Orders', value: `${purchases.length} Records`, extra: 'Primary inventory intake' },
-        { label: 'Imported SKUs Listed', value: `${totalItemsCount} Products`, extra: 'Active supplier catalog' }
-      ];
-
-      const rows = purchases.slice(0, 5).map(t => [
-        new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-        t.product_name || 'Supply Goods Intake',
-        t.supplier || 'Standard Supplier',
-        t.quantity ?? '-',
-        fmt(t.total_price)
-      ]);
-
-      return {
-        text: `Based on your live purchase histories, I have completed a full supply calculation. You has total capital investments of **${fmt(totalBuy)}** across **${purchases.length}** invoices. Here is the active purchase cost profiling and high-value supplier allocations.`,
-        calculationResult: {
-          title: 'Capital Buy & Investment Audit Report',
-          metrics,
-          table: {
-            headers: ['Date', 'Item Description', 'Supplier Name', 'Qty', 'Total Cost'],
-            rows
-          },
-          alerts: totalBuy > 50000 
-            ? ['Optimal supply restock budget is maintained.', 'Regular audits recommended monthly.'] 
-            : ['Capital allocation is lean. Recommend SKU catalog expansion.']
-        }
-      };
-    }
-
-    // Sales (Sell Section)
-    if (norm.includes('sale') || norm.includes('sell') || norm.includes('export') || norm.includes('rev') || norm.includes('profit') || norm.includes('margin')) {
-      const sales = transactions.filter(t => t.type === 'sale');
-      const totalSell = sales.reduce((sum, t) => sum + t.total_price, 0);
-      const totalProfit = sales.reduce((sum, t) => sum + calculateProfit(t), 0);
-      const marginRate = totalSell > 0 ? ((totalProfit / totalSell) * 100).toFixed(1) : '0.0';
-      const totalItemsSold = sales.reduce((sum, t) => {
-        if (t.items && t.items.length > 0) {
-          return sum + t.items.reduce((acc: number, i: any) => acc + i.quantity, 0);
-        }
-        return sum + (t.quantity || 0);
-      }, 0);
-
-      const metrics = [
-        { label: 'Gross Sales Revenue', value: fmt(totalSell), extra: 'Total incoming client capital' },
-        { label: 'Net Profit Earnings', value: fmt(totalProfit), extra: `${marginRate}% operating margin` },
-        { label: 'Accumulated Volume Sold', value: `${totalItemsSold} Units`, extra: `${sales.length} invoices generated` }
-      ];
-
-      const rows = sales.slice(0, 5).map(t => [
-        new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-        t.customer_name || 'Guest Segment',
-        t.items ? `${t.items.length} unique items` : (t.product_name || 'Retail Product'),
-        fmt(t.total_price)
-      ]);
-
-      return {
-        text: `Reconciled total retail sales: dynamic calculations confirm your gross revenue is **${fmt(totalSell)}** with **${totalProfit > 0 ? 'an active net profit of ' + fmt(totalProfit) : 'no net profit registered yet'}**, yielding a margins profile of **${marginRate}%**.`,
-        calculationResult: {
-          title: 'Sales Intelligence & Net Profit Margins',
-          metrics,
-          table: {
-            headers: ['Date', 'Customer Link', 'Item Manifest', 'Total Invoice'],
-            rows
-          },
-          alerts: parseFloat(marginRate) > 15 
-            ? ['Excellent! Margins are exceeding regional corporate benchmark levels (15%).', 'Customer segments indicate high retention potential.'] 
-            : ['Operating margins are narrow. Recommend optimizing supplier costs or adjusting listing prices.']
-        }
-      };
-    }
-
-    // Stock / Inventory
-    if (norm.includes('inv') || norm.includes('stock') || norm.includes('item') || norm.includes('product') || norm.includes('sku') || norm.includes('warehouse')) {
-      const totalUnits = products.reduce((sum, p) => sum + (p.stock || 0), 0);
-      const holdingCostValue = products.reduce((sum, p) => sum + ((p.stock || 0) * (p.cost_price || 0)), 0);
-      const estimatedSellValue = products.reduce((sum, p) => sum + ((p.stock || 0) * (p.sell_price || 0)), 0);
-      const lowStockCount = products.filter(p => p.stock <= p.min_stock).length;
-
-      const metrics = [
-        { label: 'Holding Warehouse Units', value: `${totalUnits} Units`, extra: `${products.length} distinct SKUs` },
-        { label: 'Asset Holding Cost Value', value: fmt(holdingCostValue), extra: 'Capital locked in warehouse' },
-        { label: 'Projected Retail Value', value: fmt(estimatedSellValue), extra: `Asset gain: ${fmt(estimatedSellValue - holdingCostValue)}` }
-      ];
-
-      const rows = products.slice(0, 5).map(p => [
-        p.name,
-        p.category || 'Other',
-        p.stock,
-        fmt(p.cost_price),
-        fmt(p.sell_price)
-      ]);
-
-      return {
-        text: `Your distribution centers currently house **${totalUnits} physical units** across **${products.length} active SKUs**. Real-time valuation checks compute cost holdings of **${fmt(holdingCostValue)}** and a prospective client sales yield of **${fmt(estimatedSellValue)}**.`,
-        calculationResult: {
-          title: 'Asset Warehouse Valuation & Allocation Profile',
-          metrics,
-          table: {
-            headers: ['Product Line', 'Category', 'Quantity', 'Cost Price', 'Retail Price'],
-            rows
-          },
-          alerts: lowStockCount > 0 
-            ? [`CRITICAL ALERT: ${lowStockCount} products are running below safety-stock thresholds! Reorder from supplies module.`] 
-            : ['Warehouse supply chains are healthy. No replenishment deficits registered.']
-        }
-      };
-    }
-
-    // High Contribution Clients / Customers
-    if (norm.includes('customer') || norm.includes('vip') || norm.includes('loyalty') || norm.includes('client') || norm.includes('tier') || norm.includes('points') || norm.includes('network')) {
-      const totalCustCount = customers.length;
-      const tierMap = { Platinum: 0, Gold: 0, Silver: 0, Bronze: 0 };
-      customers.forEach(c => {
-        const tier = c.membership_tier || 'Bronze';
-        if (tier in tierMap) tierMap[tier]++;
-      });
-
-      const metrics = [
-        { label: 'Vanguard Registered Clients', value: `${totalCustCount} Accounts`, extra: 'Integrated customer base' },
-        { label: 'Elite Tier Profiles', value: `${tierMap.Gold + tierMap.Platinum} Users`, extra: 'Loyalty program participants' },
-        { label: 'Mean Loyalty Balance', value: `${customers.length > 0 ? Math.round(customers.reduce((s,c)=>s+(c.loyalty_points || 0),0)/customers.length) : 0} points`, extra: 'Account ledger baseline' }
-      ];
-
-      const rows = customers.slice(0, 5).map(c => [
-        c.name,
-        c.membership_tier || 'Bronze',
-        c.phone || 'No phone',
-        c.loyalty_points || 0
-      ]);
-
-      return {
-        text: `Your trade relationships ledger has registered **${totalCustCount} client profiles**. Key cohort segments show **${tierMap.Platinum} Platinum** and **${tierMap.Gold} Gold** peak-tier members generating high-lifetime-value conversions.`,
-        calculationResult: {
-          title: 'Customer Relations & Loyalty Network Matrix',
-          metrics,
-          table: {
-            headers: ['Client Profile', 'Membership Segment', 'Contact', 'Loyalty Balance'],
-            rows
-          },
-          alerts: totalCustCount > 0 
-            ? ['Reconciliation audit verified. Client point ledgers matches ledger database.', 'Retention rewards campaign ready for high contributors.'] 
-            : ['Loyalty profile ledger is empty. Register clients to track retention indexes.']
-        }
-      };
-    }
-
-    // Default Fallback
-    return {
-      text: `Hello Operator! I parsed your custom query but didn't locate exact keyword links to database arrays. 
-
-I can compute advanced multi-variable analytics for these profiles instantly:
-- **"Calculate overall purchase and cost totals"** (or click **🛒 Calculate Capital Buys**)
-- **"Calculate gross sales and profits analysis"** (or click **💰 Run Sales Margins**)
-- **"Generate warehouse asset evaluations"** (or click **📦 SKU Valuations**)
-- **"Perform cohort loyalty analysis"** (or click **👥 Client Loyalty**)
-
-Please trigger one of the fast analysis chips below or elaborate your phrase.`,
-      calculationResult: undefined
-    };
-  };
-
-  const handleQuery = (textOverride?: string) => {
-    const rawText = (textOverride || queryInput).trim();
-    if (!rawText) return;
-
-    const userMessage = {
-      id: `usr-${Date.now()}`,
-      sender: 'user',
-      text: rawText,
-      timestamp: new Date()
-    };
-
-    setChatHistory(prev => [...prev, userMessage]);
-    setQueryInput('');
-    setIsAnalyzing(true);
-
-    setTimeout(() => {
-      const responseObj = getAIResponse(rawText);
-      const assistantMessage = {
-        id: `ast-${Date.now()}`,
-        sender: 'assistant',
-        text: responseObj.text,
-        calculationResult: responseObj.calculationResult,
-        timestamp: new Date()
-      };
-      setChatHistory(prev => [...prev, assistantMessage]);
-      setIsAnalyzing(false);
-    }, 300);
-  };
 
   const isDark = settings.theme === 'dark';
 
@@ -974,248 +771,8 @@ Please trigger one of the fast analysis chips below or elaborate your phrase.`,
     );
   };
 
-  // Helper 6: Vanguard AI Copilot
-  const renderVanguardAICopilot = () => {
-    return (
-      <div className={`rounded-[24px] p-6 shadow-md border relative overflow-hidden group transition-all duration-300 ${
-        isDark
-          ? 'bg-[#131520] border-white/5 text-white shadow-black/40 hover:shadow-[0_12px_44px_rgba(59,130,246,0.06)]'
-          : 'bg-white border-slate-100 text-slate-800 shadow-slate-100/50 hover:shadow-lg'
-      }`}>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(37,99,235,0.01),transparent_60%)] dark:bg-[radial-gradient(ellipse_at_top_right,rgba(39,99,235,0.03),transparent_50%50%)] pointer-events-none z-0" />
-        
-        <div className="relative z-10 flex flex-col h-full">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-dashed border-slate-200 dark:border-white/10 gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 flex items-center justify-center text-xl shadow-inner shrink-0 group-hover:scale-105 transition-transform duration-300">
-                🤖
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center flex-wrap gap-2 font-sans">
-                  Vanguard Financial Copilot
-                  <span className="text-[9px] font-black bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2.5 py-0.5 rounded-full border border-blue-500/20 tracking-wide uppercase font-mono">
-                    Beta v3.1
-                  </span>
-                </h3>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 font-normal mt-0.5">Automated learning assistant linked into live operations ledgers</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-1.5 self-start sm:self-center bg-slate-50 dark:bg-slate-950/80 px-2.5 py-1 rounded-lg border border-slate-100 dark:border-white/5">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-              </span>
-              <span className="text-[9px] uppercase font-bold tracking-widest text-emerald-500 font-mono">SECURED</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6 min-h-[300px]">
-            {/* Chat View */}
-            <div className={`lg:col-span-8 flex flex-col h-[380px] rounded-2xl p-4 relative overflow-hidden shadow-inner border ${
-              isDark ? 'bg-[#0B1220]/40 border-white/5' : 'bg-slate-50/50 border-slate-100'
-            }`}>
-              <div 
-                ref={chatContainerRef}
-                className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent pb-3"
-              >
-                {chatHistory.map(msg => (
-                  <div 
-                    key={msg.id} 
-                    className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'} max-w-[90%] ${msg.sender === 'user' ? 'ml-auto' : 'mr-auto'}`}
-                  >
-                    <div className={`p-3.5 rounded-2xl text-[12.5px] leading-relaxed shadow-sm transition-all duration-200 ${
-                      msg.sender === 'user' 
-                        ? 'bg-blue-600 text-white rounded-tr-none font-semibold' 
-                        : isDark
-                          ? 'bg-[#131520] border border-white/5 text-slate-100 rounded-tl-none'
-                          : 'bg-white border border-slate-100 text-slate-800 rounded-tl-none shadow-sm'
-                    }`}>
-                      <div className="whitespace-pre-wrap">
-                        {msg.text.split('**').map((part: string, i: number) => 
-                          i % 2 === 1 ? <strong key={i} className="text-blue-500 dark:text-blue-400 font-bold">{part}</strong> : part
-                        )}
-                      </div>
-                    </div>
-
-                    {msg.calculationResult && (
-                      <div className={`w-full mt-3 bg-white dark:bg-[#0B1220]/80 border rounded-2xl p-3.5 space-y-3.5 shadow-sm text-left transition-all duration-300 ${
-                        isDark ? 'border-white/5' : 'border-slate-100'
-                      }`}>
-                        <div className="flex items-center justify-between pb-2 border-b border-dashed border-slate-100 dark:border-white/10">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 dark:text-blue-400 flex items-center gap-1.5 font-sans">
-                            <span>📊</span> {msg.calculationResult.title}
-                          </span>
-                          <span className="text-[9px] font-mono bg-slate-50 dark:bg-slate-950 text-slate-400 px-2 py-0.5 rounded border border-slate-100 dark:border-white/5">
-                            Realtime
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                          {msg.calculationResult.metrics.map((metric: any, mIdx: number) => (
-                            <div key={mIdx} className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200/40 dark:border-white/5 p-2.5 rounded-xl flex flex-col justify-between">
-                              <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase">{metric.label}</span>
-                              <span className="text-base font-bold text-slate-900 dark:text-white mt-0.5 font-mono">{metric.value}</span>
-                              <span className="text-[8.5px] text-slate-400 font-semibold mt-1 uppercase truncate leading-none">{metric.extra}</span>
-                            </div>
-                          ))}
-                        </div>
-
-                        {msg.calculationResult.table && (
-                          <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-white/5">
-                            <table className="w-full text-left border-collapse text-[11px]">
-                              <thead>
-                                <tr className="border-b border-slate-100 dark:border-white/5 bg-slate-100/50 dark:bg-slate-950/60 text-slate-400 font-extrabold uppercase tracking-wider">
-                                  {msg.calculationResult.table.headers.map((hdr: string, hIdx: number) => (
-                                    <th key={hIdx} className="p-2 font-bold uppercase text-[9px]">{hdr}</th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-100/40 dark:divide-white/5">
-                                {msg.calculationResult.table.rows.map((row: any, rIdx: number) => (
-                                  <tr key={rIdx} className="hover:bg-blue-500/10 transition-colors">
-                                    {row.map((cell: any, cIdx: number) => (
-                                      <td key={cIdx} className="p-2.5 font-bold text-slate-700 dark:text-slate-100 font-mono text-[10.5px]">
-                                        {cell}
-                                      </td>
-                                    ))}
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-
-                        {msg.calculationResult.alerts && (
-                          <div className="space-y-1 pt-1">
-                            {msg.calculationResult.alerts.map((alert: string, aIdx: number) => (
-                              <div key={aIdx} className="flex items-start gap-2 text-[10px] text-emerald-800 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-2.5">
-                                <span className="text-xs shrink-0">💡</span>
-                                <span className="font-semibold leading-relaxed">{alert}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <span className="text-[8px] text-slate-400 dark:text-slate-500 font-semibold uppercase mt-1 tracking-wider font-mono">
-                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                ))}
-
-                {isAnalyzing && (
-                  <div className="flex flex-col items-start max-w-[80%] mr-auto space-y-1.5 align-middle">
-                    <div className="bg-white dark:bg-[#131520] border border-slate-100 dark:border-white/10 p-3 rounded-xl rounded-tl-none text-[11px] text-blue-500 font-bold shadow-sm animate-pulse flex items-center gap-2">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                      </span>
-                      Calculating ledger vectors ...
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-white/5 flex gap-2">
-                <input 
-                  type="text" 
-                  value={queryInput}
-                  onChange={(e) => setQueryInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleQuery(); }}
-                  placeholder="Ask live ledgers..."
-                  className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 focus:border-blue-500 focus:outline-none text-slate-850 dark:text-slate-100 text-xs rounded-xl px-3.5 py-2 transition-all"
-                />
-                <button 
-                  onClick={() => handleQuery()}
-                  disabled={isAnalyzing || !queryInput.trim()}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 dark:disabled:text-slate-500 text-white rounded-xl font-bold text-xs uppercase cursor-pointer transition-all active:scale-95 flex items-center justify-center shadow-sm"
-                >
-                  Transmit
-                </button>
-              </div>
-            </div>
-
-            {/* Smart Actions */}
-            <div className={`lg:col-span-4 flex flex-col justify-between border rounded-2xl p-4 gap-4 ${
-              isDark ? 'bg-[#0B1220]/40 border-white/5' : 'bg-slate-105/50 border-slate-100'
-            }`}>
-              <div className="text-left space-y-3">
-                <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-white/5 pb-2 font-sans">
-                  <span className="text-amber-500">⚡</span> Smart actions
-                </h4>
-
-                <div className="grid grid-cols-1 gap-2">
-                  <button 
-                    onClick={() => handleQuery("Calculate Buy Totals (Investment Profile)")}
-                    disabled={isAnalyzing}
-                    className="w-full text-left bg-white dark:bg-[#131520] border border-slate-100 dark:border-white/5 hover:border-blue-500/50 p-2.5 rounded-xl transition-all cursor-pointer shadow-xs hover:shadow-sm"
-                  >
-                    <div className="text-xs font-bold text-slate-800 dark:text-white flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <span>🛒</span>
-                        <span>Capital Buys</span>
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-bold">→</span>
-                    </div>
-                  </button>
-
-                  <button 
-                    onClick={() => handleQuery("Calculate Sales Totals (Revenue & Profit Analysis)")}
-                    disabled={isAnalyzing}
-                    className="w-full text-left bg-white dark:bg-[#131520] border border-slate-100 dark:border-white/5 hover:border-emerald-500/50 p-2.5 rounded-xl transition-all cursor-pointer shadow-xs hover:shadow-sm"
-                  >
-                    <div className="text-xs font-bold text-slate-800 dark:text-white flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <span>💰</span>
-                        <span>Sales Margins</span>
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-bold">→</span>
-                    </div>
-                  </button>
-
-                  <button 
-                    onClick={() => handleQuery("Vanguard SKU Valuation (Inventory Valuation)")}
-                    disabled={isAnalyzing}
-                    className="w-full text-left bg-white dark:bg-[#131520] border border-slate-100 dark:border-white/5 hover:border-amber-500/50 p-2.5 rounded-xl transition-all cursor-pointer shadow-xs hover:shadow-sm"
-                  >
-                    <div className="text-xs font-bold text-slate-800 dark:text-white flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <span>📦</span>
-                        <span>SKU Valuations</span>
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-bold">→</span>
-                    </div>
-                  </button>
-
-                  <button 
-                    onClick={() => handleQuery("Customer Loyalty and Engagement (VIP Contribution)")}
-                    disabled={isAnalyzing}
-                    className="w-full text-left bg-white dark:bg-[#131520] border border-slate-100 dark:border-white/5 hover:border-purple-500/50 p-2.5 rounded-xl transition-all cursor-pointer shadow-xs hover:shadow-sm"
-                  >
-                    <div className="text-xs font-bold text-slate-800 dark:text-white flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <span>👥</span>
-                        <span>Client Loyalty Map</span>
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-bold">→</span>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-blue-500/10 border border-blue-500/20 p-2.5 rounded-xl text-left">
-                <p className="text-[10px] text-blue-600 dark:text-blue-300 leading-normal font-medium">
-                  This secure browser model queries memory states to compile calculations securely.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
+            {/* Direct Transaction logs activity detail list */}
+            {renderRecentTransactionsTable()}
 
   return (
     <div id="page-dashboard" className={`page active min-h-screen p-4 md:p-8 relative transition-colors duration-300 ${isDark ? 'bg-[#0B1220]' : 'bg-[#f8fafc]'}`}>
@@ -1265,10 +822,10 @@ Please trigger one of the fast analysis chips below or elaborate your phrase.`,
               <MoreVertical size={16} className="text-slate-400 dark:text-slate-500 hover:text-amber-500 cursor-pointer" />
             </div>
             <div className="text-[28px] font-black tracking-tight mt-3 font-mono leading-none">
-              {stats.purchases.length}
+              {fmt(stats.totalBuy)}
             </div>
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
-              <span className="text-slate-400 dark:text-slate-500">Purchase orders</span>
+              <span className="text-slate-400 dark:text-slate-500">Total spent value</span>
               <span className="text-slate-500 dark:text-slate-400 font-bold">Standard</span>
             </div>
           </div>
@@ -1289,15 +846,15 @@ Please trigger one of the fast analysis chips below or elaborate your phrase.`,
               <MoreVertical size={16} className="text-slate-400 dark:text-slate-500 hover:text-purple-500 cursor-pointer" />
             </div>
             <div className="text-[28px] font-black tracking-tight mt-3 font-mono leading-none">
-              {stats.sales.length}
+              {fmt(stats.totalSell)}
             </div>
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
-              <span className="text-slate-400 dark:text-slate-500">Completed sales</span>
+              <span className="text-slate-400 dark:text-slate-500">Total sales value</span>
               <span className="text-slate-500 dark:text-slate-400 font-bold">Standard</span>
             </div>
           </div>
 
-          {/* KPI 4: REVENUE (Vivid Pink Accent) */}
+          {/* KPI 4: TOTAL CATEGORY (Vivid Pink Accent) */}
           <div className={`p-6 h-[170px] rounded-[22px] border flex flex-col justify-between group transition-all duration-300 hover:scale-[1.01] hover:-translate-y-0.5 ${
             isDark 
               ? 'bg-[#131520] border-white/5 text-white shadow-black/40 hover:shadow-[0_4px_24px_rgba(236,72,153,0.1)]' 
@@ -1306,18 +863,18 @@ Please trigger one of the fast analysis chips below or elaborate your phrase.`,
             <div className="flex justify-between items-start w-full">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-500 flex items-center justify-center text-lg shrink-0">
-                  💵
+                  🏷️
                 </div>
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Revenue</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Total Category</span>
               </div>
               <MoreVertical size={16} className="text-slate-400 dark:text-slate-500 hover:text-pink-500 cursor-pointer" />
             </div>
             <div className="text-[28px] font-black tracking-tight mt-3 font-mono leading-none">
-              {fmt(stats.totalSell)}
+              {activeCategoryCount}
             </div>
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
-              <span className="text-slate-400 dark:text-slate-500">Gross operating sales</span>
-              <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full font-bold text-[10px]">+14.7%</span>
+              <span className="text-slate-400 dark:text-slate-500">Active Categories</span>
+              <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full font-bold text-[10px]">Live</span>
             </div>
           </div>
 
@@ -1366,6 +923,30 @@ Please trigger one of the fast analysis chips below or elaborate your phrase.`,
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
               <span className="text-slate-400 dark:text-slate-550">Warehouse valuation</span>
               <span className="text-orange-500 font-bold font-mono text-[10px]">Live</span>
+            </div>
+          </div>
+
+          {/* KPI 7: TOTAL ITEMS (Vivid Cyan Accent) */}
+          <div className={`p-6 h-[170px] rounded-[22px] border flex flex-col justify-between group transition-all duration-300 hover:scale-[1.01] hover:-translate-y-0.5 ${
+            isDark 
+              ? 'bg-[#131520] border-white/5 text-white shadow-black/40 hover:shadow-[0_4px_24px_rgba(6,182,212,0.1)]' 
+              : 'bg-white border-slate-100 text-slate-800 shadow-sm shadow-slate-100/60 hover:shadow-md'
+          }`}>
+            <div className="flex justify-between items-start w-full">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center text-lg shrink-0">
+                  🗃️
+                </div>
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500">Total Items</span>
+              </div>
+              <MoreVertical size={16} className="text-slate-400 dark:text-slate-500 hover:text-cyan-500 cursor-pointer" />
+            </div>
+            <div className="text-[28px] font-black tracking-tight mt-3 font-mono leading-none">
+              {totalItems.toLocaleString()}
+            </div>
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100/30 dark:border-white/5 text-[11px]">
+              <span className="text-slate-400 dark:text-slate-500">Inventory Units</span>
+              <span className="text-cyan-500 font-bold font-mono text-[10px]">Live</span>
             </div>
           </div>
         </div>
@@ -1459,9 +1040,6 @@ Please trigger one of the fast analysis chips below or elaborate your phrase.`,
 
             {/* Direct Transaction logs activity detail list */}
             {renderRecentTransactionsTable()}
-
-            {/* Vanguard Financial AI Copilot container */}
-            {renderVanguardAICopilot()}
 
           </div>
 

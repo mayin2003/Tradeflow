@@ -89,6 +89,8 @@ export const LoginPage = ({ onBack }: { onBack: () => void }) => {
       // Note: AuthContext already maps some of these, but we keep this as defensive backup
       if (msg.includes('Invalid login credentials')) {
         msg = 'Invalid email or password. Please try again or create a new account.';
+      } else if (msg.toLowerCase().includes('failed to fetch')) {
+        msg = 'Authentication server connection issue. Please try again or use Local Mode.';
       }
       setStatus({ type: 'error', message: msg });
       setIsLoading(false);
