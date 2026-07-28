@@ -4,6 +4,7 @@ import nodemailer from "nodemailer";
 import { createClient } from "@supabase/supabase-js";
 import { createServer as createViteServer } from "vite";
 import dns from "dns";
+import crypto from "crypto";
 
 // Store OTPs in-memory: email -> { code, name, password, company, expiresAt, sentAt }
 interface OTPSession {
@@ -307,7 +308,7 @@ app.post("/api/auth/verify-otp", async (req, res) => {
           }
 
           userAccount = {
-            id: data.user?.id || Math.random().toString(36).substring(2, 11),
+            id: data.user?.id || crypto.randomUUID(),
             email: trimmedEmail,
             name: userSession.name,
             companyName: userSession.company
@@ -326,7 +327,7 @@ app.post("/api/auth/verify-otp", async (req, res) => {
       success: true,
       message: "Account verified successfully!",
       user: {
-        id: userAccount?.id || Math.random().toString(36).substring(2, 11),
+        id: userAccount?.id || crypto.randomUUID(),
         email: trimmedEmail,
         name: userSession.name || trimmedEmail.split("@")[0],
         companyName: userSession.company || "TradeFlow"

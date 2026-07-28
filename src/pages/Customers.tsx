@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 
-export const Customers = () => {
+export const CustomersComponent = () => {
   const { customers, addCustomer, transactions } = useData();
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -228,3 +228,5 @@ export const Customers = () => {
     </div>
   );
 };
+
+export const Customers = React.memo(CustomersComponent);

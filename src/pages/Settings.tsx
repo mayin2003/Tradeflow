@@ -30,7 +30,7 @@ import {
   Notebook
 } from 'lucide-react';
 
-export const Settings = () => {
+export const SettingsComponent = () => {
   const { user, updateUser } = useAuth();
   const { settings, updateSettings, addActivityLog } = useData();
   const [activeTab, setActiveTab] = useState<'profile' | 'general' | 'buy' | 'sell' | 'invoice'>('profile');
@@ -1135,3 +1135,5 @@ export const Settings = () => {
     </div>
   );
 };
+
+export const Settings = React.memo(SettingsComponent);

@@ -198,7 +198,7 @@ const inferCategory = (productName: string): string => {
   return 'Others';
 };
 
-export const Inventory = () => {
+export const InventoryComponent = () => {
   const { products, transactions, addProduct, updateProduct, deleteProduct, settings } = useData();
   const isDarkMode = settings?.theme === 'dark';
   const [showModal, setShowModal] = useState(false);
@@ -1205,3 +1205,5 @@ export const Inventory = () => {
     </div>
   );
 };
+
+export const Inventory = React.memo(InventoryComponent);

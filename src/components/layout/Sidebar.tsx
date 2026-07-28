@@ -25,7 +25,7 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) => {
+export const SidebarComponent = ({ current, onNavigate, isOpen, onClose }: SidebarProps) => {
   const { user, logout } = useAuth();
   const { settings } = useData();
 
@@ -101,19 +101,19 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
       } h-screen fixed top-0 left-0 bottom-0 z-50 flex flex-col transition-all duration-300 ease-out`}
       style={{
         width: '260px',
-        backgroundColor: isDark ? '#0B1220' : '#FFFFFF',
+        backgroundColor: isDark ? '#0B1220' : '#E2E8F4',
         borderRight: isDark
           ? '1px solid rgba(255, 255, 255, 0.08)'
-          : '1px solid rgba(15, 23, 42, 0.06)',
+          : '1px solid rgba(15, 23, 42, 0.08)',
         boxShadow: isDark
           ? '8px 0 30px rgba(0, 0, 0, 0.35)'
-          : '8px 0 30px rgba(15, 23, 42, 0.05)',
+          : '8px 0 30px rgba(15, 23, 42, 0.03)',
       }}
     >
       {/* Top Header Branding */}
       <div
         className={`p-5 border-b select-none ${
-          isDark ? 'border-white/5' : 'border-slate-100'
+          isDark ? 'border-white/5' : 'border-slate-200/60'
         }`}
       >
         <div
@@ -183,7 +183,7 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
                           ? 'text-white font-semibold text-[15px] shadow-[0_10px_25px_rgba(36,74,143,0.18)]'
                           : isDark
                           ? 'text-slate-300 font-semibold text-[15px] hover:bg-slate-800/60 hover:text-blue-400'
-                          : 'text-[#475569] font-semibold text-[15px] hover:bg-[#EEF4FF] hover:text-[#244A8F]'
+                          : 'text-[#475569] font-semibold text-[15px] hover:bg-slate-200/60 hover:text-[#244A8F]'
                       }`}
                       style={
                         isActive
@@ -213,7 +213,7 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
       {/* Footer Profile & Logout Block */}
       <div
         className={`p-4 border-t mt-auto flex flex-col gap-3.5 ${
-          isDark ? 'border-white/5 bg-[#090F1A]' : 'border-slate-100 bg-[#FAFCFF]'
+          isDark ? 'border-white/5 bg-[#090F1A]' : 'border-slate-200/60 bg-[#E2E8F4]'
         }`}
       >
         {user && (
@@ -225,7 +225,7 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
             className={`flex items-center gap-3 p-3 rounded-[18px] border transition-all duration-200 cursor-pointer select-none ${
               isDark
                 ? 'border-white/10 bg-[#131E32] hover:bg-[#1A2842]'
-                : 'border-slate-200/80 bg-white hover:bg-slate-50 shadow-[0_4px_20px_rgba(15,23,42,0.06),0_1px_3px_rgba(15,23,42,0.04)]'
+                : 'border-slate-300/70 bg-[#E2E8F4] hover:bg-slate-200/50'
             }`}
           >
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-xs flex items-center justify-center shadow-xs shrink-0 overflow-hidden">
@@ -263,7 +263,7 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
           className={`flex items-center justify-center gap-2.5 w-full py-2.5 px-4 rounded-[14px] font-semibold text-sm transition-all duration-200 cursor-pointer ${
             isDark
               ? 'bg-rose-500/15 text-rose-300 border border-rose-500/20 hover:bg-rose-500/25'
-              : 'bg-[#FFF5F5] text-[#DC2626] shadow-[0_2px_8px_rgba(220,38,38,0.1)] hover:shadow-[0_4px_14px_rgba(220,38,38,0.18)] hover:bg-[#FFEBEB]'
+              : 'bg-rose-500/10 text-[#DC2626] border border-rose-200/80 hover:bg-rose-500/20'
           }`}
         >
           <LogOut size={16} className="shrink-0" />
@@ -273,3 +273,5 @@ export const Sidebar = ({ current, onNavigate, isOpen, onClose }: SidebarProps) 
     </aside>
   );
 };
+
+export const Sidebar = React.memo(SidebarComponent);

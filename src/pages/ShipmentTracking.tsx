@@ -95,7 +95,7 @@ const mockShipments: Shipment[] = [
   }
 ];
 
-export default function ShipmentTracking() {
+function ShipmentTrackingComponent() {
   const { settings, addExpense, addActivityLog } = useData();
 
   // Active shipment selection states
@@ -639,3 +639,6 @@ export default function ShipmentTracking() {
     </div>
   );
 }
+
+const ShipmentTracking = React.memo(ShipmentTrackingComponent);
+export default ShipmentTracking;

@@ -125,7 +125,7 @@ const inferCategory = (productName: string): string => {
   return 'Others';
 };
 
-export const BuyImport = () => {
+export const BuyImportComponent = () => {
   const { products, transactions, addTransaction, deleteTransaction, settings, addProduct, updateProduct } = useData();
   const [showModal, setShowModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -1160,3 +1160,5 @@ export const BuyImport = () => {
     </div>
   );
 };
+
+export const BuyImport = React.memo(BuyImportComponent);

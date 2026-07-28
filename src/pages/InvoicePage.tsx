@@ -11,7 +11,7 @@ interface InvoiceItem {
   price: number;
 }
 
-export const InvoicePage = () => {
+export const InvoicePageComponent = () => {
   const { settings, updateSettings, transactions, customers, selectedInvoiceId, setSelectedInvoiceId } = useData();
 
   const template1Ref = useRef<HTMLDivElement>(null);
@@ -2260,4 +2260,6 @@ const stripOklchOklab = (cssText: string): string => {
     </div>
   );
 };
+
+export const InvoicePage = React.memo(InvoicePageComponent);
 

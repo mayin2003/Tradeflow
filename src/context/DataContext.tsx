@@ -5,6 +5,7 @@ import { documentDB } from '../services/db';
 import { useAuth } from './AuthContext';
 // import { initializeMockData } from '../services/mockData';
 import { supabase, supabaseUrl } from '../lib/supabase';
+import { ensureUuid } from '../lib/utils';
 
 interface DataContextType {
   products: Product[];
@@ -90,8 +91,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   });
 
-  const syncLocalToCloud = async (userId: string) => {
+  const syncLocalToCloud = useCallback(async (userId: string) => {
     console.log('Syncing local data to cloud...');
+    const targetUserId = ensureUuid(userId);
     try {
       const localProducts = storage.getProducts(userId);
       const localCustomers = storage.getCustomers(userId);
@@ -104,33 +106,46 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (localProducts.length) {
         const cleanLocalProducts = localProducts.map((p: any) => {
           const { sku, image, unit, ...clean } = p;
-          return clean;
+          return { ...clean, user_id: ensureUuid(clean.user_id || targetUserId) };
         });
         await supabase.from('tf_products').upsert(cleanLocalProducts);
       }
-      if (localCustomers.length) await supabase.from('tf_customers').upsert(localCustomers);
-      if (localExpenses.length) await supabase.from('tf_expenses').upsert(localExpenses);
+      if (localCustomers.length) {
+        const cleanCustomers = localCustomers.map((c: any) => ({ ...c, user_id: ensureUuid(c.user_id || targetUserId) }));
+        await supabase.from('tf_customers').upsert(cleanCustomers);
+      }
+      if (localExpenses.length) {
+        const cleanExpenses = localExpenses.map((e: any) => ({ ...e, user_id: ensureUuid(e.user_id || targetUserId) }));
+        await supabase.from('tf_expenses').upsert(cleanExpenses);
+      }
       if (localTransactions.length) {
         const cleanLocalTransactions = localTransactions.map((t: any) => {
           const { supplier, payment_method, exchange_rate, expiry_date, ...clean } = t;
-          return clean;
+          return { ...clean, user_id: ensureUuid(clean.user_id || targetUserId) };
         });
         await supabase.from('tf_transactions').upsert(cleanLocalTransactions);
       }
-      if (localLogs.length) await supabase.from('tf_activity_logs').upsert(localLogs);
-      if (localDocs.length) await supabase.from('tf_documents').upsert(localDocs);
+      if (localLogs.length) {
+        const cleanLogs = localLogs.map((l: any) => ({ ...l, user_id: ensureUuid(l.user_id || targetUserId) }));
+        await supabase.from('tf_activity_logs').upsert(cleanLogs);
+      }
+      if (localDocs.length) {
+        const cleanDocs = localDocs.map((d: any) => ({ ...d, user_id: ensureUuid(d.user_id || targetUserId) }));
+        await supabase.from('tf_documents').upsert(cleanDocs);
+      }
       
-      await supabase.from('tf_settings').upsert({ user_id: userId, data: localSettings });
+      await supabase.from('tf_settings').upsert({ user_id: targetUserId, data: localSettings });
       
       console.log('Local data sync complete.');
     } catch (err) {
       console.error('Failed to sync local data to cloud:', err);
     }
-  };
+  }, []);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user) return;
     setDbStatus('loading');
+    const targetUserId = ensureUuid(user.id);
 
     try {
       // Fetch all tables from Supabase
@@ -143,13 +158,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         resSettings,
         resDocs
       ] = await Promise.all([
-        supabase.from('tf_products').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-        supabase.from('tf_customers').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-        supabase.from('tf_expenses').select('*').eq('user_id', user.id).order('date', { ascending: false }),
-        supabase.from('tf_transactions').select('*').eq('user_id', user.id).order('date', { ascending: false }),
-        supabase.from('tf_activity_logs').select('*').eq('user_id', user.id).order('timestamp', { ascending: false }).limit(50),
-        supabase.from('tf_settings').select('data').eq('user_id', user.id).maybeSingle(),
-        supabase.from('tf_documents').select('*').eq('user_id', user.id).order('date', { ascending: false })
+        supabase.from('tf_products').select('*').eq('user_id', targetUserId).order('created_at', { ascending: false }),
+        supabase.from('tf_customers').select('*').eq('user_id', targetUserId).order('created_at', { ascending: false }),
+        supabase.from('tf_expenses').select('*').eq('user_id', targetUserId).order('date', { ascending: false }),
+        supabase.from('tf_transactions').select('*').eq('user_id', targetUserId).order('date', { ascending: false }),
+        supabase.from('tf_activity_logs').select('*').eq('user_id', targetUserId).order('timestamp', { ascending: false }).limit(50),
+        supabase.from('tf_settings').select('data').eq('user_id', targetUserId).maybeSingle(),
+        supabase.from('tf_documents').select('*').eq('user_id', targetUserId).order('date', { ascending: false })
       ]);
 
       // Detect common issues (e.g. missing tables or connection failure)
@@ -168,7 +183,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
                              lowerMsg.includes('networkerror') || 
                              lowerMsg.includes('network') || 
                              lowerMsg.includes('typeerror') ||
-                             lowerMsg.includes('cors');
+                             lowerMsg.includes('cors') ||
+                             lowerMsg.includes('uuid') ||
+                             lowerMsg.includes('invalid input syntax');
 
         if (isFetchError) {
           setDbStatus('offline');
@@ -247,9 +264,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           };
           setSettings(initialSettings);
           // Silently save it to DB so it persists
-          supabase.from('tf_settings').upsert({ user_id: user.id, data: initialSettings })
+          supabase.from('tf_settings').upsert({ user_id: targetUserId, data: initialSettings })
             .then(({ error }) => {
-              if (error) console.error('Failed to initialize settings in Supabase:', error);
+              if (error) console.warn('Notice initializing settings in Supabase:', error.message);
             });
           
           // If cloud is empty, check for local data to sync
@@ -279,7 +296,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const caughtMsg = error?.message || String(error || '');
       const lowerCaught = caughtMsg.toLowerCase();
       
-      if (lowerCaught.includes('fetch') || lowerCaught.includes('network') || lowerCaught.includes('typeerror') || lowerCaught.includes('load failed') || lowerCaught.includes('cors')) {
+      if (lowerCaught.includes('fetch') || lowerCaught.includes('network') || lowerCaught.includes('typeerror') || lowerCaught.includes('load failed') || lowerCaught.includes('cors') || lowerCaught.includes('uuid') || lowerCaught.includes('invalid input syntax')) {
         setDbStatus('offline');
         setDbError('Connected in Local Mode. Data will be saved to your browser.');
       } else {
@@ -287,12 +304,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setDbError(caughtMsg);
       }
     }
-  };
+  }, [user, syncLocalToCloud]);
 
   useEffect(() => {
     if (!user) return;
     loadData();
-  }, [user]);
+  }, [user, loadData]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', settings.theme);
@@ -319,9 +336,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     
     (async () => {
       try {
-        await supabase.from('tf_activity_logs').insert([log]);
+        await supabase.from('tf_activity_logs').insert([{ ...log, user_id: ensureUuid(log.user_id) }]);
       } catch (err) {
-        console.error('Error adding activity log to Supabase:', err);
+        console.warn('Notice adding activity log to Supabase:', err);
       }
     })();
   }, [user]);
@@ -332,19 +349,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     storage.clearActivityLogs(user.id);
     (async () => {
       try {
-        await supabase.from('tf_activity_logs').delete().eq('user_id', user.id);
+        await supabase.from('tf_activity_logs').delete().eq('user_id', ensureUuid(user.id));
       } catch (err) {
-        console.error('Error clearing activity logs in Supabase:', err);
+        console.warn('Notice clearing activity logs in Supabase:', err);
       }
     })();
   }, [user]);
 
   const addProduct = useCallback(async (p: any) => {
     if (!user) return;
+    const targetUserId = ensureUuid(user.id);
     const newProduct: Product = { 
       ...p, 
       id: p.id || `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, 
-      user_id: user.id, 
+      user_id: targetUserId, 
       created_at: new Date().toISOString() 
     };
     
@@ -357,13 +375,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     
     (async () => {
       try {
-        const { error } = await supabase.from('tf_products').insert([cleanProduct]);
+        const { error } = await supabase.from('tf_products').insert([{ ...cleanProduct, user_id: targetUserId }]);
         if (error) {
-          console.error('Supabase error adding product:', error.message);
+          console.warn('Supabase notice adding product:', error.message);
         }
         addActivityLog(`Product added: ${p.name}`, '📦', 'var(--purple-light)');
       } catch (err) {
-        console.error('Error during background product adding sync:', err);
+        console.warn('Notice during background product adding sync:', err);
       }
     })();
   }, [user, addActivityLog]);
@@ -377,11 +395,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     
     (async () => {
       try {
-        const { error } = await supabase.from('tf_products').upsert(cleanProduct);
-        if (error) console.error('Supabase error updating product:', error.message);
+        const { error } = await supabase.from('tf_products').upsert({ ...cleanProduct, user_id: ensureUuid(cleanProduct.user_id) });
+        if (error) console.warn('Supabase notice updating product:', error.message);
         addActivityLog(`Product updated: ${p.name}`, '📦', 'var(--accent-light)');
       } catch (err) {
-        console.error('Error during background product updating sync:', err);
+        console.warn('Notice during background product updating sync:', err);
       }
     })();
   }, [addActivityLog]);
@@ -393,20 +411,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const { error } = await supabase.from('tf_products').delete().eq('id', id);
-        if (error) console.error('Supabase error deleting product:', error.message);
+        if (error) console.warn('Supabase notice deleting product:', error.message);
         addActivityLog(`Product deleted: ${name}`, '🗑️', 'var(--danger-light)');
       } catch (err) {
-        console.error('Error during background product deletion sync:', err);
+        console.warn('Notice during background product deletion sync:', err);
       }
     })();
   }, [addActivityLog]);
 
   const addCustomer = useCallback(async (c: any) => {
     if (!user) return;
+    const targetUserId = ensureUuid(user.id);
     const newCustomer: Customer = { 
       ...c, 
       id: c.id || `c_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, 
-      user_id: user.id, 
+      user_id: targetUserId, 
       loyalty_points: c.loyalty_points || 0,
       membership_tier: c.membership_tier || 'Bronze',
       created_at: new Date().toISOString() 
@@ -417,39 +436,41 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     
     (async () => {
       try {
-        const { error } = await supabase.from('tf_customers').insert([newCustomer]);
-        if (error) console.error('Supabase error adding customer:', error.message);
+        const { error } = await supabase.from('tf_customers').insert([{ ...newCustomer, user_id: targetUserId }]);
+        if (error) console.warn('Supabase notice adding customer:', error.message);
         addActivityLog(`Customer added: ${c.name}`, '👤', 'var(--accent-light)');
       } catch (err) {
-        console.error('Error during background customer addition sync:', err);
+        console.warn('Notice during background customer addition sync:', err);
       }
     })();
   }, [user, addActivityLog]);
 
   const addExpense = useCallback(async (e: any) => {
     if (!user) return;
-    const newExpense: Expense = { ...e, id: `e_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, user_id: user.id };
+    const targetUserId = ensureUuid(user.id);
+    const newExpense: Expense = { ...e, id: `e_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, user_id: targetUserId };
     
     setExpenses(prev => [newExpense, ...prev]);
     storage.saveExpense(newExpense);
     
     (async () => {
       try {
-        const { error } = await supabase.from('tf_expenses').insert([newExpense]);
-        if (error) console.error('Supabase error adding expense:', error.message);
+        const { error } = await supabase.from('tf_expenses').insert([{ ...newExpense, user_id: targetUserId }]);
+        if (error) console.warn('Supabase notice adding expense:', error.message);
         addActivityLog(`Expense recorded: ${e.title}`, '💸', 'var(--danger-light)');
       } catch (err) {
-        console.error('Error during background expense addition sync:', err);
+        console.warn('Notice during background expense addition sync:', err);
       }
     })();
   }, [user, addActivityLog]);
 
   const addTransaction = useCallback(async (t: any) => {
     if (!user) return;
+    const targetUserId = ensureUuid(user.id);
     const newTransaction: Transaction = { 
       ...t, 
       id: t.id || `tr_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, 
-      user_id: user.id 
+      user_id: targetUserId 
     };
     
     setTransactions(prev => [newTransaction, ...prev]);
@@ -474,7 +495,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           // Auto-create product if missing during purchase
           const newP: Product = {
             id: `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-            user_id: user.id,
+            user_id: targetUserId,
             created_at: new Date().toISOString(),
             name: item.product_name,
             category: 'Uncategorized',
@@ -492,9 +513,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           (async () => {
             try {
               const { sku, image, unit, ...cleanP } = newP as any;
-              await supabase.from('tf_products').insert([cleanP]);
+              await supabase.from('tf_products').insert([{ ...cleanP, user_id: targetUserId }]);
             } catch (err) {
-              console.error(err);
+              console.warn('Notice adding auto-created product to Supabase:', err);
             }
           })();
         }
@@ -514,7 +535,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         // Auto-create product if missing during purchase
         const newP: Product = {
           id: `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-          user_id: user.id,
+          user_id: targetUserId,
           created_at: new Date().toISOString(),
           name: t.product_name,
           category: 'Uncategorized',
@@ -532,9 +553,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         (async () => {
           try {
             const { sku, image, unit, ...cleanP } = newP as any;
-            await supabase.from('tf_products').insert([cleanP]);
+            await supabase.from('tf_products').insert([{ ...cleanP, user_id: targetUserId }]);
           } catch (err) {
-            console.error(err);
+            console.warn('Notice adding auto-created product to Supabase:', err);
           }
         })();
       }
@@ -546,7 +567,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (!customerExists) {
         const newCustomer: Customer = { 
           id: `c_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, 
-          user_id: user.id, 
+          user_id: targetUserId, 
           name: t.customer_name,
           email: '',
           phone: '',
@@ -573,21 +594,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       try {
         for (const p of productUpdatesToTrigger) {
           const { sku, image, unit, ...cleanProduct } = p as any;
-          await supabase.from('tf_products').upsert(cleanProduct);
+          await supabase.from('tf_products').upsert({ ...cleanProduct, user_id: ensureUuid(cleanProduct.user_id) });
         }
 
         for (const c of customerUpdatesToTrigger) {
-          await supabase.from('tf_customers').insert([c]);
+          await supabase.from('tf_customers').insert([{ ...c, user_id: ensureUuid(c.user_id) }]);
         }
 
         const { supplier, payment_method, exchange_rate, expiry_date, invoice_file_data, invoice_file_name, invoice_file_type, ...cleanTransaction } = newTransaction as any;
-        const { error } = await supabase.from('tf_transactions').insert([cleanTransaction]);
-        if (error) console.error('Supabase error adding transaction:', error.message);
+        const { error } = await supabase.from('tf_transactions').insert([{ ...cleanTransaction, user_id: targetUserId }]);
+        if (error) console.warn('Supabase notice adding transaction:', error.message);
         
         const typeLabel = t.type === 'sale' ? 'Sale recorded' : 'Purchase recorded';
         addActivityLog(`${typeLabel}: ${t.product_name || 'Multiple'}`, t.type === 'sale' ? '💰' : '🛒', t.type === 'sale' ? 'var(--success-light)' : 'var(--purple-light)');
       } catch (err) {
-        console.error('Error during background transaction addition sync:', err);
+        console.warn('Notice during background transaction addition sync:', err);
       }
     })();
   }, [user, products, customers, addActivityLog]);
@@ -628,25 +649,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         if (productToUpdate) {
           const { sku, image, unit, ...cleanProduct } = productToUpdate as any;
           const { error: pError } = await supabase.from('tf_products').upsert(cleanProduct);
-          if (pError) console.error('Supabase error updating product:', pError.message);
+          if (pError) console.warn('Supabase notice updating product:', pError.message);
         }
         
         const { error: tError } = await supabase.from('tf_transactions').delete().eq('id', id);
-        if (tError) console.error('Supabase error deleting transaction:', tError.message);
+        if (tError) console.warn('Supabase notice deleting transaction:', tError.message);
         
         addActivityLog(`Transaction deleted: ${name}`, '🗑️', 'var(--danger-light)');
       } catch (err) {
-        console.error('Error during background transaction deletion sync:', err);
+        console.warn('Notice during background transaction deletion sync:', err);
       }
     })();
   }, [transactions, products, addActivityLog]);
 
   const addDocument = useCallback(async (d: any) => {
     if (!user) return;
+    const targetUserId = ensureUuid(user.id);
     const newDoc: TradeDocument = { 
       ...d, 
       id: `doc_${Date.now()}`, 
-      user_id: user.id, 
+      user_id: targetUserId, 
       date: new Date().toISOString() 
     };
     
@@ -655,11 +677,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     
     (async () => {
       try {
-        const { error } = await supabase.from('tf_documents').insert([newDoc]);
-        if (error) console.error('Supabase error adding document:', error.message);
+        const { error } = await supabase.from('tf_documents').insert([{ ...newDoc, user_id: targetUserId }]);
+        if (error) console.warn('Supabase notice adding document:', error.message);
         addActivityLog(`Document uploaded: ${d.name}`, '📄', 'var(--accent-light)');
       } catch (err) {
-        console.error('Error during background document upload sync:', err);
+        console.warn('Notice during background document upload sync:', err);
       }
     })();
   }, [user, addActivityLog]);
@@ -671,24 +693,25 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const { error } = await supabase.from('tf_documents').delete().eq('id', id);
-        if (error) console.error('Supabase error deleting document:', error.message);
+        if (error) console.warn('Supabase notice deleting document:', error.message);
         addActivityLog(`Document deleted: ${name}`, '🗑️', 'var(--danger-light)');
       } catch (err) {
-        console.error('Error during background document deletion sync:', err);
+        console.warn('Notice during background document deletion sync:', err);
       }
     })();
   }, [addActivityLog]);
 
   const updateSettings = useCallback(async (s: AppSettings) => {
     if (!user) return;
+    const targetUserId = ensureUuid(user.id);
     setSettings(s);
     storage.saveSettings(user.id, s);
     
     (async () => {
       try {
-        await supabase.from('tf_settings').upsert({ user_id: user.id, data: s });
+        await supabase.from('tf_settings').upsert({ user_id: targetUserId, data: s });
       } catch (err) {
-        console.error('Supabase error updating settings:', err);
+        console.warn('Supabase notice updating settings:', err);
       }
     })();
   }, [user]);

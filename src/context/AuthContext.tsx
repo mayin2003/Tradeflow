@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
 import { storage } from '../services/storage';
 import { supabase } from '../lib/supabase';
+import { ensureUuid } from '../lib/utils';
 
 interface AuthContextType {
   user: User | null;
@@ -21,8 +22,30 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => storage.getUser());
+  const [user, setUser] = useState<User | null>(() => {
+    const saved = storage.getUser();
+    if (saved && saved.id) {
+      const validId = ensureUuid(saved.id);
+      if (validId !== saved.id) {
+        const fixedUser = { ...saved, id: validId };
+        storage.setUser(fixedUser);
+        return fixedUser;
+      }
+    }
+    return saved;
+  });
   const [isLoading, setIsLoading] = useState(true);
+
+  const setAndSaveUser = React.useCallback((u: User | null) => {
+    if (u) {
+      const sanitizedUser = { ...u, id: ensureUuid(u.id) };
+      setUser(sanitizedUser);
+      storage.setUser(sanitizedUser);
+    } else {
+      setUser(null);
+      storage.setUser(null);
+    }
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -48,19 +71,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             companyName: data.session.user.user_metadata?.company_name || 'My Business',
             avatar: data.session.user.user_metadata?.avatar_url || data.session.user.user_metadata?.picture,
           };
-          setUser(appUser);
-          storage.setUser(appUser);
+          setAndSaveUser(appUser);
         } else if (mounted) {
           const savedUser = storage.getUser();
           if (savedUser) {
-            setUser(savedUser);
+            setAndSaveUser(savedUser);
           }
         }
       } catch (err: any) {
         console.warn('Network exception during session check, relying on local storage:', err?.message || err);
         const savedUser = storage.getUser();
         if (savedUser && mounted) {
-          setUser(savedUser);
+          setAndSaveUser(savedUser);
         }
       } finally {
         if (mounted) setIsLoading(false);
@@ -79,8 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           companyName: session.user.user_metadata?.company_name || 'My Business',
           avatar: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
         };
-        setUser(appUser);
-        storage.setUser(appUser);
+        setAndSaveUser(appUser);
       }
     });
 
@@ -90,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = React.useCallback(async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -109,8 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: email,
             companyName: 'TradeFlow Business'
           };
-          setUser(appUser);
-          storage.setUser(appUser);
+          setAndSaveUser(appUser);
           return;
         }
 
@@ -131,8 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           companyName: data.session.user.user_metadata?.company_name || 'My Business',
           avatar: data.session.user.user_metadata?.avatar_url || data.session.user.user_metadata?.picture,
         };
-        setUser(appUser);
-        storage.setUser(appUser);
+        setAndSaveUser(appUser);
       }
     } catch (err: any) {
       const msg = err?.message || String(err || '');
@@ -145,15 +164,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: email,
           companyName: 'TradeFlow Business'
         };
-        setUser(appUser);
-        storage.setUser(appUser);
+        setAndSaveUser(appUser);
         return;
       }
       throw err;
     }
-  };
+  }, [setAndSaveUser]);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = React.useCallback(async () => {
     let originToUse = window.location.origin;
     if (!originToUse || originToUse === 'null' || originToUse.includes('aistudio.google.com')) {
       originToUse = window.location.href.split('/').slice(0, 3).join('/');
@@ -186,8 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: 'pilot@tradeflow.global',
             companyName: 'TradeFlow Global'
           };
-          setUser(appUser);
-          storage.setUser(appUser);
+          setAndSaveUser(appUser);
           return;
         }
         throw new Error(msg || 'Google login failed.');
@@ -214,15 +231,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: 'pilot@tradeflow.global',
           companyName: 'TradeFlow Global'
         };
-        setUser(appUser);
-        storage.setUser(appUser);
+        setAndSaveUser(appUser);
         return;
       }
       throw err;
     }
-  };
+  }, [setAndSaveUser]);
 
-  const register = async (name: string, email: string, password: string, company: string = 'TradeFlow') => {
+  const register = React.useCallback(async (name: string, email: string, password: string, company: string = 'TradeFlow') => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(email)) {
       throw new Error('Please provide a valid email address (e.g., name@example.com).');
@@ -252,13 +268,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: email,
           companyName: company || 'TradeFlow'
         };
-        setUser(appUser);
-        storage.setUser(appUser);
+        setAndSaveUser(appUser);
         return { session: true };
       }
       throw err;
     }
-  };
+  }, [setAndSaveUser]);
 
   const resetPassword = React.useCallback(async (email: string) => {
     try {
@@ -286,7 +301,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         console.warn('Session refresh returned notice:', error.message);
         const savedUser = storage.getUser();
-        if (savedUser) setUser(savedUser);
+        if (savedUser) setAndSaveUser(savedUser);
         return;
       }
       
@@ -298,16 +313,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           companyName: data.session.user.user_metadata?.company_name || 'My Business',
           avatar: data.session.user.user_metadata?.avatar_url || data.session.user.user_metadata?.picture,
         };
-        setUser(appUser);
-        storage.setUser(appUser);
+        setAndSaveUser(appUser);
       } else {
         const savedUser = storage.getUser();
-        if (savedUser) setUser(savedUser);
+        if (savedUser) setAndSaveUser(savedUser);
       }
     } catch (err: any) {
       console.warn('Session refresh exception:', err.message);
       const savedUser = storage.getUser();
-      if (savedUser) setUser(savedUser);
+      if (savedUser) setAndSaveUser(savedUser);
     } finally {
       setIsLoading(false);
     }
@@ -329,13 +343,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           companyName: session.user.user_metadata?.company_name || 'My Business',
           avatar: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture,
         };
-        setUser(appUser);
-        storage.setUser(appUser);
+        setAndSaveUser(appUser);
       }
     } catch (err: any) {
       console.warn('setSession exception:', err.message);
       const savedUser = storage.getUser();
-      if (savedUser) setUser(savedUser);
+      if (savedUser) setAndSaveUser(savedUser);
     } finally {
       setIsLoading(false);
     }
@@ -352,8 +365,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem(key);
       }
     }
-    storage.setUser(null);
-    setUser(null);
+    setAndSaveUser(null);
   }, []);
 
   const updateUser = React.useCallback(async (data: { name?: string; companyName?: string; avatar?: string }) => {
@@ -376,8 +388,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ...(data.companyName && { companyName: data.companyName }),
         ...(data.avatar !== undefined && { avatar: data.avatar }),
       };
-      setUser(updatedUser);
-      storage.setUser(updatedUser);
+      setAndSaveUser(updatedUser);
     } catch (err: any) {
       console.warn('Updating user locally due to network notice:', err.message);
       const updatedUser: User = {
@@ -386,8 +397,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ...(data.companyName && { companyName: data.companyName }),
         ...(data.avatar !== undefined && { avatar: data.avatar }),
       };
-      setUser(updatedUser);
-      storage.setUser(updatedUser);
+      setAndSaveUser(updatedUser);
     }
   }, [user]);
 
@@ -445,8 +455,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: data.user.email,
           companyName: data.user.companyName || 'TradeFlow',
         };
-        setUser(appUser);
-        storage.setUser(appUser);
+        setAndSaveUser(appUser);
       }
     } catch (err: any) {
       const msg = err?.message || String(err || '');
@@ -457,8 +466,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: email,
           companyName: 'TradeFlow',
         };
-        setUser(appUser);
-        storage.setUser(appUser);
+        setAndSaveUser(appUser);
         return;
       }
       throw err;

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { Moon, Sun, Search, Bell, ChevronDown } from 'lucide-react';
@@ -9,14 +9,14 @@ interface TopbarProps {
   onNavigate: (page: string) => void;
 }
 
-export const Topbar = ({ title, onToggleSidebar, onNavigate }: TopbarProps) => {
+export const TopbarComponent = ({ title, onToggleSidebar, onNavigate }: TopbarProps) => {
   const { products, settings, updateSettings } = useData();
   const { user } = useAuth();
   const [showNotifs, setShowNotifs] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const stockAlerts = products.filter(p => p.stock <= p.min_stock);
+  const stockAlerts = useMemo(() => products.filter(p => p.stock <= p.min_stock), [products]);
 
   const userName = user?.name || 'User';
 
@@ -43,12 +43,12 @@ export const Topbar = ({ title, onToggleSidebar, onNavigate }: TopbarProps) => {
     <div className={`topbar flex items-center justify-between h-[72px] px-6 lg:px-10 sticky top-0 z-50 backdrop-blur-md transition-colors duration-300 ${
       isDark 
         ? 'bg-[#0B1220]/90 border-b border-white/5 shadow-lg shadow-black/10' 
-        : 'bg-white/95 border-b border-slate-100 shadow-sm shadow-slate-100/50'
+        : 'bg-[#E2E8F4] border-b border-slate-200/80 shadow-xs'
     }`}>
       {/* Left side: Hamburger and Title or Search */}
       <div className="flex items-center gap-4">
-        <div className="hamburger lg:hidden cursor-pointer p-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-blue-500 transition-colors" onClick={onToggleSidebar}>☰</div>
-        <div className="hidden md:flex topbar-search items-center gap-2 px-4 py-2 rounded-xl bg-slate-100/80 dark:bg-slate-900/60 border border-slate-200/50 dark:border-white/5 transition-all focus-within:border-blue-500/50 focus-within:bg-white dark:focus-within:bg-slate-950 focus-within:ring-2 focus-within:ring-blue-500/10">
+        <div className="hamburger lg:hidden cursor-pointer p-2 rounded-xl border border-slate-300/80 dark:border-white/10 bg-[#E2E8F4] dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-blue-500 transition-colors" onClick={onToggleSidebar}>☰</div>
+        <div className="hidden md:flex topbar-search items-center gap-2 px-4 py-2 rounded-xl bg-slate-200/50 dark:bg-slate-900/60 border border-slate-300/60 dark:border-white/5 transition-all focus-within:border-blue-500/50 focus-within:bg-[#E2E8F4] dark:focus-within:bg-slate-950 focus-within:ring-2 focus-within:ring-blue-500/10">
           <Search size={16} className="text-slate-400 dark:text-slate-500" />
           <input 
             type="text" 
@@ -65,7 +65,7 @@ export const Topbar = ({ title, onToggleSidebar, onNavigate }: TopbarProps) => {
           className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all duration-200 ${
             isDark 
               ? 'bg-slate-900 border-white/5 text-amber-400 hover:text-amber-300' 
-              : 'bg-slate-50 border-slate-200/60 text-slate-600 hover:text-blue-600 hover:bg-slate-100'
+              : 'bg-[#E2E8F4] border-slate-300/70 text-slate-600 hover:text-blue-600 hover:bg-slate-200/70'
           }`}
           onClick={() => {
             const nextTheme = settings.theme === 'light' ? 'dark' : 'light';
@@ -90,8 +90,8 @@ export const Topbar = ({ title, onToggleSidebar, onNavigate }: TopbarProps) => {
                         : 'shadow-[0_4px_20px_rgba(0,0,0,0.35)]'
                     }`
                 : showNotifs
-                  ? 'border-blue-500 bg-blue-50 text-blue-600 scale-105 shadow-md border-2'
-                  : 'bg-white border-slate-200 text-slate-705 hover:text-slate-900 hover:bg-slate-100 hover:scale-105 shadow-sm'
+                  ? 'border-blue-500 bg-blue-100/60 text-blue-600 scale-105 shadow-md border-2'
+                  : 'bg-[#E2E8F4] border-slate-300/80 text-slate-700 hover:text-slate-900 hover:bg-slate-200/80 hover:scale-105 shadow-xs'
             }`}
             onClick={() => setShowNotifs(!showNotifs)}
           >
@@ -111,18 +111,18 @@ export const Topbar = ({ title, onToggleSidebar, onNavigate }: TopbarProps) => {
             <div className={`absolute top-13 right-0 w-85 rounded-2xl shadow-2xl border z-[99999] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 ${
               isDark 
                 ? 'bg-[#1E293B] border-white/10 text-white shadow-black/80' 
-                : 'bg-white border-slate-100 text-slate-900 shadow-slate-200'
+                : 'bg-[#E2E8F4] border-slate-200/80 text-slate-900 shadow-slate-200'
             }`}>
               <div className={`p-4 border-b flex justify-between items-center ${
                 isDark 
                   ? 'border-white/10 bg-slate-900/60' 
-                  : 'border-slate-100 bg-slate-50/50'
+                  : 'border-slate-200/60 bg-slate-200/40'
               }`}>
                 <h4 className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Notifications</h4>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                   isDark 
                     ? 'text-blue-400 bg-blue-500/10 border-blue-500/20' 
-                    : 'text-blue-500 bg-blue-50/50 border-blue-500/20'
+                    : 'text-blue-600 bg-blue-500/10 border-blue-500/20'
                 }`}>{stockAlerts.length} Alerts</span>
               </div>
               <div className="max-h-[320px] overflow-y-auto">
@@ -134,7 +134,7 @@ export const Topbar = ({ title, onToggleSidebar, onNavigate }: TopbarProps) => {
                         className={`flex items-start gap-3 p-3 rounded-xl transition-colors cursor-pointer group text-left ${
                           isDark 
                             ? 'hover:bg-slate-800/60' 
-                            : 'hover:bg-slate-50/80'
+                            : 'hover:bg-slate-200/60'
                         }`}
                         onClick={() => {
                           setShowNotifs(false);
@@ -173,12 +173,12 @@ export const Topbar = ({ title, onToggleSidebar, onNavigate }: TopbarProps) => {
                   className={`p-3 text-center border-t transition-colors cursor-pointer ${
                     isDark 
                       ? 'bg-slate-900/40 border-white/10 hover:bg-slate-800/85' 
-                      : 'bg-slate-50/50 border-slate-100 hover:bg-slate-50'
+                      : 'bg-slate-200/40 border-slate-200/80 hover:bg-slate-200/80'
                   }`} 
                   onClick={() => setShowNotifs(false)}
                 >
                   <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${
-                    isDark ? 'text-slate-400 hover:text-blue-400' : 'text-slate-505 hover:text-blue-500'
+                    isDark ? 'text-slate-400 hover:text-blue-400' : 'text-slate-500 hover:text-blue-500'
                   }`}>Mark All as Read</span>
                 </div>
               )}
@@ -218,4 +218,6 @@ export const Topbar = ({ title, onToggleSidebar, onNavigate }: TopbarProps) => {
     </div>
   );
 };
+
+export const Topbar = React.memo(TopbarComponent);
 

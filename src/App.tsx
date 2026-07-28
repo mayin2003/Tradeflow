@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './context/AuthContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { Topbar } from './components/layout/Topbar';
@@ -29,6 +29,18 @@ const AppContent = () => {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
+
+  const handleNavigate = useCallback((page: string) => {
+    setCurrentPage(page);
+  }, []);
+
+  const handleCloseSidebar = useCallback(() => {
+    setIsSidebarOpen(false);
+  }, []);
+
+  const handleToggleSidebar = useCallback(() => {
+    setIsSidebarOpen(prev => !prev);
+  }, []);
 
   // Handle OAuth Callback route
   if (window.location.pathname === '/auth/callback' || window.location.pathname === '/auth/callback/') {
@@ -69,7 +81,25 @@ const AppContent = () => {
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [currentPage, user]);
+  }, [currentPage, user, addActivityLog]);
+
+  const activePageElement = useMemo(() => {
+    switch (currentPage) {
+      case 'dashboard': return <Dashboard onNavigate={handleNavigate} />;
+      case 'inventory': return <Inventory />;
+      case 'buy': return <BuyImport />;
+      case 'sell': return <SellExport onNavigate={handleNavigate} />;
+      case 'invoice': return <InvoicePage onNavigate={handleNavigate} />;
+      case 'reports': return <Reports />;
+      case 'documents': return <Documents />;
+      case 'customers': return <Customers />;
+      case 'tracking': return <ShipmentTracking />;
+      case 'payroll': return <StaffPayroll />;
+      case 'activity': return <ActivityLog />;
+      case 'settings': return <Settings />;
+      default: return <Dashboard onNavigate={handleNavigate} />;
+    }
+  }, [currentPage, handleNavigate]);
 
   // If not logged in, show landing or login
   if (!user) {
@@ -81,7 +111,7 @@ const AppContent = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.2 }}
           >
             <LoginPage onBack={() => setShowAuth(false)} />
           </motion.div>
@@ -91,7 +121,7 @@ const AppContent = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.2 }}
           >
             <LandingPage onStart={() => setShowAuth(true)} />
           </motion.div>
@@ -100,31 +130,13 @@ const AppContent = () => {
     );
   }
 
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'dashboard': return <Dashboard onNavigate={setCurrentPage} />;
-      case 'inventory': return <Inventory />;
-      case 'buy': return <BuyImport />;
-      case 'sell': return <SellExport onNavigate={setCurrentPage} />;
-      case 'invoice': return <InvoicePage onNavigate={setCurrentPage} />;
-      case 'reports': return <Reports />;
-      case 'documents': return <Documents />;
-      case 'customers': return <Customers />;
-      case 'tracking': return <ShipmentTracking />;
-      case 'payroll': return <StaffPayroll />;
-      case 'activity': return <ActivityLog />;
-      case 'settings': return <Settings />;
-      default: return <Dashboard onNavigate={setCurrentPage} />;
-    }
-  };
-
   return (
     <div id="app" className={isSidebarOpen ? 'sidebar-open' : ''} style={{ display: 'flex' }}>
       <Sidebar 
         current={currentPage} 
-        onNavigate={setCurrentPage} 
+        onNavigate={handleNavigate} 
         isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
+        onClose={handleCloseSidebar}
       />
       
       <AnimatePresence>
@@ -141,7 +153,7 @@ const AppContent = () => {
               zIndex: 900,
               cursor: 'pointer'
             }}
-            onClick={() => setIsSidebarOpen(false)}
+            onClick={handleCloseSidebar}
           />
         )}
       </AnimatePresence>
@@ -149,20 +161,21 @@ const AppContent = () => {
       <div className="main">
         <Topbar 
           title={currentPage.charAt(0).toUpperCase() + currentPage.slice(1)} 
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-          onNavigate={setCurrentPage}
+          onToggleSidebar={handleToggleSidebar}
+          onNavigate={handleNavigate}
         />
         
         <div className="page-content">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentPage}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              style={{ willChange: "transform, opacity" }}
             >
-              {renderPage()}
+              {activePageElement}
             </motion.div>
           </AnimatePresence>
         </div>

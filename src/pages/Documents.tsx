@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useData } from '../context/DataContext';
 
-export const Documents = () => {
+export const DocumentsComponent = () => {
   const { documents, addDocument, deleteDocument } = useData();
   const [dragActive, setDragActive] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<any>(null);
@@ -252,3 +252,5 @@ export const Documents = () => {
     </div>
   );
 };
+
+export const Documents = React.memo(DocumentsComponent);

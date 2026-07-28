@@ -125,7 +125,7 @@ const initialEmployees: EmployeePayroll[] = [
   }
 ];
 
-export const StaffPayroll = () => {
+export const StaffPayrollComponent = () => {
   const { settings, addExpense, addActivityLog } = useData();
   const [employees, setEmployees] = useState<EmployeePayroll[]>(initialEmployees);
   const [searchTerm, setSearchTerm] = useState("");
@@ -919,3 +919,5 @@ export const StaffPayroll = () => {
     </div>
   );
 };
+
+export const StaffPayroll = React.memo(StaffPayrollComponent);

@@ -2,12 +2,12 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f8fafc;
-  --sidebar-bg: #030712;
+  --bg: #E2E8F4;
+  --sidebar-bg: #E2E8F4;
   --sidebar-text: #94a3b8;
   --sidebar-active: #2563eb;
   --sidebar-active-bg: rgba(37, 99, 235, 0.1);
-  --card-bg: #ffffff;
+  --card-bg: #E2E8F4;
   --border: rgba(0, 0, 0, 0.06);
   --text-primary: #0f172a;
   --text-secondary: #475569;
@@ -196,7 +196,7 @@
 }
 
 .bento-card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 28px;
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
@@ -417,6 +417,7 @@ h1, h2, h3, h4, h5, h6 {
   flex-direction: column;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: calc(100% - var(--sidebar-w));
+  background-color: var(--bg);
 }
 .sidebar-open .main {
   margin-left: var(--sidebar-w);
@@ -428,7 +429,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 .topbar {
   height: var(--header-h);
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--bg);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; padding: 0 24px;
@@ -452,7 +453,7 @@ h1, h2, h3, h4, h5, h6 {
   cursor: pointer;
   border-radius: 10px;
   border: 1.5px solid var(--border);
-  background: white;
+  background: var(--card-bg);
   color: var(--text-secondary);
 }
 .hamburger:hover { color: var(--accent); border-color: var(--accent); }
@@ -464,18 +465,18 @@ h1, h2, h3, h4, h5, h6 {
 .topbar-search {
   display: none;
   align-items: center;
-  background: #f8fafc; border: 1.5px solid var(--border);
+  background: var(--bg); border: 1.5px solid var(--border);
   border-radius: 12px; padding: 8px 16px; gap: 10px;
   transition: all .2s ease;
 }
-.topbar-search:focus-within { border-color: var(--accent); background: white; box-shadow: 0 0 0 4px rgba(26,115,232,0.05); }
+.topbar-search:focus-within { border-color: var(--accent); background: var(--card-bg); box-shadow: 0 0 0 4px rgba(26,115,232,0.05); }
 @media (min-width: 768px) {
   .topbar-search { display: flex; }
 }
 .topbar-search input { border: none; background: transparent; font-size: 14px; outline: none; width: 220px; color: var(--text-primary); }
 .topbar-btn {
   width: 42px; height: 42px; border-radius: 12px;
-  background: white; border: 1.5px solid var(--border);
+  background: var(--card-bg); border: 1.5px solid var(--border);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; font-size: 18px; position: relative;
   transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -682,7 +683,7 @@ h1, h2, h3, h4, h5, h6 {
   .stat-grid { grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 32px; }
 }
 .stat-card {
-  background: white; border-radius: 20px;
+  background: var(--card-bg); border-radius: 20px;
   padding: 24px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   border: 1px solid var(--border);
   transition: transform .25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow .25s ease;
@@ -704,7 +705,7 @@ h1, h2, h3, h4, h5, h6 {
 /* ── CHARTS ── */
 .chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
 .chart-card {
-  background: white; border-radius: var(--radius);
+  background: var(--card-bg); border-radius: var(--radius);
   padding: 20px; box-shadow: var(--shadow-sm); border: 1px solid var(--border);
 }
 .chart-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
@@ -712,7 +713,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ── TABLES ── */
 .table-card {
-  background: white; border-radius: var(--radius);
+  background: var(--card-bg); border-radius: var(--radius);
   box-shadow: var(--shadow-sm); border: 1px solid var(--border);
   overflow: hidden;
 }
@@ -729,14 +730,14 @@ h1, h2, h3, h4, h5, h6 {
 .search-input input { border: none; background: transparent; font-size: 13px; outline: none; width: 160px; font-family: inherit; }
 table { width: 100%; border-collapse: separate; border-spacing: 0; }
 thead th {
-  background: #f8fafc; padding: 14px 24px;
+  background: var(--bg); padding: 14px 24px;
   text-align: left; font-size: 12px; font-weight: 700;
   color: var(--text-secondary); letter-spacing: 0.1em; text-transform: uppercase;
   border-bottom: 2px solid var(--border);
   position: sticky; top: 0; z-index: 10;
 }
-tbody td { padding: 16px 24px; font-size: 14px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; color: var(--text-primary); transition: all 0.2s ease; }
-tbody tr:hover td { background: #f8fafc; cursor: pointer; }
+tbody td { padding: 16px 24px; font-size: 14px; border-bottom: 1px solid rgba(0, 0, 0, 0.05); vertical-align: middle; color: var(--text-primary); transition: all 0.2s ease; }
+tbody tr:hover td { background: rgba(0, 0, 0, 0.03); cursor: pointer; }
 tbody tr:last-child td { border-bottom: none; }
 .pagination {
   display: flex; align-items: center; justify-content: between;
@@ -745,7 +746,7 @@ tbody tr:last-child td { border-bottom: none; }
 .pagination span { font-size: 13px; color: var(--text-secondary); flex: 1; }
 .page-btn {
   width: 32px; height: 32px; border-radius: 6px;
-  border: 1.5px solid var(--border); background: white;
+  border: 1.5px solid var(--border); background: var(--card-bg);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; font-size: 13px; font-weight: 500;
   transition: all .2s;

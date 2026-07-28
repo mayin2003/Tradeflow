@@ -8,7 +8,7 @@ Chart.register(...registerables);
 
 type ReportType = 'Daily' | 'Monthly' | 'Yearly';
 
-export const Reports = () => {
+export const ReportsComponent = () => {
   const { transactions, expenses, settings, addActivityLog } = useData();
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
@@ -343,3 +343,5 @@ export const Reports = () => {
     </div>
   );
 };
+
+export const Reports = React.memo(ReportsComponent);

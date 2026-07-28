@@ -8,7 +8,7 @@ interface SellExportProps {
   onNavigate?: (page: string) => void;
 }
 
-export const SellExport = ({ onNavigate }: SellExportProps) => {
+export const SellExportComponent = ({ onNavigate }: SellExportProps) => {
   const { products, transactions, addTransaction, settings, setSelectedInvoiceId, customers, expenses } = useData();
   const [showModal, setShowModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -706,3 +706,5 @@ export const SellExport = ({ onNavigate }: SellExportProps) => {
     </div>
   );
 };
+
+export const SellExport = React.memo(SellExportComponent);

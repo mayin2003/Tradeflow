@@ -1,22 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, Calendar, Download, Trash2, Clock, Hash, Check } from 'lucide-react';
 
-export const ActivityLog = () => {
+export const ActivityLogComponent = () => {
   const { activityLogs, clearActivityLogs, settings, addActivityLog } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [showClearedAlert, setShowClearedAlert] = useState(false);
 
-  const filteredLogs = activityLogs.filter(log => {
-    const matchesSearch = log.action.toLowerCase().includes(searchTerm.toLowerCase());
-    const logDate = new Date(log.timestamp).toISOString().split('T')[0];
-    const matchesDate = selectedDate ? logDate === selectedDate : true;
-    return matchesSearch && matchesDate;
-  }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const filteredLogs = useMemo(() => {
+    return activityLogs.filter(log => {
+      const matchesSearch = log.action.toLowerCase().includes(searchTerm.toLowerCase());
+      const logDate = new Date(log.timestamp).toISOString().split('T')[0];
+      const matchesDate = selectedDate ? logDate === selectedDate : true;
+      return matchesSearch && matchesDate;
+    }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [activityLogs, searchTerm, selectedDate]);
 
   const downloadPDF = () => {
     const doc = new jsPDF();
@@ -239,3 +241,5 @@ export const ActivityLog = () => {
     </div>
   );
 };
+
+export const ActivityLog = React.memo(ActivityLogComponent);

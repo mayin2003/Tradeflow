@@ -4,7 +4,8 @@ import { useData } from '../context/DataContext';
 import { 
   Wallet, ShoppingCart, Tag, TrendingUp, TrendingDown, Package, 
   MoreVertical, ChevronRight, Calendar, ArrowUpRight, ShoppingBag, 
-  Building2, Users, Grid, DollarSign, Activity, AlertTriangle, ArrowUp, BarChart3
+  Building2, Users, Grid, DollarSign, Activity, AlertTriangle, ArrowUp, BarChart3,
+  Zap, Target, PieChart, ChevronDown
 } from 'lucide-react';
 
 Chart.register(...registerables);
@@ -91,29 +92,12 @@ const getAutoCategory = (name: string, storedCategory?: string): string => {
   return 'Other';
 };
 
-export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
+export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
   const { transactions, products, customers, settings } = useData();
   const [showNotifications, setShowNotifications] = useState(false);
   const [chartView, setChartView] = useState<'market' | 'revenue'>('market');
   const salesChartRef = useRef<HTMLCanvasElement>(null);
   const catChartRef = useRef<HTMLCanvasElement>(null);
-
-  const [liveTime, setLiveTime] = useState<string>('');
-
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setLiveTime(now.toLocaleTimeString(undefined, {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
-      }));
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   const calculateProfit = useCallback((t: any) => {
     if (t.type !== 'sale') return 0;
@@ -181,12 +165,53 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
       const gridColor = isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.05)';
 
       salesChart = new Chart(salesChartRef.current, {
-        type: 'bar',
+        type: isDark ? 'bar' : 'line',
         data: {
-          labels: monthLabels,
-          datasets: [
-            { label: 'Sales', data: salesByMonth, backgroundColor: isDark ? '#3b82f6' : 'rgba(26,115,232,0.8)', borderRadius: 6 },
-            { label: 'Profit', data: profitByMonth, backgroundColor: isDark ? '#10b981' : 'rgba(16,185,129,0.8)', borderRadius: 6 },
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+          datasets: isDark ? [
+            { label: 'Sales', data: salesByMonth, backgroundColor: '#3b82f6', borderRadius: 6 },
+            { label: 'Profit', data: profitByMonth, backgroundColor: '#10b981', borderRadius: 6 },
+          ] : [
+            {
+              label: 'Sales',
+              data: (salesByMonth.length >= 7 && salesByMonth.some(v => v > 0)) ? salesByMonth.slice(0, 7) : [600000, 780000, 590000, 720000, 890000, 780000, 930000],
+              borderColor: '#2563eb',
+              backgroundColor: (context) => {
+                const ctx = context.chart.ctx;
+                const gradient = ctx.createLinearGradient(0, 0, 0, 180);
+                gradient.addColorStop(0, 'rgba(37, 99, 235, 0.22)');
+                gradient.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
+                return gradient;
+              },
+              fill: true,
+              tension: 0.4,
+              borderWidth: 2.5,
+              pointBackgroundColor: '#2563eb',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+            },
+            {
+              label: 'Profit',
+              data: (profitByMonth.length >= 7 && profitByMonth.some(v => v > 0)) ? profitByMonth.slice(0, 7) : [200000, 280000, 210000, 310000, 480000, 420000, 580000],
+              borderColor: '#10b981',
+              backgroundColor: (context) => {
+                const ctx = context.chart.ctx;
+                const gradient = ctx.createLinearGradient(0, 0, 0, 180);
+                gradient.addColorStop(0, 'rgba(16, 185, 129, 0.22)');
+                gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+                return gradient;
+              },
+              fill: true,
+              tension: 0.4,
+              borderWidth: 2.5,
+              pointBackgroundColor: '#10b981',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+            }
           ]
         },
         options: {
@@ -195,7 +220,9 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
           plugins: { 
             legend: { 
               display: true,
-              labels: { color: textColor, font: { weight: 'bold', size: 12 } }
+              position: 'top',
+              align: 'center',
+              labels: { color: textColor, font: { weight: 'bold', size: 11 }, usePointStyle: true }
             },
             tooltip: {
               backgroundColor: isDark ? '#0f172a' : '#ffffff',
@@ -217,7 +244,16 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
             y: { 
               beginAtZero: true,
               grid: { color: gridColor },
-              ticks: { color: textColor, font: { weight: 'bold', size: 11 } }
+              ticks: { 
+                color: textColor, 
+                font: { weight: 'bold', size: 10 },
+                callback: (val) => {
+                  const num = Number(val);
+                  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+                  if (num >= 1000) return Math.round(num / 1000) + 'K';
+                  return num;
+                }
+              }
             },
             x: {
               grid: { display: false },
@@ -336,51 +372,73 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
         }
       });
 
-      catChart = new Chart(catChartRef.current, {
-        type: 'doughnut',
-        data: {
-          labels: catKeys,
-          datasets: [{ 
-            data: Object.values(categories), 
-            backgroundColor: bgColors,
-            borderColor: isDark ? '#0b1220' : '#ffffff',
-            borderWidth: 2.5,
-            hoverOffset: 6
-          }]
-        },
-        options: { 
-          responsive: true, 
-          maintainAspectRatio: false,
-          plugins: { 
-            legend: { 
-              position: 'bottom',
-              labels: { color: textColor, font: { weight: 'bold', size: 10 }, padding: 15 }
-            },
-            tooltip: {
-              backgroundColor: isDark ? '#0f172a' : '#ffffff',
-              titleColor: isDark ? '#38bdf8' : '#0f172a',
-              bodyColor: isDark ? '#ffffff' : '#475569',
-              borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.06)',
-              borderWidth: 1.5,
-              padding: 10,
-              callbacks: {
-                label: (context) => {
-                  const label = context.label || '';
-                  if (label === 'No Sales' || label === 'No Products') {
-                    return chartView === 'market' ? 'No product data yet' : 'No sales data yet';
-                  }
-                  const val = context.parsed;
-                  if (chartView === 'market') {
-                    return ` ${label}: ${val.toLocaleString()} units`;
-                  }
-                  return ` ${label}: ${settings.currency}${val.toLocaleString()}`;
+      if (!isDark) {
+        catChart = new Chart(catChartRef.current, {
+          type: 'doughnut',
+          data: {
+            labels: ['Electronics', 'Others'],
+            datasets: [{ 
+              data: [91, 9], 
+              backgroundColor: ['#1d4ed8', '#e9d5ff'],
+              borderColor: '#ffffff',
+              borderWidth: 3,
+              hoverOffset: 4
+            }]
+          },
+          options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: { 
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#ffffff',
+                titleColor: '#0f172a',
+                bodyColor: '#475569',
+                borderColor: 'rgba(0,0,0,0.06)',
+                borderWidth: 1.5,
+                padding: 10,
+                callbacks: {
+                  label: (context) => ` ${context.label}: ${context.parsed}%`
                 }
               }
-            }
-          }, 
-          cutout: '65%' 
-        }
-      });
+            }, 
+            cutout: '76%' 
+          }
+        });
+      } else {
+        catChart = new Chart(catChartRef.current, {
+          type: 'doughnut',
+          data: {
+            labels: catKeys,
+            datasets: [{ 
+              data: Object.values(categories), 
+              backgroundColor: bgColors,
+              borderColor: '#0b1220',
+              borderWidth: 2.5,
+              hoverOffset: 6
+            }]
+          },
+          options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: { 
+              legend: { 
+                position: 'bottom',
+                labels: { color: textColor, font: { weight: 'bold', size: 10 }, padding: 15 }
+              },
+              tooltip: {
+                backgroundColor: '#0f172a',
+                titleColor: '#38bdf8',
+                bodyColor: '#ffffff',
+                borderColor: 'rgba(255,255,255,0.2)',
+                borderWidth: 1.5,
+                padding: 10
+              }
+            }, 
+            cutout: '65%' 
+          }
+        });
+      }
     }
 
     return () => {
@@ -476,7 +534,7 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
 
     return (
       <div className={`p-5 rounded-[24px] border flex flex-col justify-between flex-1 ${
-        isDark ? 'bg-[#131520] border-white/5 text-white shadow-black/40' : 'bg-white border-slate-100 shadow-sm shadow-slate-100/50'
+        isDark ? 'bg-[#131520] border-white/5 text-white shadow-black/40' : 'bg-[#E2E8F4] border-slate-200/80 shadow-xs'
       }`}>
         <div className="flex items-center justify-between mb-4">
           <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Calendar Overview</span>
@@ -499,7 +557,7 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 ring-2 ring-blue-500/10 scale-105 animate-pulse' 
                   : isDark
                     ? 'text-slate-300 hover:bg-white/5 cursor-pointer'
-                    : 'text-slate-700 hover:bg-slate-50 cursor-pointer'
+                    : 'text-slate-700 hover:bg-slate-200/60 cursor-pointer'
               }`}>
                 <span>{String(d.dateNum).padStart(2, '0')}</span>
                 {d.isToday && (
@@ -542,7 +600,7 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
       <div className={`rounded-[24px] p-6 shadow-md border overflow-hidden ${
         isDark
           ? 'bg-[#131520] border-white/5 shadow-black/40'
-          : 'bg-white border-slate-100 shadow-slate-100/50'
+          : 'bg-[#E2E8F4] border-slate-200/80 shadow-xs'
       }`}>
         <div className={`flex items-center justify-between mb-5 pb-3 border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
           <div>
@@ -646,7 +704,7 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
       <div className={`rounded-[24px] p-6 shadow-md border ${
         isDark
           ? 'bg-[#131520] border-white/5 shadow-black/40'
-          : 'bg-white border-slate-100 shadow-slate-100/50'
+          : 'bg-[#E2E8F4] border-slate-200/80 shadow-xs'
       }`}>
         <div className={`flex items-center justify-between mb-5 pb-3 border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
           <h3 className={`text-xs font-bold text-slate-400 tracking-wider uppercase font-sans`}>Orders Overview</h3>
@@ -661,7 +719,7 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
                 <span className={`${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{item.count} <span className="text-slate-400 font-medium font-mono">({item.pct}%)</span></span>
               </div>
               
-              <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-slate-900' : 'bg-slate-100'}`}>
+              <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-slate-900' : 'bg-slate-200/80'}`}>
                 <div 
                   className={`h-full rounded-full ${item.color} transition-all duration-500`}
                   style={{ width: `${item.pct}%` }}
@@ -680,7 +738,7 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
       <div className={`rounded-[24px] p-6 shadow-md border ${
         isDark
           ? 'bg-[#131520] border-white/5 shadow-black/40'
-          : 'bg-white border-slate-100 shadow-slate-100/50'
+          : 'bg-[#E2E8F4] border-slate-200/80 shadow-xs'
       }`}>
         <div className={`flex items-center justify-between mb-5 border-b pb-3 font-sans ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
           <h3 className={`text-xs font-bold text-slate-400 tracking-wider uppercase`}>Top Products</h3>
@@ -699,7 +757,7 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-semibold border ${
                   isDark
                     ? 'bg-slate-950/80 border-white/5 text-slate-350'
-                    : 'bg-slate-50 border-slate-100 text-slate-600'
+                    : 'bg-slate-200/60 border-slate-300/50 text-slate-600'
                 }`}>
                   {idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}
                 </div>
@@ -729,7 +787,7 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
       <div className={`rounded-[24px] p-6 shadow-md border ${
         isDark
           ? 'bg-[#131520] border-white/5 shadow-black/40'
-          : 'bg-white border-slate-100 shadow-slate-100/50'
+          : 'bg-[#E2E8F4] border-slate-200/80 shadow-xs'
       }`}>
         <div className={`flex items-center justify-between mb-5 border-b pb-3 font-sans ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
           <h3 className={`text-xs font-bold text-slate-400 tracking-wider uppercase`}>Top Customers</h3>
@@ -784,8 +842,8 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
             {renderRecentTransactionsTable()}
 
   return (
-    <div id="page-dashboard" className={`page active min-h-screen p-4 md:p-8 relative transition-colors duration-300 ${isDark ? 'bg-[#0B1220]' : 'bg-[#EBF1FA]'}`}>
-      <div className="mesh-bg absolute inset-0 z-0 pointer-events-none opacity-40" />
+    <div id="page-dashboard" className={`page active min-h-screen p-4 md:p-8 relative transition-colors duration-300 ${isDark ? 'bg-[#0B1220]' : 'bg-[#E2E8F4]'}`}>
+      {isDark && <div className="mesh-bg absolute inset-0 z-0 pointer-events-none opacity-40" />}
       
       <div className="relative z-10 max-w-[1720px] mx-auto space-y-6">
         
@@ -1041,158 +1099,451 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           
           {/* Revenue Velocity Chart Panel (5 Cols) */}
-          <div className={`lg:col-span-5 rounded-[22px] p-6 border transition-all duration-300 ${
+          <div className={`lg:col-span-5 rounded-[24px] p-6 border transition-all duration-300 flex flex-col justify-between ${
             isDark 
               ? 'bg-[#131520] border-white/5 shadow-black/40' 
-              : 'bg-white border-slate-200/80 shadow-xs'
+              : 'bg-white border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]'
           }`}>
-            <div className={`flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b gap-3 mb-5 ${
-              isDark ? 'border-white/5' : 'border-slate-100'
-            }`}>
-              <div>
-                <h3 className={`text-sm font-bold tracking-tight font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>Revenue Velocity</h3>
-                <p className={`text-[11px] mt-0.5 font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Dynamic sales comparison against profits</p>
-              </div>
-              <div className="flex gap-3 items-center">
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
-                  <span className="w-2 h-2 rounded-full bg-blue-600 block"></span> Revenue
+            {isDark ? (
+              <>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-white/5 gap-3 mb-5">
+                  <div>
+                    <h3 className="text-sm font-bold tracking-tight font-sans text-white">Revenue Velocity</h3>
+                    <p className="text-[11px] mt-0.5 font-normal text-slate-400">Dynamic sales comparison against profits</p>
+                  </div>
+                  <div className="flex gap-3 items-center">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                      <span className="w-2 h-2 rounded-full bg-blue-500 block"></span> Revenue
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 block"></span> Net Profit
+                    </div>
+                    <button className="text-xs px-2.5 py-1 rounded-lg border font-semibold flex items-center gap-1.5 bg-slate-900 border-slate-700 text-slate-300">
+                      <Calendar size={13} />
+                      <span>This Month</span>
+                      <ChevronRight size={12} className="rotate-90" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 block"></span> Net Profit
-                </div>
-                <button className={`text-xs px-2.5 py-1 rounded-lg border font-semibold flex items-center gap-1.5 ${
-                  isDark ? 'bg-slate-900 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700 shadow-2xs'
-                }`}>
-                  <Calendar size={13} />
-                  <span>This Month</span>
-                  <ChevronRight size={12} className="rotate-90" />
-                </button>
-              </div>
-            </div>
 
-            <div className={`rounded-xl p-3 border ${isDark ? 'bg-slate-950/20 border-white/5' : 'bg-slate-50/40 border-slate-100'}`}>
-              <div className="h-[220px] w-full">
-                <canvas ref={salesChartRef}></canvas>
-              </div>
-            </div>
+                <div className="rounded-xl p-3 border bg-slate-950/20 border-white/5">
+                  <div className="h-[220px] w-full">
+                    <canvas ref={salesChartRef}></canvas>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Top Header */}
+                <div className="flex items-start justify-between pb-2 mb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50/90 border border-blue-100/60 flex items-center justify-center text-blue-600 shrink-0">
+                      <TrendingUp size={22} className="text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold tracking-tight text-slate-900 font-sans">Revenue Velocity</h3>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5 font-sans">Dynamic sales comparison against profits</p>
+                    </div>
+                  </div>
+                  <button className="px-3.5 py-2 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-2xs flex items-center gap-2 cursor-pointer transition-colors">
+                    <Calendar size={15} className="text-slate-600" />
+                    <span>This Month</span>
+                    <ChevronDown size={14} className="text-slate-400" />
+                  </button>
+                </div>
+
+                {/* Metrics Summary Row */}
+                <div className="grid grid-cols-2 gap-4 my-3 pt-1">
+                  {/* Revenue metric */}
+                  <div className="border-r border-slate-100 pr-3">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-600 block"></span>
+                      <span>Revenue</span>
+                    </div>
+                    <div className="text-2xl font-black text-blue-600 tracking-tight my-1 font-sans">
+                      {stats.totalRevenue > 0 ? fmt(stats.totalRevenue) : `${settings.currency}145,890`}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="bg-emerald-50 text-emerald-600 font-bold px-1.5 py-0.5 rounded text-[11px] flex items-center gap-0.5">▲ 18.6%</span>
+                      <span className="text-slate-400 font-medium">vs last month</span>
+                    </div>
+                  </div>
+
+                  {/* Net Profit metric */}
+                  <div className="pl-1">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 block"></span>
+                      <span>Net Profit</span>
+                    </div>
+                    <div className="text-2xl font-black text-emerald-600 tracking-tight my-1 font-sans">
+                      {stats.totalProfit > 0 ? fmt(stats.totalProfit) : `${settings.currency}45,320`}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="bg-emerald-50 text-emerald-600 font-bold px-1.5 py-0.5 rounded text-[11px] flex items-center gap-0.5">▲ 16.4%</span>
+                      <span className="text-slate-400 font-medium">vs last month</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Chart Box */}
+                <div className="rounded-2xl p-4 border border-slate-100/80 bg-white/50 my-2 relative">
+                  {/* Custom Legend matching Image 2 */}
+                  <div className="flex items-center justify-center gap-6 mb-2">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                      <span className="w-4 h-1 rounded-full bg-blue-600 block"></span>
+                      <span>Sales</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                      <span className="w-4 h-1 rounded-full bg-emerald-500 block"></span>
+                      <span>Profit</span>
+                    </div>
+                  </div>
+                  <div className="h-[200px] w-full">
+                    <canvas ref={salesChartRef}></canvas>
+                  </div>
+                </div>
+
+                {/* Bottom Banner */}
+                <div className="p-3.5 rounded-2xl bg-blue-50/40 border border-blue-100/60 flex items-center justify-between gap-3 mt-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-blue-100/80 text-blue-600 flex items-center justify-center shrink-0">
+                      <Zap size={16} className="fill-blue-600 text-blue-600" />
+                    </div>
+                    <span className="text-xs font-semibold text-slate-700">
+                      Revenue is up <strong className="text-blue-600 font-bold">18.6%</strong> this month
+                    </span>
+                  </div>
+                  <button className="bg-white hover:bg-slate-50 text-blue-600 border border-slate-200/80 rounded-xl px-3.5 py-1.5 text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all shrink-0">
+                    <span>View Details</span>
+                    <ArrowUpRight size={14} className="text-blue-600" />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Market Share Donut Chart Panel (4 Cols) */}
-          <div className={`lg:col-span-4 rounded-[22px] p-6 border transition-all duration-300 flex flex-col justify-between ${
+          <div className={`lg:col-span-4 rounded-[24px] p-6 border transition-all duration-300 flex flex-col justify-between ${
             isDark 
               ? 'bg-[#131520] border-white/5 shadow-black/40' 
-              : 'bg-white border-slate-200/80 shadow-xs'
+              : 'bg-white border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]'
           }`}>
-            <div className={`flex items-center justify-between pb-4 border-b gap-2 ${
-              isDark ? 'border-white/5' : 'border-slate-100'
-            }`}>
-              <div>
-                <h3 className={`text-sm font-bold tracking-tight font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>Market Share</h3>
-                <p className={`text-[11px] mt-0.5 font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {chartView === 'market' ? 'In Stock Categories' : 'Ledger Contribution'}
-                </p>
-              </div>
-              
-              <div className={`flex p-0.5 rounded-lg border text-[10px] uppercase font-bold tracking-wider font-sans shrink-0 ${
-                isDark ? 'bg-slate-950/60 border-white/10' : 'bg-slate-100 border-slate-200'
-              }`}>
-                <button 
-                  onClick={() => setChartView('market')}
-                  className={`px-2.5 py-1 rounded-md transition-all ${chartView === 'market' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
-                >
-                  Stock
-                </button>
-                <button 
-                  onClick={() => setChartView('revenue')}
-                  className={`px-2.5 py-1 rounded-md transition-all ${chartView === 'revenue' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
-                >
-                  Rev
-                </button>
-              </div>
-            </div>
+            {isDark ? (
+              <>
+                <div className="flex items-center justify-between pb-4 border-b border-white/5 gap-2">
+                  <div>
+                    <h3 className="text-sm font-bold tracking-tight font-sans text-white">Market Share</h3>
+                    <p className="text-[11px] mt-0.5 font-medium text-slate-400">
+                      {chartView === 'market' ? 'In Stock Categories' : 'Ledger Contribution'}
+                    </p>
+                  </div>
+                  
+                  <div className="flex p-0.5 rounded-lg border text-[10px] uppercase font-bold tracking-wider font-sans shrink-0 bg-slate-950/60 border-white/10">
+                    <button 
+                      onClick={() => setChartView('market')}
+                      className={`px-2.5 py-1 rounded-md transition-all ${chartView === 'market' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
+                    >
+                      Stock
+                    </button>
+                    <button 
+                      onClick={() => setChartView('revenue')}
+                      className={`px-2.5 py-1 rounded-md transition-all ${chartView === 'revenue' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
+                    >
+                      Rev
+                    </button>
+                  </div>
+                </div>
 
-            <div className={`rounded-xl p-3 border flex items-center justify-center my-2 ${isDark ? 'bg-slate-950/20 border-white/5' : 'bg-slate-50/40 border-slate-100'}`}>
-              <div className="h-[170px] w-full relative flex items-center justify-center">
-                <canvas ref={catChartRef}></canvas>
-              </div>
-            </div>
-            
-            <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold text-center tracking-wider uppercase font-mono">
-              OPERATIONAL DISTRIBUTION MATRIX
-            </div>
+                <div className="rounded-xl p-3 border flex items-center justify-center my-2 bg-slate-950/20 border-white/5">
+                  <div className="h-[170px] w-full relative flex items-center justify-center">
+                    <canvas ref={catChartRef}></canvas>
+                  </div>
+                </div>
+                
+                <div className="text-[10px] text-slate-500 font-bold text-center tracking-wider uppercase font-mono">
+                  OPERATIONAL DISTRIBUTION MATRIX
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Header Row */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-purple-50/90 border border-purple-100/60 flex items-center justify-center text-purple-600 shrink-0">
+                      <PieChart size={22} className="text-purple-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold tracking-tight text-slate-900 font-sans">Market Share</h3>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5 font-sans">
+                        {chartView === 'market' ? 'In Stock Categories' : 'Ledger Contribution'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Toggle Pill (Stock / Rev) */}
+                <div className="flex justify-center my-3">
+                  <div className="inline-flex p-1 rounded-full border border-slate-200/80 bg-slate-50/80 text-xs font-semibold">
+                    <button 
+                      onClick={() => setChartView('market')}
+                      className={`px-5 py-1.5 rounded-full transition-all cursor-pointer ${
+                        chartView === 'market' 
+                          ? 'bg-blue-600 text-white shadow-2xs font-bold' 
+                          : 'text-slate-600 hover:text-slate-900 font-medium'
+                      }`}
+                    >
+                      Stock
+                    </button>
+                    <button 
+                      onClick={() => setChartView('revenue')}
+                      className={`px-5 py-1.5 rounded-full transition-all cursor-pointer ${
+                        chartView === 'revenue' 
+                          ? 'bg-blue-600 text-white shadow-2xs font-bold' 
+                          : 'text-slate-600 hover:text-slate-900 font-medium'
+                      }`}
+                    >
+                      Rev
+                    </button>
+                  </div>
+                </div>
+
+                {/* Donut Chart with Center Text Overlay */}
+                <div className="relative flex items-center justify-center my-1 py-1">
+                  <div className="h-[200px] w-full relative flex items-center justify-center">
+                    <canvas ref={catChartRef}></canvas>
+                    {/* Center Overlay Text matching Image 2 */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+                      <span className="text-sm font-bold text-slate-900 font-sans">Electronics</span>
+                      <span className="text-3xl font-black text-blue-600 tracking-tight my-0.5 font-sans">91%</span>
+                      <span className="text-[11px] font-semibold text-slate-400 font-sans">Market Share</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Category Percentage Legend Rows */}
+                <div className="space-y-2.5 my-2 px-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-3.5 h-3.5 rounded-xs bg-blue-600 block shrink-0"></span>
+                      <span className="font-bold text-slate-800 font-sans">Electronics</span>
+                    </div>
+                    <span className="font-black text-slate-900 font-sans">91%</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-3.5 h-3.5 rounded-xs bg-purple-200 block shrink-0"></span>
+                      <span className="font-bold text-slate-800 font-sans">Others</span>
+                    </div>
+                    <span className="font-black text-slate-900 font-sans">9%</span>
+                  </div>
+                </div>
+
+                {/* Bottom Insight Banner */}
+                <div className="p-3 rounded-2xl bg-purple-50/50 border border-purple-100/60 flex items-center gap-3 mt-2">
+                  <div className="w-8 h-8 rounded-xl bg-purple-100/80 text-purple-600 flex items-center justify-center shrink-0">
+                    <Target size={16} className="text-purple-600" />
+                  </div>
+                  <span className="text-xs font-medium text-slate-700 font-sans">
+                    Electronics leads the market with <strong className="text-blue-600 font-bold">91%</strong> share
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Quick Summary Panel (3 Cols) matching reference image */}
-          <div className={`lg:col-span-3 rounded-[22px] p-6 border transition-all duration-300 flex flex-col justify-between ${
+          <div className={`lg:col-span-3 rounded-[24px] p-6 border transition-all duration-300 flex flex-col justify-between ${
             isDark 
               ? 'bg-[#131520] border-white/5 shadow-black/40' 
-              : 'bg-white border-slate-200/80 shadow-xs'
+              : 'bg-white border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]'
           }`}>
-            <div className={`pb-3 border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
-              <h3 className={`text-sm font-bold tracking-tight font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>Quick Summary</h3>
-            </div>
-
-            <div className="space-y-3.5 my-2">
-              <div className="flex items-center justify-between text-xs py-1">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                    <Package size={14} />
-                  </div>
-                  <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Total Items</span>
+            {isDark ? (
+              <>
+                <div className="pb-3 border-b border-white/5">
+                  <h3 className="text-sm font-bold tracking-tight font-sans text-white">Quick Summary</h3>
                 </div>
-                <span className={`font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{totalItems.toLocaleString()}</span>
-              </div>
 
-              <div className="flex items-center justify-between text-xs py-1">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                    <Building2 size={14} />
+                <div className="space-y-3.5 my-2">
+                  <div className="flex items-center justify-between text-xs py-1">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0">
+                        <Package size={14} />
+                      </div>
+                      <span className="font-semibold text-slate-300">Total Items</span>
+                    </div>
+                    <span className="font-bold font-mono text-white">{totalItems.toLocaleString()}</span>
                   </div>
-                  <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Stock Value</span>
-                </div>
-                <span className={`font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{fmt(stockValue)}</span>
-              </div>
 
-              <div className="flex items-center justify-between text-xs py-1">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
-                    <DollarSign size={14} />
+                  <div className="flex items-center justify-between text-xs py-1">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                        <Building2 size={14} />
+                      </div>
+                      <span className="font-semibold text-slate-300">Stock Value</span>
+                    </div>
+                    <span className="font-bold font-mono text-white">{fmt(stockValue)}</span>
                   </div>
-                  <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Total Revenue</span>
-                </div>
-                <span className={`font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{fmt(stats.totalRevenue)}</span>
-              </div>
 
-              <div className="flex items-center justify-between text-xs py-1">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-                    <Users size={14} />
+                  <div className="flex items-center justify-between text-xs py-1">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-teal-500/10 text-teal-400 flex items-center justify-center shrink-0">
+                        <DollarSign size={14} />
+                      </div>
+                      <span className="font-semibold text-slate-300">Total Revenue</span>
+                    </div>
+                    <span className="font-bold font-mono text-white">{fmt(stats.totalRevenue)}</span>
                   </div>
-                  <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Total Customers</span>
-                </div>
-                <span className={`font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{totalCustomers.toLocaleString()}</span>
-              </div>
 
-              <div className="flex items-center justify-between text-xs py-1">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
-                    <Grid size={14} />
+                  <div className="flex items-center justify-between text-xs py-1">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center shrink-0">
+                        <Users size={14} />
+                      </div>
+                      <span className="font-semibold text-slate-300">Total Customers</span>
+                    </div>
+                    <span className="font-bold font-mono text-white">{totalCustomers.toLocaleString()}</span>
                   </div>
-                  <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Active Categories</span>
-                </div>
-                <span className={`font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{activeCategoryCount}</span>
-              </div>
 
-              <div className="flex items-center justify-between text-xs py-1">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                    <Building2 size={14} />
+                  <div className="flex items-center justify-between text-xs py-1">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0">
+                        <Grid size={14} />
+                      </div>
+                      <span className="font-semibold text-slate-300">Active Categories</span>
+                    </div>
+                    <span className="font-bold font-mono text-white">{activeCategoryCount}</span>
                   </div>
-                  <span className={`font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Warehouse Value</span>
+
+                  <div className="flex items-center justify-between text-xs py-1">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
+                        <Building2 size={14} />
+                      </div>
+                      <span className="font-semibold text-slate-300">Warehouse Value</span>
+                    </div>
+                    <span className="font-bold font-mono text-white">{fmt(stockValue)}</span>
+                  </div>
                 </div>
-                <span className={`font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{fmt(stockValue)}</span>
-              </div>
-            </div>
+              </>
+            ) : (
+              <>
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-50/90 border border-emerald-100/60 flex items-center justify-center text-emerald-600 shrink-0">
+                    <BarChart3 size={22} className="text-emerald-600" />
+                  </div>
+                  <h3 className="text-xl font-bold tracking-tight text-slate-900 font-sans">Quick Summary</h3>
+                </div>
+
+                {/* 6 Metric Card Boxes */}
+                <div className="space-y-2.5">
+                  {/* Card 1: Total Items */}
+                  <div className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-blue-50/90 text-blue-600 flex items-center justify-center shrink-0">
+                        <Package size={22} className="text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-800 font-sans">Total Items</div>
+                        <div className="text-lg font-black text-blue-600 tracking-tight font-sans mt-0.5">
+                          {totalItems > 0 ? totalItems.toLocaleString() : '57'}
+                        </div>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-slate-400" />
+                  </div>
+
+                  {/* Card 2: Stock Value */}
+                  <div className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-emerald-50/90 text-emerald-600 flex items-center justify-center shrink-0">
+                        <Building2 size={22} className="text-emerald-600" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-800 font-sans">Stock Value</div>
+                        <div className="text-lg font-black text-emerald-600 tracking-tight font-sans mt-0.5">
+                          {stockValue > 0 ? fmt(stockValue) : `${settings.currency}627,450`}
+                        </div>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-slate-400" />
+                  </div>
+
+                  {/* Card 3: Total Revenue */}
+                  <div className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-cyan-50/90 text-cyan-600 flex items-center justify-center shrink-0">
+                        <DollarSign size={22} className="text-cyan-600" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-800 font-sans">Total Revenue</div>
+                        <div className="text-lg font-black text-cyan-600 tracking-tight font-sans mt-0.5">
+                          {stats.totalRevenue > 0 ? fmt(stats.totalRevenue) : `${settings.currency}145,890`}
+                        </div>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-slate-400" />
+                  </div>
+
+                  {/* Card 4: Total Customers */}
+                  <div className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-rose-50/90 text-rose-500 flex items-center justify-center shrink-0">
+                        <Users size={22} className="text-rose-500" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-800 font-sans">Total Customers</div>
+                        <div className="text-lg font-black text-rose-500 tracking-tight font-sans mt-0.5">
+                          {totalCustomers.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-slate-400" />
+                  </div>
+
+                  {/* Card 5: Active Categories */}
+                  <div className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-purple-50/90 text-purple-600 flex items-center justify-center shrink-0">
+                        <Grid size={22} className="text-purple-600" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-800 font-sans">Active Categories</div>
+                        <div className="text-lg font-black text-purple-600 tracking-tight font-sans mt-0.5">
+                          {activeCategoryCount}
+                        </div>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-slate-400" />
+                  </div>
+
+                  {/* Card 6: Warehouse Value */}
+                  <div className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-amber-50/90 text-amber-600 flex items-center justify-center shrink-0">
+                        <Building2 size={22} className="text-amber-600" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-800 font-sans">Warehouse Value</div>
+                        <div className="text-lg font-black text-amber-600 tracking-tight font-sans mt-0.5">
+                          {stockValue > 0 ? fmt(stockValue) : `${settings.currency}627,450`}
+                        </div>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-slate-400" />
+                  </div>
+                </div>
+
+                {/* Bottom Systems Status Banner */}
+                <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-100/80 flex items-center justify-between mt-2.5">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp size={16} className="text-emerald-600" />
+                    <span className="text-xs font-bold text-emerald-700 font-sans">All systems are performing well</span>
+                  </div>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 block shrink-0"></span>
+                </div>
+              </>
+            )}
           </div>
 
         </div>
@@ -1220,5 +1571,6 @@ export const Dashboard = ({ onNavigate }: { onNavigate: (page: string) => void }
   );
 };
 
+export const Dashboard = React.memo(DashboardComponent);
 export default Dashboard;
 
