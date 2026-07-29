@@ -490,6 +490,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 .page-content { padding: 16px; flex: 1; max-width: 1600px; margin: 0 auto; width: 100%; }
 
+.page-content:has(#page-dashboard) {
+  max-width: 100%;
+}
+
 @media (min-width: 768px) {
   .page-content { padding: 32px 40px; }
 }
@@ -1257,6 +1261,8 @@ body.sidebar-open {
 .custom-modal-overlay {
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(10px);
+  padding: 20px 12px;
+  overflow-y: auto;
 }
 
 .retro-modal {
@@ -1265,7 +1271,7 @@ body.sidebar-open {
   border-radius: 20px;
   width: 580px;
   max-width: 95vw;
-  max-height: 94vh;
+  max-height: min(90vh, calc(100vh - 40px));
   box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.4);
   display: flex;
   flex-direction: column;
@@ -1273,6 +1279,7 @@ body.sidebar-open {
   position: relative;
   overflow: hidden;
   will-change: transform, opacity;
+  margin: auto;
 }
 
 [data-theme='dark'] .retro-modal {
@@ -1298,6 +1305,7 @@ body.sidebar-open {
   align-items: center;
   justify-content: space-between;
   z-index: 1;
+  flex-shrink: 0;
 }
 
 [data-theme='dark'] .retro-modal-header {
@@ -1340,7 +1348,8 @@ body.sidebar-open {
 .retro-modal-body {
   padding: 24px;
   overflow-y: auto;
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   z-index: 1;
 }
 
@@ -1740,6 +1749,7 @@ body.sidebar-open {
   gap: 16px;
   align-items: center;
   z-index: 1;
+  flex-shrink: 0;
 }
 
 [data-theme='dark'] .retro-modal-footer {

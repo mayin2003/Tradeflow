@@ -428,6 +428,466 @@ export const BuyImportComponent = () => {
     };
   }, [transactions, products]);
 
+  if (showModal) {
+    return (
+      <div id="page-buy" className="page active space-y-6">
+        <div className="page-header">
+          <div>
+            <h2>Buy Workspace</h2>
+            <p>Record new purchase transaction and manage import details</p>
+          </div>
+          <button className="btn btn-outline flex items-center gap-2" onClick={() => setShowModal(false)}>
+            <span>← Back to Purchase History</span>
+          </button>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm p-6 lg:p-8 space-y-8">
+          <div className="flex justify-between items-center border-b border-slate-200/80 dark:border-slate-800/80 pb-4">
+            <div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Record Purchase</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Fill in purchase details, calculate landing costs, and update stock</p>
+            </div>
+            <button className="retro-close-btn" onClick={() => setShowModal(false)} title="Close Workspace">
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            {/* Product & Category Row */}
+            <div className="retro-form-row">
+              <div className="retro-form-group">
+                <label>Product *</label>
+                <div className="retro-input-wrapper">
+                  <input 
+                    type="text" 
+                    list="products-list"
+                    className="retro-input"
+                    value={formData.product_name}
+                    onChange={(e) => {
+                      const name = e.target.value;
+                      const existing = products.find(p => p.name === name);
+                      const detectedCategory = inferCategory(name);
+                      setFormData({
+                        ...formData, 
+                        product_name: name,
+                        product_id: existing ? existing.id : '',
+                        price: existing ? existing.cost_price : formData.price,
+                        sell_price: existing ? existing.sell_price : formData.sell_price,
+                        category: existing ? (existing.category || detectedCategory) : detectedCategory
+                      });
+                    }}
+                    placeholder="e.g. Samsung TV" 
+                  />
+                </div>
+                <datalist id="products-list">
+                  {products.map(p => <option key={p.id} value={p.name} />)}
+                </datalist>
+              </div>
+              
+              {/* Category Field with Custom Searchable Dropdown */}
+              <div className="retro-form-group relative" ref={dropdownRef}>
+                <label>Category *</label>
+                <div 
+                  className="retro-input-wrapper cursor-pointer select-none"
+                  onClick={() => {
+                    setDropdownOpen(!dropdownOpen);
+                    setCategorySearch('');
+                    setFocusedIndex(-1);
+                  }}
+                >
+                  <div className="retro-input flex items-center justify-between min-h-[42px] px-3">
+                    <span className="font-semibold text-slate-750 dark:text-slate-300">
+                      {formData.category || 'Select Category'}
+                    </span>
+                    <span className="text-slate-400 text-xs">▼</span>
+                  </div>
+                </div>
+
+                {dropdownOpen && (
+                  <div className="absolute left-0 right-0 top-[100%] mt-1 z-[999] rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl p-2 flex flex-col gap-1">
+                    {/* Search Input inside Dropdown */}
+                    <div className="p-1">
+                      <input
+                        type="text"
+                        className="w-full text-xs bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-teal-500 font-medium text-slate-755 dark:text-slate-300"
+                        placeholder="Type to search category..."
+                        value={categorySearch}
+                        onChange={(e) => {
+                          setCategorySearch(e.target.value);
+                          setFocusedIndex(0);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => {
+                          if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            setFocusedIndex(prev => Math.min(filteredCategories.length - 1, prev + 1));
+                          } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            setFocusedIndex(prev => Math.max(0, prev - 1));
+                          } else if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (focusedIndex >= 0 && focusedIndex < filteredCategories.length) {
+                              const selected = filteredCategories[focusedIndex];
+                              setFormData({ ...formData, category: selected });
+                              setDropdownOpen(false);
+                            }
+                          } else if (e.key === 'Escape') {
+                            setDropdownOpen(false);
+                          }
+                        }}
+                        autoFocus
+                      />
+                    </div>
+                    {/* Categories List */}
+                    <div className="max-h-[160px] overflow-y-auto custom-scrollbar flex flex-col pt-1">
+                      {filteredCategories.length > 0 ? (
+                        filteredCategories.map((cat, idx) => {
+                          const isFocused = idx === focusedIndex;
+                          const isSelected = formData.category === cat;
+                          return (
+                            <button
+                              key={cat}
+                              type="button"
+                              className={`w-full text-left rounded-lg text-xs font-semibold px-3 py-2 transition-all flex items-center justify-between
+                                ${isSelected 
+                                  ? 'bg-teal-500 text-white' 
+                                  : isFocused 
+                                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100' 
+                                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/10'
+                                }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFormData({ ...formData, category: cat });
+                                setDropdownOpen(false);
+                              }}
+                              onMouseEnter={() => setFocusedIndex(idx)}
+                            >
+                              <span>{cat}</span>
+                              {isSelected && <span className="text-[10px]">✓</span>}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="text-center text-[11px] text-slate-400 py-3 italic">
+                          No categories match
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Supplier & Purchase Date Row */}
+            <div className="retro-form-row">
+              <div className="retro-form-group">
+                <label>Supplier</label>
+                <div className="retro-input-wrapper">
+                  <input 
+                    type="text" 
+                    list="suppliers-list"
+                    className="retro-input"
+                    value={formData.supplier}
+                    onChange={(e) => setFormData({...formData, supplier: e.target.value})}
+                    placeholder="Search or enter supplier" 
+                  />
+                  <Truck size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+                <datalist id="suppliers-list">
+                  {suppliers.map(s => <option key={s} value={s} />)}
+                </datalist>
+              </div>
+
+              <div className="retro-form-group">
+                <label>Purchase Date *</label>
+                <div className="retro-input-wrapper with-icon cursor-pointer group relative overflow-hidden" 
+                     onClick={() => dateInputRef.current?.showPicker?.()}>
+                  <input 
+                    ref={dateInputRef}
+                    type="date" 
+                    className="retro-input-hidden"
+                    value={formData.date}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val) setFormData({...formData, date: val});
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <div className="retro-input-display group-hover:border-blue-400 transition-colors duration-100 relative z-0 pointer-events-none">
+                    {formattedDate}
+                  </div>
+                  <div className="retro-input-icon group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors duration-100 z-0 pointer-events-none">
+                    <Watch size={18} className="text-slate-700 dark:text-slate-300 group-hover:text-blue-500 transition-colors duration-100" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Method Row */}
+            <div className="retro-form-row">
+              <div className="retro-form-group full-width">
+                <label>Payment Method</label>
+                <div className="flex gap-2">
+                  {['Cash', 'Bank', 'LC'].map(method => (
+                    <button
+                      key={method}
+                      type="button"
+                      className={`flex-1 py-2.5 px-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 text-sm font-semibold
+                        ${formData.payment_method === method 
+                          ? 'border-teal-500 bg-teal-50/50 text-teal-700 dark:bg-teal-950/20 dark:text-teal-300 shadow-sm' 
+                          : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'}`}
+                      onClick={() => setFormData({...formData, payment_method: method})}
+                    >
+                      {method === 'Cash' && <DollarSign size={14} />}
+                      {method === 'Bank' && <CreditCard size={14} />}
+                      {method === 'LC' && <FileText size={14} />}
+                      {method}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="retro-section-container">
+              <div className="retro-form-row">
+                <div className="retro-form-group no-label-margin">
+                  <label>QR Code Scan</label>
+                  <div className="qr-scan-area">
+                    <div className="qr-preview-box">
+                      <QrCode size={32} className="qr-icon-dim" />
+                      <div className="qr-focus-corners"></div>
+                      <div className="qr-scan-line"></div>
+                    </div>
+                    <button 
+                      className="retro-btn-metallic-teal scan-btn"
+                      onClick={() => setShowScanner(true)}
+                    >
+                      <Camera size={18} />
+                      <span>Scan QR Code</span>
+                    </button>
+                  </div>
+                </div>
+                <div className="retro-form-group">
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="!mb-0">Purchase Price (unit) *</label>
+                    <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase">Rate:</span>
+                      <input 
+                        type="number"
+                        step="0.01"
+                        className="bg-transparent border-none p-0 w-10 text-[11px] font-mono focus:ring-0 text-slate-700 dark:text-slate-300"
+                        value={formData.exchange_rate}
+                        onChange={(e) => setFormData({...formData, exchange_rate: +e.target.value || 1})}
+                      />
+                    </div>
+                  </div>
+                  <div className="retro-input-wrapper">
+                    <input 
+                      type="number" 
+                      className="retro-input"
+                      value={formData.price || ''}
+                      onChange={(e) => {
+                        const val = +e.target.value;
+                        setFormData({
+                          ...formData, 
+                          price: val,
+                          sell_price: formData.sell_price === formData.price || !formData.sell_price ? val : formData.sell_price
+                        });
+                      }}
+                      placeholder="0"
+                    />
+                  </div>
+                  {formData.exchange_rate !== 1 && (
+                    <div className="text-[10px] text-slate-500 mt-1 font-mono">
+                      Effective: {settings.currency}{Math.round(formData.price * formData.exchange_rate).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="retro-form-row">
+              <div className="retro-form-group">
+                <label>Quantity *</label>
+                <div className="retro-input-wrapper">
+                  <input 
+                    type="number" 
+                    className="retro-input"
+                    value={formData.qty || ''}
+                    onChange={(e) => setFormData({...formData, qty: +e.target.value})}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div className="retro-form-group">
+                <div className="flex justify-between items-center mb-1">
+                  <label className="!mb-0">Sell Price (unit) *</label>
+                  <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border
+                    ${margin > 20 ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800' : 
+                      margin > 5 ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800' : 
+                      'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:border-rose-800'}`}>
+                    <Percent size={10} />
+                    Margin: {margin.toFixed(1)}%
+                  </div>
+                </div>
+                <div className="retro-input-wrapper">
+                  <input 
+                    type="number" 
+                    className="retro-input"
+                    value={formData.sell_price || ''}
+                    onChange={(e) => setFormData({...formData, sell_price: +e.target.value})}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Expiry & Invoice Row */}
+            <div className="retro-form-row">
+              <div className="retro-form-group">
+                <label>Expiry Date</label>
+                <div className="retro-input-wrapper with-icon cursor-pointer group relative overflow-hidden" 
+                     onClick={() => expiryInputRef.current?.showPicker?.()}>
+                  <input 
+                    ref={expiryInputRef}
+                    type="date" 
+                    className="retro-input-hidden"
+                    value={formData.expiry_date}
+                    onChange={(e) => setFormData({...formData, expiry_date: e.target.value})}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <div className="retro-input-display group-hover:border-amber-400 transition-colors duration-100 relative z-0 pointer-events-none">
+                    {formattedExpiryDate}
+                  </div>
+                  <div className="retro-input-icon group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 transition-colors duration-100 z-0 pointer-events-none">
+                    <AlertCircle size={18} className="text-slate-700 dark:text-slate-300 group-hover:text-amber-500 transition-colors duration-100" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="retro-form-group">
+                <label>Invoice File</label>
+                <div className="retro-input-wrapper h-[42px] relative cursor-pointer group overflow-hidden"
+                     onClick={() => fileInputRef.current?.click()}>
+                  <input 
+                    ref={fileInputRef}
+                    type="file" 
+                    className="hidden"
+                    accept="image/*,.pdf"
+                    onChange={(e) => setFormData({...formData, invoice_image: e.target.files?.[0] || null})}
+                  />
+                  <div className="absolute inset-0 flex items-center px-3 gap-2">
+                    {formData.invoice_image ? (
+                      <>
+                        {formData.invoice_image.type.includes('image') ? <ImageIcon size={16} className="text-teal-500" /> : <FileText size={16} className="text-blue-500" />}
+                        <span className="text-xs truncate text-slate-700 dark:text-slate-300 max-w-[140px] font-medium">
+                          {formData.invoice_image.name}
+                        </span>
+                        <button 
+                          className="ml-auto p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFormData({...formData, invoice_image: null});
+                          }}
+                        >
+                          <X size={12} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={16} className="text-slate-400" />
+                        <span className="text-xs text-slate-400 italic">Upload Image or PDF</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="absolute inset-0 bg-teal-500/0 group-hover:bg-teal-500/5 transition-colors pointer-events-none" />
+                </div>
+              </div>
+            </div>
+
+            <div className="retro-divider-text">
+              <span>Additional Costs</span>
+            </div>
+
+            <div className="retro-form-row">
+              <div className="retro-form-group">
+                <label>Shipping Cost</label>
+                <div className="retro-input-wrapper">
+                  <input 
+                    type="number" 
+                    className="retro-input"
+                    value={formData.ship || ''}
+                    onChange={(e) => setFormData({...formData, ship: +e.target.value})} 
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div className="retro-form-group">
+                <label>Customs Duty</label>
+                <div className="retro-input-wrapper">
+                  <input 
+                    type="number" 
+                    className="retro-input"
+                    value={formData.duty || ''}
+                    onChange={(e) => setFormData({...formData, duty: +e.target.value})} 
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="retro-form-group full-width">
+              <label>Other Costs</label>
+              <div className="retro-input-wrapper">
+                <input 
+                  type="number" 
+                  className="retro-input"
+                  value={formData.other || ''}
+                  onChange={(e) => setFormData({...formData, other: +e.target.value})} 
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <div className="retro-calc-box">
+              <div className="calc-header">AUTO CALCULATION</div>
+              <div className="calc-grid">
+                <div className="calc-item">
+                  <span>Product Cost</span>
+                  <span className="text-mono">৳{Math.round(prod).toLocaleString()}</span>
+                </div>
+                <div className="calc-item highlight">
+                  <span>Total Import Cost</span>
+                  <span className="text-mono">৳{Math.round(total).toLocaleString()}</span>
+                </div>
+                <div className="calc-divider"></div>
+                <div className="calc-item landing-cost">
+                  <span>Landing Cost / Unit</span>
+                  <span className="text-mono font-bold">৳{Math.round(land).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-6 border-t border-slate-200/80 dark:border-slate-800/80 flex justify-end gap-3">
+            <button className="retro-btn-metallic-silver lg px-6" onClick={() => setShowModal(false)}>Cancel</button>
+            <button className="retro-btn-metallic-teal lg px-8 font-bold flex items-center gap-2" onClick={handleAdd}>
+              <span>Record Purchase</span>
+              <Sparkles size={18} className="sparkle-icon" />
+            </button>
+          </div>
+        </div>
+
+        {showScanner && (
+          <BarcodeScanner 
+            onScan={handleScan} 
+            onClose={() => setShowScanner(false)} 
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div id="page-buy" className="page active">
       <div className="page-header">
@@ -621,449 +1081,6 @@ export const BuyImportComponent = () => {
           )}
         </div>
       </div>
-
-      <AnimatePresence>
-        {showModal && (
-          <div className="modal-overlay custom-modal-overlay">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="retro-modal"
-            >
-              <div className="retro-modal-header">
-                <h3>Record Purchase</h3>
-                <button className="retro-close-btn" onClick={() => setShowModal(false)}><X size={20} /></button>
-              </div>
-              
-              <div className="retro-modal-body custom-scrollbar">
-                {/* Product & Category Row */}
-                <div className="retro-form-row">
-                  <div className="retro-form-group">
-                    <label>Product *</label>
-                    <div className="retro-input-wrapper">
-                      <input 
-                        type="text" 
-                        list="products-list"
-                        className="retro-input"
-                        value={formData.product_name}
-                        onChange={(e) => {
-                          const name = e.target.value;
-                          const existing = products.find(p => p.name === name);
-                          const detectedCategory = inferCategory(name);
-                          setFormData({
-                            ...formData, 
-                            product_name: name,
-                            product_id: existing ? existing.id : '',
-                            price: existing ? existing.cost_price : formData.price,
-                            sell_price: existing ? existing.sell_price : formData.sell_price,
-                            category: existing ? (existing.category || detectedCategory) : detectedCategory
-                          });
-                        }}
-                        placeholder="e.g. Samsung TV" 
-                      />
-                    </div>
-                    <datalist id="products-list">
-                      {products.map(p => <option key={p.id} value={p.name} />)}
-                    </datalist>
-                  </div>
-                  
-                  {/* Category Field with Custom Searchable Dropdown */}
-                  <div className="retro-form-group relative" ref={dropdownRef}>
-                    <label>Category *</label>
-                    <div 
-                      className="retro-input-wrapper cursor-pointer select-none"
-                      onClick={() => {
-                        setDropdownOpen(!dropdownOpen);
-                        setCategorySearch('');
-                        setFocusedIndex(-1);
-                      }}
-                    >
-                      <div className="retro-input flex items-center justify-between min-h-[42px] px-3">
-                        <span className="font-semibold text-slate-750 dark:text-slate-300">
-                          {formData.category || 'Select Category'}
-                        </span>
-                        <span className="text-slate-400 text-xs">▼</span>
-                      </div>
-                    </div>
-
-                    {dropdownOpen && (
-                      <div className="absolute left-0 right-0 top-[100%] mt-1 z-[999] rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl p-2 flex flex-col gap-1">
-                        {/* Search Input inside Dropdown */}
-                        <div className="p-1">
-                          <input
-                            type="text"
-                            className="w-full text-xs bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-teal-500 font-medium text-slate-755 dark:text-slate-300"
-                            placeholder="Type to search category..."
-                            value={categorySearch}
-                            onChange={(e) => {
-                              setCategorySearch(e.target.value);
-                              setFocusedIndex(0);
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                            onKeyDown={(e) => {
-                              if (e.key === 'ArrowDown') {
-                                e.preventDefault();
-                                setFocusedIndex(prev => Math.min(filteredCategories.length - 1, prev + 1));
-                              } else if (e.key === 'ArrowUp') {
-                                e.preventDefault();
-                                setFocusedIndex(prev => Math.max(0, prev - 1));
-                              } else if (e.key === 'Enter') {
-                                e.preventDefault();
-                                if (focusedIndex >= 0 && focusedIndex < filteredCategories.length) {
-                                  const selected = filteredCategories[focusedIndex];
-                                  setFormData({ ...formData, category: selected });
-                                  setDropdownOpen(false);
-                                }
-                              } else if (e.key === 'Escape') {
-                                setDropdownOpen(false);
-                              }
-                            }}
-                            autoFocus
-                          />
-                        </div>
-                        {/* Categories List */}
-                        <div className="max-h-[160px] overflow-y-auto custom-scrollbar flex flex-col pt-1">
-                          {filteredCategories.length > 0 ? (
-                            filteredCategories.map((cat, idx) => {
-                              const isFocused = idx === focusedIndex;
-                              const isSelected = formData.category === cat;
-                              return (
-                                <button
-                                  key={cat}
-                                  type="button"
-                                  className={`w-full text-left rounded-lg text-xs font-semibold px-3 py-2 transition-all flex items-center justify-between
-                                    ${isSelected 
-                                      ? 'bg-teal-500 text-white' 
-                                      : isFocused 
-                                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100' 
-                                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/10'
-                                    }`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setFormData({ ...formData, category: cat });
-                                    setDropdownOpen(false);
-                                  }}
-                                  onMouseEnter={() => setFocusedIndex(idx)}
-                                >
-                                  <span>{cat}</span>
-                                  {isSelected && <span className="text-[10px]">✓</span>}
-                                </button>
-                              );
-                            })
-                          ) : (
-                            <div className="text-center text-[11px] text-slate-400 py-3 italic">
-                              No categories match
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Supplier & Purchase Date Row */}
-                <div className="retro-form-row">
-                  <div className="retro-form-group">
-                    <label>Supplier</label>
-                    <div className="retro-input-wrapper">
-                      <input 
-                        type="text" 
-                        list="suppliers-list"
-                        className="retro-input"
-                        value={formData.supplier}
-                        onChange={(e) => setFormData({...formData, supplier: e.target.value})}
-                        placeholder="Search or enter supplier" 
-                      />
-                      <Truck size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                    </div>
-                    <datalist id="suppliers-list">
-                      {suppliers.map(s => <option key={s} value={s} />)}
-                    </datalist>
-                  </div>
-
-                  <div className="retro-form-group">
-                    <label>Purchase Date *</label>
-                    <div className="retro-input-wrapper with-icon cursor-pointer group relative overflow-hidden" 
-                         onClick={() => dateInputRef.current?.showPicker?.()}>
-                      <input 
-                        ref={dateInputRef}
-                        type="date" 
-                        className="retro-input-hidden"
-                        value={formData.date}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val) setFormData({...formData, date: val});
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <div className="retro-input-display group-hover:border-blue-400 transition-colors duration-100 relative z-0 pointer-events-none">
-                        {formattedDate}
-                      </div>
-                      <div className="retro-input-icon group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors duration-100 z-0 pointer-events-none">
-                        <Watch size={18} className="text-slate-700 dark:text-slate-300 group-hover:text-blue-500 transition-colors duration-100" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Payment Method Row */}
-                <div className="retro-form-row">
-                  <div className="retro-form-group full-width">
-                    <label>Payment Method</label>
-                    <div className="flex gap-2">
-                      {['Cash', 'Bank', 'LC'].map(method => (
-                        <button
-                          key={method}
-                          type="button"
-                          className={`flex-1 py-2.5 px-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 text-sm font-semibold
-                            ${formData.payment_method === method 
-                              ? 'border-teal-500 bg-teal-50/50 text-teal-700 dark:bg-teal-950/20 dark:text-teal-300 shadow-sm' 
-                              : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'}`}
-                          onClick={() => setFormData({...formData, payment_method: method})}
-                        >
-                          {method === 'Cash' && <DollarSign size={14} />}
-                          {method === 'Bank' && <CreditCard size={14} />}
-                          {method === 'LC' && <FileText size={14} />}
-                          {method}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="retro-section-container">
-                  <div className="retro-form-row">
-                    <div className="retro-form-group no-label-margin">
-                      <label>QR Code Scan</label>
-                      <div className="qr-scan-area">
-                        <div className="qr-preview-box">
-                          <QrCode size={32} className="qr-icon-dim" />
-                          <div className="qr-focus-corners"></div>
-                          <div className="qr-scan-line"></div>
-                        </div>
-                        <button 
-                          className="retro-btn-metallic-teal scan-btn"
-                          onClick={() => setShowScanner(true)}
-                        >
-                          <Camera size={18} />
-                          <span>Scan QR Code</span>
-                        </button>
-                      </div>
-                    </div>
-                    <div className="retro-form-group">
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="!mb-0">Purchase Price (unit) *</label>
-                        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase">Rate:</span>
-                          <input 
-                            type="number"
-                            step="0.01"
-                            className="bg-transparent border-none p-0 w-10 text-[11px] font-mono focus:ring-0 text-slate-700 dark:text-slate-300"
-                            value={formData.exchange_rate}
-                            onChange={(e) => setFormData({...formData, exchange_rate: +e.target.value || 1})}
-                          />
-                        </div>
-                      </div>
-                      <div className="retro-input-wrapper">
-                        <input 
-                          type="number" 
-                          className="retro-input"
-                          value={formData.price || ''}
-                          onChange={(e) => {
-                            const val = +e.target.value;
-                            setFormData({
-                              ...formData, 
-                              price: val,
-                              sell_price: formData.sell_price === formData.price || !formData.sell_price ? val : formData.sell_price
-                            });
-                          }}
-                          placeholder="0"
-                        />
-                      </div>
-                      {formData.exchange_rate !== 1 && (
-                        <div className="text-[10px] text-slate-500 mt-1 font-mono">
-                          Effective: {settings.currency}{Math.round(formData.price * formData.exchange_rate).toLocaleString()}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="retro-form-row">
-                  <div className="retro-form-group">
-                    <label>Quantity *</label>
-                    <div className="retro-input-wrapper">
-                      <input 
-                        type="number" 
-                        className="retro-input"
-                        value={formData.qty || ''}
-                        onChange={(e) => setFormData({...formData, qty: +e.target.value})}
-                        placeholder="0"
-                      />
-                    </div>
-                  </div>
-                  <div className="retro-form-group">
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="!mb-0">Sell Price (unit) *</label>
-                      <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border
-                        ${margin > 20 ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800' : 
-                          margin > 5 ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800' : 
-                          'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:border-rose-800'}`}>
-                        <Percent size={10} />
-                        Margin: {margin.toFixed(1)}%
-                      </div>
-                    </div>
-                    <div className="retro-input-wrapper">
-                      <input 
-                        type="number" 
-                        className="retro-input"
-                        value={formData.sell_price || ''}
-                        onChange={(e) => setFormData({...formData, sell_price: +e.target.value})}
-                        placeholder="0"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Expiry & Invoice Row */}
-                <div className="retro-form-row">
-                  <div className="retro-form-group">
-                    <label>Expiry Date</label>
-                    <div className="retro-input-wrapper with-icon cursor-pointer group relative overflow-hidden" 
-                         onClick={() => expiryInputRef.current?.showPicker?.()}>
-                      <input 
-                        ref={expiryInputRef}
-                        type="date" 
-                        className="retro-input-hidden"
-                        value={formData.expiry_date}
-                        onChange={(e) => setFormData({...formData, expiry_date: e.target.value})}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <div className="retro-input-display group-hover:border-amber-400 transition-colors duration-100 relative z-0 pointer-events-none">
-                        {formattedExpiryDate}
-                      </div>
-                      <div className="retro-input-icon group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 transition-colors duration-100 z-0 pointer-events-none">
-                        <AlertCircle size={18} className="text-slate-700 dark:text-slate-300 group-hover:text-amber-500 transition-colors duration-100" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="retro-form-group">
-                    <label>Invoice File</label>
-                    <div className="retro-input-wrapper h-[42px] relative cursor-pointer group overflow-hidden"
-                         onClick={() => fileInputRef.current?.click()}>
-                      <input 
-                        ref={fileInputRef}
-                        type="file" 
-                        className="hidden"
-                        accept="image/*,.pdf"
-                        onChange={(e) => setFormData({...formData, invoice_image: e.target.files?.[0] || null})}
-                      />
-                      <div className="absolute inset-0 flex items-center px-3 gap-2">
-                        {formData.invoice_image ? (
-                          <>
-                            {formData.invoice_image.type.includes('image') ? <ImageIcon size={16} className="text-teal-500" /> : <FileText size={16} className="text-blue-500" />}
-                            <span className="text-xs truncate text-slate-700 dark:text-slate-300 max-w-[140px] font-medium">
-                              {formData.invoice_image.name}
-                            </span>
-                            <button 
-                              className="ml-auto p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setFormData({...formData, invoice_image: null});
-                              }}
-                            >
-                              <X size={12} />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <Upload size={16} className="text-slate-400" />
-                            <span className="text-xs text-slate-400 italic">Upload Image or PDF</span>
-                          </>
-                        )}
-                      </div>
-                      <div className="absolute inset-0 bg-teal-500/0 group-hover:bg-teal-500/5 transition-colors pointer-events-none" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="retro-divider-text">
-                  <span>Additional Costs</span>
-                </div>
-
-                <div className="retro-form-row">
-                  <div className="retro-form-group">
-                    <label>Shipping Cost</label>
-                    <div className="retro-input-wrapper">
-                      <input 
-                        type="number" 
-                        className="retro-input"
-                        value={formData.ship || ''}
-                        onChange={(e) => setFormData({...formData, ship: +e.target.value})} 
-                        placeholder="0"
-                      />
-                    </div>
-                  </div>
-                  <div className="retro-form-group">
-                    <label>Customs Duty</label>
-                    <div className="retro-input-wrapper">
-                      <input 
-                        type="number" 
-                        className="retro-input"
-                        value={formData.duty || ''}
-                        onChange={(e) => setFormData({...formData, duty: +e.target.value})} 
-                        placeholder="0"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="retro-form-group full-width">
-                  <label>Other Costs</label>
-                  <div className="retro-input-wrapper">
-                    <input 
-                      type="number" 
-                      className="retro-input"
-                      value={formData.other || ''}
-                      onChange={(e) => setFormData({...formData, other: +e.target.value})} 
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-
-                <div className="retro-calc-box">
-                  <div className="calc-header">AUTO CALCULATION</div>
-                  <div className="calc-grid">
-                    <div className="calc-item">
-                      <span>Product Cost</span>
-                      <span className="text-mono">৳{Math.round(prod).toLocaleString()}</span>
-                    </div>
-                    <div className="calc-item highlight">
-                      <span>Total Import Cost</span>
-                      <span className="text-mono">৳{Math.round(total).toLocaleString()}</span>
-                    </div>
-                    <div className="calc-divider"></div>
-                    <div className="calc-item landing-cost">
-                      <span>Landing Cost / Unit</span>
-                      <span className="text-mono font-bold">৳{Math.round(land).toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="retro-modal-footer">
-                <button className="retro-btn-metallic-silver lg" onClick={() => setShowModal(false)}>Cancel</button>
-                <button className="retro-btn-metallic-teal lg flex-1" onClick={handleAdd}>
-                  <span>Record Purchase</span>
-                  <Sparkles size={18} className="sparkle-icon" />
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {showScanner && (
         <BarcodeScanner 

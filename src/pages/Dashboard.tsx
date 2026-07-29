@@ -5,7 +5,7 @@ import {
   Wallet, ShoppingCart, Tag, TrendingUp, TrendingDown, Package, 
   MoreVertical, ChevronRight, Calendar, ArrowUpRight, ShoppingBag, 
   Building2, Users, Grid, DollarSign, Activity, AlertTriangle, ArrowUp, BarChart3,
-  Zap, Target, PieChart, ChevronDown
+  Zap, Target, PieChart, ChevronDown, FileText, Filter, CheckCircle2, Truck, Clock, XCircle, ChevronLeft, Search
 } from 'lucide-react';
 
 Chart.register(...registerables);
@@ -138,6 +138,107 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
     return catSet.size;
   }, [products]);
 
+  const categoryShareData = useMemo(() => {
+    const categories: { [key: string]: number } = {};
+    
+    if (chartView === 'market') {
+      products.forEach(p => {
+        const cat = getAutoCategory(p.name, p.category);
+        categories[cat] = (categories[cat] || 0) + Math.max(0, p.stock || 0);
+      });
+      const totalStock = Object.values(categories).reduce((a, b) => a + b, 0);
+      if (totalStock === 0) {
+        products.forEach(p => {
+          const cat = getAutoCategory(p.name, p.category);
+          categories[cat] = (categories[cat] || 0) + 1;
+        });
+      }
+    } else {
+      const sales = transactions.filter(t => t.type === 'sale');
+      sales.forEach(t => {
+        if (t.items && t.items.length > 0) {
+          t.items.forEach((item: any) => {
+            const product = products.find(p => p.id === item.product_id);
+            const cat = getAutoCategory(item.product_name || product?.name || '', product?.category);
+            categories[cat] = (categories[cat] || 0) + (item.total || 0);
+          });
+        } else if (t.product_id) {
+          const product = products.find(p => p.id === t.product_id);
+          const cat = getAutoCategory(t.product_name || product?.name || '', product?.category);
+          categories[cat] = (categories[cat] || 0) + (t.total_price || 0);
+        }
+      });
+    }
+
+    if (Object.keys(categories).length === 0) {
+      categories['Electronics'] = 91;
+      categories['Others'] = 9;
+    }
+
+    const catKeys = Object.keys(categories);
+    const totalVal = Object.values(categories).reduce((a, b) => a + b, 0) || 1;
+
+    const itemsList = catKeys.map(key => {
+      const val = categories[key];
+      const pct = Math.round((val / totalVal) * 100);
+      return { name: key, value: val, percentage: pct };
+    }).sort((a, b) => b.value - a.value);
+
+    let displayItems = itemsList;
+    if (itemsList.length > 4) {
+      const top = itemsList.slice(0, 3);
+      const otherVal = itemsList.slice(3).reduce((sum, item) => sum + item.value, 0);
+      const otherPct = Math.round((otherVal / totalVal) * 100);
+      displayItems = [...top, { name: 'Others', value: otherVal, percentage: otherPct }];
+    }
+
+    const leading = displayItems[0] || { name: 'Electronics', percentage: 91, value: 91 };
+
+    return {
+      rawCategories: categories,
+      items: displayItems,
+      leading,
+      totalVal
+    };
+  }, [chartView, products, transactions]);
+
+  const growthStats = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentMonthIndex = new Date().getMonth();
+    const salesByMonth = months.slice(0, currentMonthIndex + 1).map((_, i) => {
+      return transactions
+        .filter(t => t.type === 'sale' && new Date(t.date).getMonth() === i)
+        .reduce((sum, t) => sum + t.total_price, 0);
+    });
+
+    const profitByMonth = months.slice(0, currentMonthIndex + 1).map((_, i) => {
+      return transactions
+        .filter(t => t.type === 'sale' && new Date(t.date).getMonth() === i)
+        .reduce((sum, t) => sum + calculateProfit(t), 0);
+    });
+
+    let revenueGrowth = '18.6';
+    let profitGrowth = '16.4';
+
+    if (salesByMonth.length >= 2) {
+      const currS = salesByMonth[salesByMonth.length - 1];
+      const prevS = salesByMonth[salesByMonth.length - 2];
+      if (prevS > 0) {
+        revenueGrowth = (((currS - prevS) / prevS) * 100).toFixed(1);
+      }
+    }
+
+    if (profitByMonth.length >= 2) {
+      const currP = profitByMonth[profitByMonth.length - 1];
+      const prevP = profitByMonth[profitByMonth.length - 2];
+      if (prevP > 0) {
+        profitGrowth = (((currP - prevP) / prevP) * 100).toFixed(1);
+      }
+    }
+
+    return { revenueGrowth, profitGrowth };
+  }, [transactions, calculateProfit]);
+
   useEffect(() => {
     let salesChart: Chart | null = null;
     let catChart: Chart | null = null;
@@ -161,33 +262,35 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
       });
 
       const isDark = settings.theme === 'dark';
-      const textColor = isDark ? '#ffffff' : '#64748b';
-      const gridColor = isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.05)';
+      const textColor = isDark ? '#94a3b8' : '#64748b';
+      const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
 
       salesChart = new Chart(salesChartRef.current, {
-        type: isDark ? 'bar' : 'line',
+        type: 'line',
         data: {
           labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
-          datasets: isDark ? [
-            { label: 'Sales', data: salesByMonth, backgroundColor: '#3b82f6', borderRadius: 6 },
-            { label: 'Profit', data: profitByMonth, backgroundColor: '#10b981', borderRadius: 6 },
-          ] : [
+          datasets: [
             {
               label: 'Sales',
               data: (salesByMonth.length >= 7 && salesByMonth.some(v => v > 0)) ? salesByMonth.slice(0, 7) : [600000, 780000, 590000, 720000, 890000, 780000, 930000],
-              borderColor: '#2563eb',
+              borderColor: isDark ? '#3b82f6' : '#2563eb',
               backgroundColor: (context) => {
                 const ctx = context.chart.ctx;
                 const gradient = ctx.createLinearGradient(0, 0, 0, 180);
-                gradient.addColorStop(0, 'rgba(37, 99, 235, 0.22)');
-                gradient.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
+                if (isDark) {
+                  gradient.addColorStop(0, 'rgba(59, 130, 246, 0.35)');
+                  gradient.addColorStop(1, 'rgba(59, 130, 246, 0.02)');
+                } else {
+                  gradient.addColorStop(0, 'rgba(37, 99, 235, 0.22)');
+                  gradient.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
+                }
                 return gradient;
               },
               fill: true,
               tension: 0.4,
               borderWidth: 2.5,
-              pointBackgroundColor: '#2563eb',
-              pointBorderColor: '#ffffff',
+              pointBackgroundColor: isDark ? '#3b82f6' : '#2563eb',
+              pointBorderColor: isDark ? '#ffffff' : '#ffffff',
               pointBorderWidth: 2,
               pointRadius: 4,
               pointHoverRadius: 6,
@@ -199,15 +302,20 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
               backgroundColor: (context) => {
                 const ctx = context.chart.ctx;
                 const gradient = ctx.createLinearGradient(0, 0, 0, 180);
-                gradient.addColorStop(0, 'rgba(16, 185, 129, 0.22)');
-                gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+                if (isDark) {
+                  gradient.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+                  gradient.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
+                } else {
+                  gradient.addColorStop(0, 'rgba(16, 185, 129, 0.22)');
+                  gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+                }
                 return gradient;
               },
               fill: true,
               tension: 0.4,
               borderWidth: 2.5,
               pointBackgroundColor: '#10b981',
-              pointBorderColor: '#ffffff',
+              pointBorderColor: isDark ? '#ffffff' : '#ffffff',
               pointBorderWidth: 2,
               pointRadius: 4,
               pointHoverRadius: 6,
@@ -218,17 +326,12 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
           responsive: true,
           maintainAspectRatio: false,
           plugins: { 
-            legend: { 
-              display: true,
-              position: 'top',
-              align: 'center',
-              labels: { color: textColor, font: { weight: 'bold', size: 11 }, usePointStyle: true }
-            },
+            legend: { display: false },
             tooltip: {
-              backgroundColor: isDark ? '#0f172a' : '#ffffff',
+              backgroundColor: isDark ? '#0F121C' : '#ffffff',
               titleColor: isDark ? '#ffffff' : '#0f172a',
-              bodyColor: isDark ? '#e2e8f0' : '#475569',
-              borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.06)',
+              bodyColor: isDark ? '#cbd5e1' : '#475569',
+              borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
               borderWidth: 1.5,
               padding: 10,
               callbacks: {
@@ -376,10 +479,13 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
         catChart = new Chart(catChartRef.current, {
           type: 'doughnut',
           data: {
-            labels: ['Electronics', 'Others'],
+            labels: categoryShareData.items.map(i => i.name),
             datasets: [{ 
-              data: [91, 9], 
-              backgroundColor: ['#1d4ed8', '#e9d5ff'],
+              data: categoryShareData.items.map(i => i.value), 
+              backgroundColor: categoryShareData.items.map((i, idx) => {
+                const normKey = i.name.trim().toLowerCase();
+                return categoryColorMapLight[normKey] || fallbackColorsLight[idx % fallbackColorsLight.length];
+              }),
               borderColor: '#ffffff',
               borderWidth: 3,
               hoverOffset: 4
@@ -398,7 +504,11 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
                 borderWidth: 1.5,
                 padding: 10,
                 callbacks: {
-                  label: (context) => ` ${context.label}: ${context.parsed}%`
+                  label: (context) => {
+                    const total = context.dataset.data.reduce((a: any, b: any) => Number(a) + Number(b), 0) || 1;
+                    const pct = Math.round((Number(context.parsed) / total) * 100);
+                    return ` ${context.label}: ${pct}%`;
+                  }
                 }
               }
             }, 
@@ -409,33 +519,40 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
         catChart = new Chart(catChartRef.current, {
           type: 'doughnut',
           data: {
-            labels: catKeys,
+            labels: categoryShareData.items.map(i => i.name),
             datasets: [{ 
-              data: Object.values(categories), 
-              backgroundColor: bgColors,
-              borderColor: '#0b1220',
-              borderWidth: 2.5,
-              hoverOffset: 6
+              data: categoryShareData.items.map(i => i.value), 
+              backgroundColor: categoryShareData.items.map((i, idx) => {
+                const normKey = i.name.trim().toLowerCase();
+                return categoryColorMapDark[normKey] || fallbackColorsDark[idx % fallbackColorsDark.length];
+              }),
+              borderColor: '#0B0E17',
+              borderWidth: 3,
+              hoverOffset: 4
             }]
           },
           options: { 
             responsive: true, 
             maintainAspectRatio: false,
             plugins: { 
-              legend: { 
-                position: 'bottom',
-                labels: { color: textColor, font: { weight: 'bold', size: 10 }, padding: 15 }
-              },
+              legend: { display: false },
               tooltip: {
-                backgroundColor: '#0f172a',
+                backgroundColor: '#0F121C',
                 titleColor: '#38bdf8',
                 bodyColor: '#ffffff',
-                borderColor: 'rgba(255,255,255,0.2)',
+                borderColor: 'rgba(255,255,255,0.1)',
                 borderWidth: 1.5,
-                padding: 10
+                padding: 10,
+                callbacks: {
+                  label: (context) => {
+                    const total = context.dataset.data.reduce((a: any, b: any) => Number(a) + Number(b), 0) || 1;
+                    const pct = Math.round((Number(context.parsed) / total) * 100);
+                    return ` ${context.label}: ${pct}%`;
+                  }
+                }
               }
             }, 
-            cutout: '65%' 
+            cutout: '76%' 
           }
         });
       }
@@ -445,7 +562,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
       salesChart?.destroy();
       catChart?.destroy();
     };
-  }, [transactions, products, calculateProfit, settings.currency, settings.theme, chartView]);
+  }, [transactions, products, calculateProfit, settings.currency, settings.theme, chartView, categoryShareData]);
 
   // Stock Alerts - products with low stock
   const stockAlerts = useMemo(() => products.filter(p => p.stock <= p.min_stock), [products]);
@@ -532,40 +649,78 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
       };
     });
 
-    return (
-      <div className={`p-5 rounded-[24px] border flex flex-col justify-between flex-1 ${
-        isDark ? 'bg-[#131520] border-white/5 text-white shadow-black/40' : 'bg-[#E2E8F4] border-slate-200/80 shadow-xs'
-      }`}>
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Calendar Overview</span>
-          <span className="text-xs font-black text-blue-500 tracking-tight">{currentMonthName} {currentYear}</span>
+    if (isDark) {
+      return (
+        <div className="p-5 rounded-[24px] border flex flex-col justify-between flex-1 bg-[#131520] border-white/5 text-white shadow-black/40">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Calendar Overview</span>
+            <span className="text-xs font-black text-blue-500 tracking-tight">{currentMonthName} {currentYear}</span>
+          </div>
+          
+          <div className="grid grid-cols-7 text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-2.5 font-mono">
+            {daysOfWeek.map(d => (
+              <div key={d}>{d}</div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7 text-center">
+            {datesOfWeek.map((d, index) => (
+              <div key={index} className="flex justify-center items-center">
+                <div className={`w-8 h-8 rounded-full flex flex-col items-center justify-center text-xs font-bold font-mono transition-all duration-200 relative ${
+                  d.isToday 
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 ring-2 ring-blue-500/10 scale-105 animate-pulse' 
+                    : 'text-slate-300 hover:bg-white/5 cursor-pointer'
+                }`}>
+                  <span>{String(d.dateNum).padStart(2, '0')}</span>
+                  {d.isToday && (
+                    <span className="absolute bottom-1 w-1 h-1 bg-white rounded-full"></span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        
-        {/* Days labels */}
-        <div className="grid grid-cols-7 text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-2.5 font-mono">
+      );
+    }
+
+    return (
+      <div className="bg-white rounded-[24px] p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-bold text-slate-900 font-sans">Calendar Overview</h3>
+          <div className="flex items-center gap-2 text-sm font-bold text-blue-600 font-sans">
+            <span>{currentMonthName} {currentYear}</span>
+            <div className="flex items-center gap-1 text-slate-400">
+              <ChevronLeft size={16} className="cursor-pointer hover:text-blue-600 transition-colors" />
+              <ChevronRight size={16} className="cursor-pointer hover:text-blue-600 transition-colors" />
+            </div>
+          </div>
+        </div>
+
+        {/* Days Header */}
+        <div className="grid grid-cols-7 text-center text-xs font-bold text-slate-400 mb-3 font-sans">
           {daysOfWeek.map(d => (
             <div key={d}>{d}</div>
           ))}
         </div>
 
         {/* Date numbers */}
-        <div className="grid grid-cols-7 text-center">
-          {datesOfWeek.map((d, index) => (
-            <div key={index} className="flex justify-center items-center">
-              <div className={`w-8 h-8 rounded-full flex flex-col items-center justify-center text-xs font-bold font-mono transition-all duration-200 relative ${
-                d.isToday 
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 ring-2 ring-blue-500/10 scale-105 animate-pulse' 
-                  : isDark
-                    ? 'text-slate-300 hover:bg-white/5 cursor-pointer'
-                    : 'text-slate-700 hover:bg-slate-200/60 cursor-pointer'
-              }`}>
-                <span>{String(d.dateNum).padStart(2, '0')}</span>
-                {d.isToday && (
-                  <span className="absolute bottom-1 w-1 h-1 bg-white rounded-full"></span>
+        <div className="grid grid-cols-7 text-center items-center gap-y-1">
+          {datesOfWeek.map((d, index) => {
+            return (
+              <div key={index} className="flex justify-center items-center">
+                {d.isToday ? (
+                  <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-bold flex flex-col items-center justify-center text-sm shadow-md shadow-blue-500/20 relative mx-auto font-sans">
+                    <span>{String(d.dateNum).padStart(2, '0')}</span>
+                    <span className="w-1 h-1 bg-white rounded-full absolute bottom-1"></span>
+                  </div>
+                ) : (
+                  <div className="text-sm font-bold text-slate-800 hover:bg-slate-100 rounded-full w-9 h-9 flex items-center justify-center mx-auto cursor-pointer transition-colors font-sans">
+                    {String(d.dateNum).padStart(2, '0')}
+                  </div>
                 )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
@@ -574,10 +729,11 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
   // Helper 2: Static Transactions Table
   const renderRecentTransactionsTable = () => {
     const backupRows = [
-      { id: 'TX-9359', customer_name: 'Alex Rivera', product_name: '1x SoundPro Speakers x2', date: '2026-06-15T08:22:00Z', total_price: 380, status: 'completed' },
-      { id: 'TX-8921', customer_name: 'Esther Howard', product_name: '2x HighSpeed SSD 1TB', date: '2026-06-14T11:45:00Z', total_price: 240, status: 'pending' },
-      { id: 'TX-7239', customer_name: 'Vance Morrison', product_name: '1x Mechanical Keyboard Pro', date: '2026-06-13T14:10:00Z', total_price: 150, status: 'completed' },
-      { id: 'TX-6140', customer_name: 'Daryl Pratt', product_name: '1x UltraWide Monitor 34"', date: '2026-06-12T16:03:00Z', total_price: 520, status: 'cancelled' }
+      { id: 'TX-TR_1', customer_name: 'Retail Client', product_name: 'tv', date: '2026-07-29T10:24:00Z', total_price: 450, status: 'completed' },
+      { id: 'TX-TR_1', customer_name: 'bdfgdg', product_name: 'tv', date: '2026-07-29T09:58:00Z', total_price: 50, status: 'completed' },
+      { id: 'TX-9359', customer_name: 'Alex Rivera', product_name: '1x SoundPro Speakers x2', date: '2026-06-15T09:15:00Z', total_price: 380, status: 'shipped' },
+      { id: 'TX-8921', customer_name: 'Esther Howard', product_name: '2x HighSpeed SSD 1TB', date: '2026-06-14T08:42:00Z', total_price: 240, status: 'pending' },
+      { id: 'TX-7239', customer_name: 'Vance Morrison', product_name: '1x Mechanical Keyboard Pro', date: '2026-06-13T07:31:00Z', total_price: 150, status: 'cancelled' }
     ];
 
     const list = transactions.slice(0, 5).map(t => ({
@@ -596,88 +752,237 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
       }
     });
 
-    return (
-      <div className={`rounded-[24px] p-6 shadow-md border overflow-hidden ${
-        isDark
-          ? 'bg-[#131520] border-white/5 shadow-black/40'
-          : 'bg-[#E2E8F4] border-slate-200/80 shadow-xs'
-      }`}>
-        <div className={`flex items-center justify-between mb-5 pb-3 border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
-          <div>
-            <h3 className={`text-sm font-bold tracking-tight font-sans ${isDark ? 'text-white' : 'text-slate-900'}`}>Transactions</h3>
-            <p className={`text-xs mt-1 font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Live history of customer receipts and purchase ledgers</p>
+    if (isDark) {
+      return (
+        <div className="rounded-[24px] p-6 shadow-md border overflow-hidden bg-[#131520] border-white/5 shadow-black/40">
+          <div className="flex items-center justify-between mb-5 pb-3 border-b border-white/5">
+            <div>
+              <h3 className="text-sm font-bold tracking-tight font-sans text-white">Transactions</h3>
+              <p className="text-xs mt-1 font-normal text-slate-400">Live history of customer receipts and purchase ledgers</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/5 hover:bg-slate-900 flex items-center gap-1 cursor-pointer transition-colors text-slate-300">
+                🔍 Filter
+              </button>
+              <button 
+                onClick={() => onNavigate('sell')}
+                className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors cursor-pointer"
+              >
+                Post Sale →
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button className={`text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-201/50 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-slate-900 flex items-center gap-1 cursor-pointer transition-colors ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-              🔍 Filter
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b text-[10px] font-black uppercase tracking-wider border-white/5 text-slate-400">
+                  <th className="py-3 px-4 font-black">Transaction ID</th>
+                  <th className="py-3 px-4 font-black">Customer Name</th>
+                  <th className="py-3 px-4 font-black">Product</th>
+                  <th className="py-3 px-4 font-black">Date</th>
+                  <th className="py-3 px-4 font-black">Total Price</th>
+                  <th className="py-3 px-4 font-black text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {merged.map((tx, idx) => {
+                  const isPaid = tx.status === 'completed';
+                  const isPending = tx.status === 'pending';
+                  const isCancelled = tx.status === 'cancelled';
+
+                  return (
+                    <tr key={idx} className="hover:bg-slate-900/40 transition-colors">
+                      <td className="py-3.5 px-4 font-mono font-bold text-blue-400">{tx.id}</td>
+                      <td className="py-3.5 px-4 font-sans font-bold">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-slate-800 text-[9px] flex items-center justify-center font-bold">
+                            {tx.customer_name.slice(0, 2).toUpperCase()}
+                          </div>
+                          <span className="text-slate-100">{tx.customer_name}</span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 font-medium max-w-xs truncate text-slate-300">{tx.product_name}</td>
+                      <td className="py-3.5 px-4 font-semibold font-mono text-slate-400">
+                        {new Date(tx.date).toLocaleDateString(undefined, { month: '2-digit', day: '2-digit', year: 'numeric' })}
+                      </td>
+                      <td className="py-3.5 px-4 font-mono font-bold text-white">
+                        {fmt(tx.total_price)}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        {isPaid && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            ● Paid
+                          </span>
+                        )}
+                        {isPending && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            ● Pending
+                          </span>
+                        )}
+                        {isCancelled && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                            ● Cancelled
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-white rounded-[24px] p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        {/* Header matching Image 2 */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20">
+              <FileText size={24} className="text-white" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight font-sans">Transactions</h2>
+              <p className="text-xs font-medium text-slate-500 mt-0.5 font-sans">Live history of customer receipts and purchase ledgers</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <button className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 text-sm font-bold shadow-2xs flex items-center gap-2 cursor-pointer transition-colors font-sans">
+              <Search size={16} className="text-slate-800" />
+              <span>Filter</span>
             </button>
             <button 
               onClick={() => onNavigate('sell')}
-              className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-md shadow-blue-500/20 flex items-center gap-1.5 cursor-pointer transition-all font-sans"
             >
-              Post Sale →
+              <span>Post Sale →</span>
             </button>
           </div>
         </div>
 
+        {/* Table matching Image 2 */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className={`border-b text-[10px] font-black uppercase tracking-wider ${isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-500'}`}>
-                <th className="py-3 px-4 font-black">Transaction ID</th>
-                <th className="py-3 px-4 font-black">Customer Name</th>
-                <th className="py-3 px-4 font-black">Product</th>
-                <th className="py-3 px-4 font-black">Date</th>
-                <th className="py-3 px-4 font-black">Total Price</th>
-                <th className="py-3 px-4 font-black text-right">Status</th>
+              <tr className="border-y border-slate-100 bg-slate-50/60 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 font-sans">
+                <th className="py-3.5 px-4">TRANSACTION ID</th>
+                <th className="py-3.5 px-4">CUSTOMER NAME</th>
+                <th className="py-3.5 px-4">PRODUCT</th>
+                <th className="py-3.5 px-4">STATUS</th>
+                <th className="py-3.5 px-4 text-right">TIME</th>
               </tr>
             </thead>
-            <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-50/60'}`}>
+            <tbody className="divide-y divide-slate-100/80">
               {merged.map((tx, idx) => {
-                const isPaid = tx.status === 'completed';
-                const isPending = tx.status === 'pending';
-                const isCancelled = tx.status === 'cancelled';
+                const statusLower = (tx.status || '').toLowerCase();
+                const isCompleted = statusLower === 'completed' || statusLower === 'paid';
+                const isShipped = statusLower === 'shipped';
+                const isPending = statusLower === 'pending';
+                const isCancelled = statusLower === 'cancelled';
+
+                const avatarColors = [
+                  { bg: 'bg-blue-100', text: 'text-blue-600' },
+                  { bg: 'bg-purple-100', text: 'text-purple-600' },
+                  { bg: 'bg-emerald-100', text: 'text-emerald-600' },
+                  { bg: 'bg-amber-100', text: 'text-amber-600' },
+                  { bg: 'bg-rose-100', text: 'text-rose-600' },
+                ];
+                const avatarColor = avatarColors[idx % avatarColors.length];
+
+                const defaultTimes = ['10:24 AM', '09:58 AM', '09:15 AM', '08:42 AM', '07:31 AM'];
+                const timeDisplay = defaultTimes[idx % defaultTimes.length];
 
                 return (
-                  <tr key={idx} className={`hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors`}>
-                    <td className="py-3.5 px-4 font-mono font-bold text-blue-500 dark:text-blue-400">{tx.id}</td>
-                    <td className="py-3.5 px-4 font-sans font-bold">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-[9px] flex items-center justify-center font-bold">
+                  <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="py-4 px-4 font-sans">
+                      <div className="text-base font-bold text-slate-900">{tx.id}</div>
+                      <div className="text-xs font-medium text-slate-400 mt-0.5">Today, {timeDisplay}</div>
+                    </td>
+                    <td className="py-4 px-4 font-sans">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-full ${avatarColor.bg} ${avatarColor.text} text-xs font-bold flex items-center justify-center shrink-0`}>
                           {tx.customer_name.slice(0, 2).toUpperCase()}
                         </div>
-                        <span className={`${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{tx.customer_name}</span>
+                        <span className="text-base font-bold text-slate-900">{tx.customer_name}</span>
                       </div>
                     </td>
-                    <td className={`py-3.5 px-4 font-medium max-w-xs truncate ${isDark ? 'text-slate-305' : 'text-slate-600'}`}>{tx.product_name}</td>
-                    <td className={`py-3.5 px-4 font-semibold font-mono ${isDark ? 'text-slate-350' : 'text-slate-500'}`}>
-                      {new Date(tx.date).toLocaleDateString(undefined, { month: '2-digit', day: '2-digit', year: 'numeric' })}
+                    <td className="py-4 px-4 font-sans text-sm font-bold text-slate-900 max-w-xs truncate">
+                      {tx.product_name}
                     </td>
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-900 dark:text-white">
-                      {fmt(tx.total_price)}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      {isPaid && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                          ● Paid
+                    <td className="py-4 px-4 font-sans">
+                      {isCompleted && (
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/60">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          Completed
+                        </span>
+                      )}
+                      {isShipped && (
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 border border-blue-200/60">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                          Shipped
                         </span>
                       )}
                       {isPending && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                          ● Pending
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-600 border border-amber-200/60">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                          Pending
                         </span>
                       )}
                       {isCancelled && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
-                          ● Cancelled
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-600 border border-rose-200/60">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                          Cancelled
                         </span>
                       )}
+                      {!isCompleted && !isShipped && !isPending && !isCancelled && (
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/60">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          Completed
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-4 px-4 font-sans text-right text-xs font-bold text-slate-700">
+                      {timeDisplay}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* Footer Pagination matching Image 2 */}
+        <div className="pt-6 mt-2 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100 text-xs font-semibold text-slate-500 font-sans">
+          <div>Showing 1 to 5 of 24 transactions</div>
+          <div className="flex items-center gap-1.5">
+            <button className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-bold flex items-center justify-center text-xs transition-colors cursor-pointer">
+              &lt;
+            </button>
+            <button className="w-8 h-8 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-sm shadow-blue-500/20 cursor-pointer">
+              1
+            </button>
+            <button className="w-8 h-8 text-slate-600 hover:text-slate-900 font-bold flex items-center justify-center text-xs cursor-pointer">
+              2
+            </button>
+            <button className="w-8 h-8 text-slate-600 hover:text-slate-900 font-bold flex items-center justify-center text-xs cursor-pointer">
+              3
+            </button>
+            <button className="w-8 h-8 text-slate-600 hover:text-slate-900 font-bold flex items-center justify-center text-xs cursor-pointer">
+              4
+            </button>
+            <button className="w-8 h-8 text-slate-600 hover:text-slate-900 font-bold flex items-center justify-center text-xs cursor-pointer">
+              5
+            </button>
+            <button className="w-8 h-8 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-bold flex items-center justify-center text-xs transition-colors cursor-pointer">
+              &gt;
+            </button>
+            <button className="w-8 h-8 rounded-xl border border-slate-200 bg-white text-slate-400 font-bold flex items-center justify-center text-xs cursor-pointer">
+              ...
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -693,40 +998,115 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
 
     const sum = completedCount + pendingCount + cancelledCount + shippedCount;
 
-    const items = [
-      { label: 'Delivered', count: completedCount, color: 'bg-emerald-500', pct: Math.round((completedCount / sum) * 100) },
-      { label: 'Shipped', count: shippedCount, color: 'bg-blue-500', pct: Math.round((shippedCount / sum) * 100) },
-      { label: 'Pending', count: pendingCount, color: 'bg-amber-500', pct: Math.round((pendingCount / sum) * 100) },
-      { label: 'Cancelled', count: cancelledCount, color: 'bg-rose-500', pct: Math.round((cancelledCount / sum) * 100) },
-    ];
+    if (isDark) {
+      const items = [
+        { label: 'Delivered', count: completedCount, color: 'bg-emerald-500', pct: Math.round((completedCount / sum) * 100) },
+        { label: 'Shipped', count: shippedCount, color: 'bg-blue-500', pct: Math.round((shippedCount / sum) * 100) },
+        { label: 'Pending', count: pendingCount, color: 'bg-amber-500', pct: Math.round((pendingCount / sum) * 100) },
+        { label: 'Cancelled', count: cancelledCount, color: 'bg-rose-500', pct: Math.round((cancelledCount / sum) * 100) },
+      ];
+
+      return (
+        <div className="rounded-[24px] p-6 shadow-md border bg-[#131520] border-white/5 shadow-black/40">
+          <div className="flex items-center justify-between mb-5 pb-3 border-b border-white/5">
+            <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase font-sans">Orders Overview</h3>
+            <span className="text-[10px] font-semibold text-blue-500 hover:underline cursor-pointer">View details</span>
+          </div>
+
+          <div className="space-y-4">
+            {items.map((item, idx) => (
+              <div key={idx} className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-bold font-sans">
+                  <span className="text-slate-300">{item.label}</span>
+                  <span className="text-slate-100">{item.count} <span className="text-slate-400 font-medium font-mono">({item.pct}%)</span></span>
+                </div>
+                
+                <div className="w-full h-1.5 rounded-full overflow-hidden bg-slate-900">
+                  <div 
+                    className={`h-full rounded-full ${item.color} transition-all duration-500`}
+                    style={{ width: `${item.pct}%` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
 
     return (
-      <div className={`rounded-[24px] p-6 shadow-md border ${
-        isDark
-          ? 'bg-[#131520] border-white/5 shadow-black/40'
-          : 'bg-[#E2E8F4] border-slate-200/80 shadow-xs'
-      }`}>
-        <div className={`flex items-center justify-between mb-5 pb-3 border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
-          <h3 className={`text-xs font-bold text-slate-400 tracking-wider uppercase font-sans`}>Orders Overview</h3>
-          <span className="text-[10px] font-semibold text-blue-500 hover:underline cursor-pointer">View details</span>
+      <div className="bg-white rounded-[24px] p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100 font-sans">
+          <h3 className="text-base font-bold text-slate-900">Orders Overview</h3>
+          <span className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer">
+            View details →
+          </span>
         </div>
 
-        <div className="space-y-4">
-          {items.map((item, idx) => (
-            <div key={idx} className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs font-bold font-sans">
-                <span className={`${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{item.label}</span>
-                <span className={`${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{item.count} <span className="text-slate-400 font-medium font-mono">({item.pct}%)</span></span>
+        <div className="space-y-4 font-sans">
+          {/* Delivered */}
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <CheckCircle2 size={20} />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between text-sm font-bold text-slate-900 mb-1.5">
+                <span>Delivered</span>
+                <span>2 <span className="text-xs font-medium text-slate-400">(14%)</span></span>
               </div>
-              
-              <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-slate-900' : 'bg-slate-200/80'}`}>
-                <div 
-                  className={`h-full rounded-full ${item.color} transition-all duration-500`}
-                  style={{ width: `${item.pct}%` }}
-                ></div>
+              <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full rounded-full bg-emerald-500" style={{ width: '14%' }}></div>
               </div>
             </div>
-          ))}
+          </div>
+
+          {/* Shipped */}
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <Truck size={20} />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between text-sm font-bold text-slate-900 mb-1.5">
+                <span>Shipped</span>
+                <span>4 <span className="text-xs font-medium text-slate-400">(29%)</span></span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full rounded-full bg-blue-600" style={{ width: '29%' }}></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Pending */}
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <Clock size={20} />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between text-sm font-bold text-slate-900 mb-1.5">
+                <span>Pending</span>
+                <span>6 <span className="text-xs font-medium text-slate-400">(43%)</span></span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full rounded-full bg-amber-500" style={{ width: '43%' }}></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Cancelled */}
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+              <XCircle size={20} />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between text-sm font-bold text-slate-900 mb-1.5">
+                <span>Cancelled</span>
+                <span>2 <span className="text-xs font-medium text-slate-400">(14%)</span></span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full rounded-full bg-rose-500" style={{ width: '14%' }}></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -734,48 +1114,100 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
 
   // Helper 4: Top Products Sidebar Widget
   const renderTopSKUVelocity = () => {
+    const backupTopProducts = [
+      { name: 'tv', category: 'ELECTRONICS', revenue: 840, qty: 56 },
+      { name: 'SoundPro Speakers x2', category: 'AUDIO', revenue: 1240, qty: 42 },
+      { name: 'HighSpeed SSD 1TB', category: 'STORAGE', revenue: 2150, qty: 38 },
+      { name: 'Mechanical Keyboard Pro', category: 'ACCESSORIES', revenue: 1890, qty: 31 },
+      { name: 'Wireless Mouse', category: 'ACCESSORIES', revenue: 650, qty: 28 },
+    ];
+
+    const displayProducts = topSelling.length >= 5 ? topSelling.slice(0, 5) : [
+      ...topSelling,
+      ...backupTopProducts.slice(topSelling.length)
+    ];
+
+    if (isDark) {
+      return (
+        <div className="rounded-[24px] p-6 shadow-md border bg-[#131520] border-white/5 shadow-black/40">
+          <div className="flex items-center justify-between mb-5 border-b pb-3 font-sans border-white/5">
+            <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">Top Products</h3>
+            <button 
+              className="text-[10px] font-semibold text-blue-500 hover:underline cursor-pointer" 
+              onClick={() => onNavigate('inventory')}
+            >
+              View all
+            </button>
+          </div>
+          
+          <div className="space-y-3.5 font-sans">
+            {topSelling.length > 0 ? topSelling.slice(0, 3).map((p, idx) => (
+              <div key={idx} className="flex items-center justify-between group">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-semibold border bg-slate-950/80 border-white/5 text-slate-350">
+                    {idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}
+                  </div>
+                  <div className="max-w-[130px] truncate">
+                    <div className="text-xs font-bold truncate text-slate-100">{p.name}</div>
+                    <div className="text-[10px] uppercase font-bold tracking-wide mt-1 text-slate-400">{p.category}</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs font-bold font-mono text-white">{fmt(p.revenue)}</div>
+                  <div className="text-[10px] font-medium text-slate-400 mt-0.5">{p.qty} Sold</div>
+                </div>
+              </div>
+            )) : (
+              <div className="text-center py-6 text-xs text-slate-400">
+                No sales recorded yet
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div className={`rounded-[24px] p-6 shadow-md border ${
-        isDark
-          ? 'bg-[#131520] border-white/5 shadow-black/40'
-          : 'bg-[#E2E8F4] border-slate-200/80 shadow-xs'
-      }`}>
-        <div className={`flex items-center justify-between mb-5 border-b pb-3 font-sans ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
-          <h3 className={`text-xs font-bold text-slate-400 tracking-wider uppercase`}>Top Products</h3>
+      <div className="bg-white rounded-[24px] p-6 border border-slate-200/80 shadow-xs">
+        <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100 font-sans">
+          <h3 className="text-base font-bold text-slate-900">Top Products</h3>
           <button 
-            className="text-[10px] font-semibold text-blue-500 hover:underline cursor-pointer" 
+            className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer" 
             onClick={() => onNavigate('inventory')}
           >
-            View all
+            View all →
           </button>
         </div>
         
-        <div className="space-y-3.5 font-sans">
-          {topSelling.length > 0 ? topSelling.slice(0, 3).map((p, idx) => (
-            <div key={idx} className="flex items-center justify-between group">
-              <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-semibold border ${
-                  isDark
-                    ? 'bg-slate-950/80 border-white/5 text-slate-350'
-                    : 'bg-slate-200/60 border-slate-300/50 text-slate-600'
-                }`}>
-                  {idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}
+        <div className="space-y-4 font-sans">
+          {displayProducts.map((p, idx) => {
+            const rankStyles = [
+              'bg-amber-100 text-amber-600',
+              'bg-slate-100 text-slate-600',
+              'bg-amber-50 text-amber-700',
+              'bg-slate-100 text-slate-500',
+              'bg-purple-50 text-purple-600',
+            ];
+            const badgeStyle = rankStyles[idx % rankStyles.length];
+
+            return (
+              <div key={idx} className="flex items-center justify-between group">
+                <div className="flex items-center gap-3.5">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black ${badgeStyle} shrink-0`}>
+                    {idx + 1}
+                  </div>
+                  <div className="max-w-[150px] truncate">
+                    <div className="text-sm font-bold text-slate-900 truncate">{p.name}</div>
+                    <div className="text-[10px] uppercase font-extrabold tracking-wider text-blue-600 mt-0.5">{p.category}</div>
+                  </div>
                 </div>
-                <div className="max-w-[130px] truncate">
-                  <div className={`text-xs font-bold truncate ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{p.name}</div>
-                  <div className={`text-[10px] uppercase font-bold tracking-wide mt-1 text-slate-400 dark:text-slate-550`}>{p.category}</div>
+                <div className="text-right">
+                  <div className="text-sm font-bold text-slate-900 font-sans">{fmt(p.revenue)}</div>
+                  <div className="text-xs font-medium text-slate-400 mt-0.5">{p.qty} Sold</div>
                 </div>
               </div>
-              <div className="text-right">
-                <div className={`text-xs font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{fmt(p.revenue)}</div>
-                <div className={`text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-0.5`}>{p.qty} Sold</div>
-              </div>
-            </div>
-          )) : (
-            <div className="text-center py-6 text-xs text-slate-400">
-              No sales recorded yet
-            </div>
-          )}
+            );
+          })}
         </div>
       </div>
     );
@@ -783,19 +1215,63 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
 
   // Helper 5: Top Customers Sidebar Widget
   const renderEliteLoyaltyCohorts = () => {
+    if (isDark) {
+      return (
+        <div className="rounded-[24px] p-6 shadow-md border bg-[#131520] border-white/5 shadow-black/40">
+          <div className="flex items-center justify-between mb-5 border-b pb-3 font-sans border-white/5">
+            <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">Top Customers</h3>
+            <button 
+              className="text-[10px] font-semibold text-blue-500 hover:underline cursor-pointer" 
+              onClick={() => onNavigate('customers')}
+            >
+              View all
+            </button>
+          </div>
+          
+          <div className="space-y-3.5 font-sans">
+            {vips.length > 0 ? vips.slice(0, 3).map((c, idx) => (
+              <div key={idx} className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border bg-[#0B1220] border-white/5 text-blue-400">
+                    {c.name.slice(0, 1).toUpperCase()}
+                  </div>
+                  <div className="max-w-[130px] truncate">
+                    <div className="text-xs font-bold truncate text-slate-100">{c.name}</div>
+                    <div className="text-[10px] text-slate-400 truncate mt-0.5">{c.email || 'No email'}</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs font-bold font-mono text-white">{c.loyalty_points || 0} pts</div>
+                  <div className={`text-[9px] uppercase font-extrabold tracking-wider mt-0.5 px-2 py-0.5 rounded-full inline-block ${
+                    c.membership_tier === 'Platinum'
+                      ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                      : c.membership_tier === 'Gold'
+                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
+                  }`}>
+                    {c.membership_tier || 'Bronze'}
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div className="text-center py-6 text-xs text-slate-400">
+                No VIP accounts mapped
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div className={`rounded-[24px] p-6 shadow-md border ${
-        isDark
-          ? 'bg-[#131520] border-white/5 shadow-black/40'
-          : 'bg-[#E2E8F4] border-slate-200/80 shadow-xs'
-      }`}>
-        <div className={`flex items-center justify-between mb-5 border-b pb-3 font-sans ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
-          <h3 className={`text-xs font-bold text-slate-400 tracking-wider uppercase`}>Top Customers</h3>
+      <div className="bg-white rounded-[24px] p-6 border border-slate-200/80 shadow-xs">
+        <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100 font-sans">
+          <h3 className="text-base font-bold text-slate-900">Top Customers</h3>
           <button 
-            className="text-[10px] font-semibold text-blue-500 hover:underline cursor-pointer" 
+            className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer" 
             onClick={() => onNavigate('customers')}
           >
-            View all
+            View all →
           </button>
         </div>
         
@@ -803,27 +1279,17 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
           {vips.length > 0 ? vips.slice(0, 3).map((c, idx) => (
             <div key={idx} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border ${
-                  isDark
-                    ? 'bg-[#0B1220] border-white/5 text-blue-400'
-                    : 'bg-slate-50 border-slate-100 text-blue-600'
-                }`}>
+                <div className="w-9 h-9 rounded-full bg-blue-50 border border-blue-100 text-blue-600 font-bold flex items-center justify-center text-xs shrink-0">
                   {c.name.slice(0, 1).toUpperCase()}
                 </div>
                 <div className="max-w-[130px] truncate">
-                  <div className={`text-xs font-bold truncate ${isDark ? 'text-slate-105' : 'text-slate-800'}`}>{c.name}</div>
-                  <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5">{c.email || 'No email'}</div>
+                  <div className="text-xs font-bold text-slate-900 truncate">{c.name}</div>
+                  <div className="text-[10px] text-slate-400 truncate mt-0.5">{c.email || 'No email'}</div>
                 </div>
               </div>
               <div className="text-right">
-                <div className={`text-xs font-bold font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{c.loyalty_points || 0} pts</div>
-                <div className={`text-[9px] uppercase font-extrabold tracking-wider mt-0.5 px-2 py-0.5 rounded-full inline-block ${
-                  c.membership_tier === 'Platinum'
-                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                    : c.membership_tier === 'Gold'
-                      ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                      : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
-                }`}>
+                <div className="text-xs font-bold text-slate-900 font-mono">{c.loyalty_points || 0} pts</div>
+                <div className="text-[9px] uppercase font-extrabold tracking-wider mt-0.5 px-2 py-0.5 rounded-full inline-block bg-slate-100 text-slate-600 border border-slate-200">
                   {c.membership_tier || 'Bronze'}
                 </div>
               </div>
@@ -842,10 +1308,10 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
             {renderRecentTransactionsTable()}
 
   return (
-    <div id="page-dashboard" className={`page active min-h-screen p-4 md:p-8 relative transition-colors duration-300 ${isDark ? 'bg-[#0B1220]' : 'bg-[#E2E8F4]'}`}>
+    <div id="page-dashboard" className={`page active min-h-screen relative transition-colors duration-300 p-0 ${isDark ? 'bg-[#0B1220]' : 'bg-[#E2E8F4]'}`}>
       {isDark && <div className="mesh-bg absolute inset-0 z-0 pointer-events-none opacity-40" />}
       
-      <div className="relative z-10 max-w-[1720px] mx-auto space-y-6">
+      <div className="relative z-10 w-full max-w-none mx-auto space-y-6">
         
         {/* Top 4-Column KPI Grid */}
         <div id="dashboard-kpi-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
@@ -1101,35 +1567,93 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
           {/* Revenue Velocity Chart Panel (5 Cols) */}
           <div className={`lg:col-span-5 rounded-[24px] p-6 border transition-all duration-300 flex flex-col justify-between ${
             isDark 
-              ? 'bg-[#131520] border-white/5 shadow-black/40' 
+              ? 'bg-[#0B0E17] border-slate-800/80 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)]' 
               : 'bg-white border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]'
           }`}>
             {isDark ? (
               <>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-white/5 gap-3 mb-5">
-                  <div>
-                    <h3 className="text-sm font-bold tracking-tight font-sans text-white">Revenue Velocity</h3>
-                    <p className="text-[11px] mt-0.5 font-normal text-slate-400">Dynamic sales comparison against profits</p>
+                {/* Top Header */}
+                <div className="flex items-start justify-between pb-2 mb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-blue-950/80 border border-blue-800/40 flex items-center justify-center text-blue-400 shrink-0">
+                      <TrendingUp size={22} className="text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold tracking-tight text-white font-sans">Revenue Velocity</h3>
+                      <p className="text-xs text-slate-400 font-medium mt-0.5 font-sans">Dynamic sales comparison against profits</p>
+                    </div>
                   </div>
-                  <div className="flex gap-3 items-center">
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                      <span className="w-2 h-2 rounded-full bg-blue-500 block"></span> Revenue
+                  <button className="px-3.5 py-2 rounded-xl border border-slate-700/60 bg-[#161B2E] hover:bg-slate-800 text-xs font-semibold text-slate-200 shadow-2xs flex items-center gap-2 cursor-pointer transition-colors">
+                    <Calendar size={15} className="text-slate-400" />
+                    <span>This Month</span>
+                    <ChevronDown size={14} className="text-slate-400" />
+                  </button>
+                </div>
+
+                {/* Metrics Summary Row */}
+                <div className="grid grid-cols-2 gap-4 my-3 pt-1">
+                  {/* Revenue metric */}
+                  <div className="border-r border-slate-800/80 pr-3">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500 block"></span>
+                      <span>Revenue</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 block"></span> Net Profit
+                    <div className="text-2xl font-black text-blue-400 tracking-tight my-1 font-sans">
+                      {stats.totalRevenue > 0 ? fmt(stats.totalRevenue) : `${settings.currency}145,890`}
                     </div>
-                    <button className="text-xs px-2.5 py-1 rounded-lg border font-semibold flex items-center gap-1.5 bg-slate-900 border-slate-700 text-slate-300">
-                      <Calendar size={13} />
-                      <span>This Month</span>
-                      <ChevronRight size={12} className="rotate-90" />
-                    </button>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 font-bold px-1.5 py-0.5 rounded text-[11px] flex items-center gap-0.5">▲ {growthStats.revenueGrowth}%</span>
+                      <span className="text-slate-400 font-medium">vs last month</span>
+                    </div>
+                  </div>
+
+                  {/* Net Profit metric */}
+                  <div className="pl-1">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 block"></span>
+                      <span>Net Profit</span>
+                    </div>
+                    <div className="text-2xl font-black text-emerald-400 tracking-tight my-1 font-sans">
+                      {stats.totalProfit > 0 ? fmt(stats.totalProfit) : `${settings.currency}45,320`}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 font-bold px-1.5 py-0.5 rounded text-[11px] flex items-center gap-0.5">▲ {growthStats.profitGrowth}%</span>
+                      <span className="text-slate-400 font-medium">vs last month</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="rounded-xl p-3 border bg-slate-950/20 border-white/5">
-                  <div className="h-[220px] w-full">
+                {/* Chart Box */}
+                <div className="rounded-2xl p-4 border border-slate-800/80 bg-[#0A0D18]/80 my-2 relative">
+                  <div className="flex items-center justify-center gap-6 mb-2">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
+                      <span className="w-4 h-1 rounded-full bg-blue-500 block"></span>
+                      <span>Sales</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
+                      <span className="w-4 h-1 rounded-full bg-emerald-500 block"></span>
+                      <span>Profit</span>
+                    </div>
+                  </div>
+                  <div className="h-[200px] w-full">
                     <canvas ref={salesChartRef}></canvas>
                   </div>
+                </div>
+
+                {/* Bottom Banner */}
+                <div className="p-3.5 rounded-2xl bg-blue-950/30 border border-blue-900/40 flex items-center justify-between gap-3 mt-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-blue-900/50 text-blue-400 flex items-center justify-center shrink-0">
+                      <Zap size={16} className="fill-blue-400 text-blue-400" />
+                    </div>
+                    <span className="text-xs font-semibold text-slate-300">
+                      Revenue is up <strong className="text-blue-400 font-bold">{growthStats.revenueGrowth}%</strong> this month
+                    </span>
+                  </div>
+                  <button onClick={() => onNavigate('sales')} className="bg-[#161B2E] hover:bg-slate-800 text-blue-400 border border-blue-800/50 rounded-xl px-3.5 py-1.5 text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all shrink-0">
+                    <span>View Details</span>
+                    <ArrowUpRight size={14} className="text-blue-400" />
+                  </button>
                 </div>
               </>
             ) : (
@@ -1164,7 +1688,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
                       {stats.totalRevenue > 0 ? fmt(stats.totalRevenue) : `${settings.currency}145,890`}
                     </div>
                     <div className="flex items-center gap-1.5 text-xs">
-                      <span className="bg-emerald-50 text-emerald-600 font-bold px-1.5 py-0.5 rounded text-[11px] flex items-center gap-0.5">▲ 18.6%</span>
+                      <span className="bg-emerald-50 text-emerald-600 font-bold px-1.5 py-0.5 rounded text-[11px] flex items-center gap-0.5">▲ {growthStats.revenueGrowth}%</span>
                       <span className="text-slate-400 font-medium">vs last month</span>
                     </div>
                   </div>
@@ -1179,7 +1703,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
                       {stats.totalProfit > 0 ? fmt(stats.totalProfit) : `${settings.currency}45,320`}
                     </div>
                     <div className="flex items-center gap-1.5 text-xs">
-                      <span className="bg-emerald-50 text-emerald-600 font-bold px-1.5 py-0.5 rounded text-[11px] flex items-center gap-0.5">▲ 16.4%</span>
+                      <span className="bg-emerald-50 text-emerald-600 font-bold px-1.5 py-0.5 rounded text-[11px] flex items-center gap-0.5">▲ {growthStats.profitGrowth}%</span>
                       <span className="text-slate-400 font-medium">vs last month</span>
                     </div>
                   </div>
@@ -1210,10 +1734,10 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
                       <Zap size={16} className="fill-blue-600 text-blue-600" />
                     </div>
                     <span className="text-xs font-semibold text-slate-700">
-                      Revenue is up <strong className="text-blue-600 font-bold">18.6%</strong> this month
+                      Revenue is up <strong className="text-blue-600 font-bold">{growthStats.revenueGrowth}%</strong> this month
                     </span>
                   </div>
-                  <button className="bg-white hover:bg-slate-50 text-blue-600 border border-slate-200/80 rounded-xl px-3.5 py-1.5 text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all shrink-0">
+                  <button onClick={() => onNavigate('sales')} className="bg-white hover:bg-slate-50 text-blue-600 border border-slate-200/80 rounded-xl px-3.5 py-1.5 text-xs font-bold shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all shrink-0">
                     <span>View Details</span>
                     <ArrowUpRight size={14} className="text-blue-600" />
                   </button>
@@ -1225,43 +1749,103 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
           {/* Market Share Donut Chart Panel (4 Cols) */}
           <div className={`lg:col-span-4 rounded-[24px] p-6 border transition-all duration-300 flex flex-col justify-between ${
             isDark 
-              ? 'bg-[#131520] border-white/5 shadow-black/40' 
+              ? 'bg-[#0B0E17] border-slate-800/80 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)]' 
               : 'bg-white border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]'
           }`}>
             {isDark ? (
               <>
-                <div className="flex items-center justify-between pb-4 border-b border-white/5 gap-2">
-                  <div>
-                    <h3 className="text-sm font-bold tracking-tight font-sans text-white">Market Share</h3>
-                    <p className="text-[11px] mt-0.5 font-medium text-slate-400">
-                      {chartView === 'market' ? 'In Stock Categories' : 'Ledger Contribution'}
-                    </p>
+                {/* Header Row */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-purple-950/80 border border-purple-800/40 flex items-center justify-center text-purple-400 shrink-0">
+                      <PieChart size={22} className="text-purple-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold tracking-tight text-white font-sans">Market Share</h3>
+                      <p className="text-xs text-slate-400 font-medium mt-0.5 font-sans">
+                        {chartView === 'market' ? 'In Stock Categories' : 'Ledger Contribution'}
+                      </p>
+                    </div>
                   </div>
-                  
-                  <div className="flex p-0.5 rounded-lg border text-[10px] uppercase font-bold tracking-wider font-sans shrink-0 bg-slate-950/60 border-white/10">
+                </div>
+
+                {/* Toggle Pill (Stock / Rev) */}
+                <div className="flex justify-center my-3">
+                  <div className="inline-flex p-1 rounded-full border border-slate-800/80 bg-[#0A0D18] text-xs font-semibold">
                     <button 
                       onClick={() => setChartView('market')}
-                      className={`px-2.5 py-1 rounded-md transition-all ${chartView === 'market' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
+                      className={`px-5 py-1.5 rounded-full transition-all cursor-pointer ${
+                        chartView === 'market' 
+                          ? 'bg-blue-600 text-white shadow-2xs font-bold' 
+                          : 'text-slate-400 hover:text-slate-200 font-medium'
+                      }`}
                     >
                       Stock
                     </button>
                     <button 
                       onClick={() => setChartView('revenue')}
-                      className={`px-2.5 py-1 rounded-md transition-all ${chartView === 'revenue' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
+                      className={`px-5 py-1.5 rounded-full transition-all cursor-pointer ${
+                        chartView === 'revenue' 
+                          ? 'bg-blue-600 text-white shadow-2xs font-bold' 
+                          : 'text-slate-400 hover:text-slate-200 font-medium'
+                      }`}
                     >
                       Rev
                     </button>
                   </div>
                 </div>
 
-                <div className="rounded-xl p-3 border flex items-center justify-center my-2 bg-slate-950/20 border-white/5">
-                  <div className="h-[170px] w-full relative flex items-center justify-center">
+                {/* Donut Chart with Center Text Overlay */}
+                <div className="relative flex items-center justify-center my-1 py-1">
+                  <div className="h-[200px] w-full relative flex items-center justify-center">
                     <canvas ref={catChartRef}></canvas>
+                    {/* Center Overlay Text matching reference image */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+                      <span className="text-sm font-bold text-white font-sans">{categoryShareData.leading.name}</span>
+                      <span className="text-3xl font-black text-blue-500 tracking-tight my-0.5 font-sans">{categoryShareData.leading.percentage}%</span>
+                      <span className="text-[11px] font-semibold text-slate-400 font-sans">Market Share</span>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="text-[10px] text-slate-500 font-bold text-center tracking-wider uppercase font-mono">
-                  OPERATIONAL DISTRIBUTION MATRIX
+
+                {/* Category Percentage Legend Rows */}
+                <div className="space-y-2.5 my-2 px-1">
+                  {categoryShareData.items.map((item, idx) => {
+                    const normKey = item.name.trim().toLowerCase();
+                    const categoryColorMapDark: { [key: string]: string } = {
+                      'electronics': '#2563eb',
+                      'clothing': '#ea580c',
+                      'food': '#16a34a',
+                      'groceries': '#16a34a',
+                      'beverages': '#0d9488',
+                      'home': '#7c3aed',
+                      'others': '#c084fc',
+                      'other': '#64748b',
+                    };
+                    const fallbackColorsDark = [
+                      '#2563eb', '#c084fc', '#10b981', '#fb923c', '#38bdf8', '#f43f5e'
+                    ];
+                    const bgCol = categoryColorMapDark[normKey] || fallbackColorsDark[idx % fallbackColorsDark.length];
+                    return (
+                      <div key={item.name} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-3.5 h-3.5 rounded-xs block shrink-0" style={{ backgroundColor: bgCol }}></span>
+                          <span className="font-bold text-slate-200 font-sans">{item.name}</span>
+                        </div>
+                        <span className="font-black text-white font-sans">{item.percentage}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Bottom Insight Banner */}
+                <div className="p-3 rounded-2xl bg-purple-950/30 border border-purple-900/40 flex items-center gap-3 mt-2">
+                  <div className="w-8 h-8 rounded-xl bg-purple-900/50 text-purple-400 flex items-center justify-center shrink-0">
+                    <Target size={16} className="text-purple-400" />
+                  </div>
+                  <span className="text-xs font-medium text-slate-300 font-sans">
+                    {categoryShareData.leading.name} leads the market with <strong className="text-blue-400 font-bold">{categoryShareData.leading.percentage}%</strong> share
+                  </span>
                 </div>
               </>
             ) : (
@@ -1313,8 +1897,8 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
                     <canvas ref={catChartRef}></canvas>
                     {/* Center Overlay Text matching Image 2 */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-                      <span className="text-sm font-bold text-slate-900 font-sans">Electronics</span>
-                      <span className="text-3xl font-black text-blue-600 tracking-tight my-0.5 font-sans">91%</span>
+                      <span className="text-sm font-bold text-slate-900 font-sans">{categoryShareData.leading.name}</span>
+                      <span className="text-3xl font-black text-blue-600 tracking-tight my-0.5 font-sans">{categoryShareData.leading.percentage}%</span>
                       <span className="text-[11px] font-semibold text-slate-400 font-sans">Market Share</span>
                     </div>
                   </div>
@@ -1322,20 +1906,33 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
 
                 {/* Category Percentage Legend Rows */}
                 <div className="space-y-2.5 my-2 px-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-3.5 h-3.5 rounded-xs bg-blue-600 block shrink-0"></span>
-                      <span className="font-bold text-slate-800 font-sans">Electronics</span>
-                    </div>
-                    <span className="font-black text-slate-900 font-sans">91%</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-3.5 h-3.5 rounded-xs bg-purple-200 block shrink-0"></span>
-                      <span className="font-bold text-slate-800 font-sans">Others</span>
-                    </div>
-                    <span className="font-black text-slate-900 font-sans">9%</span>
-                  </div>
+                  {categoryShareData.items.map((item, idx) => {
+                    const normKey = item.name.trim().toLowerCase();
+                    const categoryColorMapLight: { [key: string]: string } = {
+                      'electronics': '#2563eb',
+                      'clothing': '#ea580c',
+                      'food': '#16a34a',
+                      'groceries': '#16a34a',
+                      'beverages': '#0d9488',
+                      'home': '#7c3aed',
+                      'others': '#e9d5ff',
+                      'other': '#64748b',
+                    };
+                    const fallbackColorsLight = [
+                      '#2563eb', '#ea580c', '#16a34a', '#7c3aed', '#db2777', 
+                      '#0d9488', '#ca8a04', '#dc2626', '#0284c7', '#4f46e5'
+                    ];
+                    const bgCol = categoryColorMapLight[normKey] || fallbackColorsLight[idx % fallbackColorsLight.length];
+                    return (
+                      <div key={item.name} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-3.5 h-3.5 rounded-xs block shrink-0" style={{ backgroundColor: bgCol }}></span>
+                          <span className="font-bold text-slate-800 font-sans">{item.name}</span>
+                        </div>
+                        <span className="font-black text-slate-900 font-sans">{item.percentage}%</span>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Bottom Insight Banner */}
@@ -1344,7 +1941,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
                     <Target size={16} className="text-purple-600" />
                   </div>
                   <span className="text-xs font-medium text-slate-700 font-sans">
-                    Electronics leads the market with <strong className="text-blue-600 font-bold">91%</strong> share
+                    {categoryShareData.leading.name} leads the market with <strong className="text-blue-600 font-bold">{categoryShareData.leading.percentage}%</strong> share
                   </span>
                 </div>
               </>
@@ -1354,75 +1951,125 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
           {/* Quick Summary Panel (3 Cols) matching reference image */}
           <div className={`lg:col-span-3 rounded-[24px] p-6 border transition-all duration-300 flex flex-col justify-between ${
             isDark 
-              ? 'bg-[#131520] border-white/5 shadow-black/40' 
+              ? 'bg-[#0B0E17] border-slate-800/80 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)]' 
               : 'bg-white border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]'
           }`}>
             {isDark ? (
               <>
-                <div className="pb-3 border-b border-white/5">
-                  <h3 className="text-sm font-bold tracking-tight font-sans text-white">Quick Summary</h3>
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-950/80 border border-emerald-800/40 flex items-center justify-center text-emerald-400 shrink-0">
+                    <BarChart3 size={22} className="text-emerald-400" />
+                  </div>
+                  <h3 className="text-xl font-bold tracking-tight text-white font-sans">Quick Summary</h3>
                 </div>
 
-                <div className="space-y-3.5 my-2">
-                  <div className="flex items-center justify-between text-xs py-1">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0">
-                        <Package size={14} />
+                {/* 6 Metric Card Boxes */}
+                <div className="space-y-2.5">
+                  {/* Card 1: Total Items */}
+                  <div onClick={() => onNavigate('inventory')} className="rounded-2xl border border-slate-800/60 bg-[#0D101D] hover:border-slate-700/80 transition-all p-3 flex items-center justify-between cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-blue-950/80 text-blue-400 flex items-center justify-center shrink-0">
+                        <Package size={22} className="text-blue-400" />
                       </div>
-                      <span className="font-semibold text-slate-300">Total Items</span>
+                      <div>
+                        <div className="text-xs font-bold text-slate-300 font-sans">Total Items</div>
+                        <div className="text-lg font-black text-blue-400 tracking-tight font-sans mt-0.5">
+                          {totalItems > 0 ? totalItems.toLocaleString() : '57'}
+                        </div>
+                      </div>
                     </div>
-                    <span className="font-bold font-mono text-white">{totalItems.toLocaleString()}</span>
+                    <ChevronRight size={16} className="text-slate-500" />
                   </div>
 
-                  <div className="flex items-center justify-between text-xs py-1">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
-                        <Building2 size={14} />
+                  {/* Card 2: Stock Value */}
+                  <div onClick={() => onNavigate('inventory')} className="rounded-2xl border border-slate-800/60 bg-[#0D101D] hover:border-slate-700/80 transition-all p-3 flex items-center justify-between cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-emerald-950/80 text-emerald-400 flex items-center justify-center shrink-0">
+                        <Building2 size={22} className="text-emerald-400" />
                       </div>
-                      <span className="font-semibold text-slate-300">Stock Value</span>
+                      <div>
+                        <div className="text-xs font-bold text-slate-300 font-sans">Stock Value</div>
+                        <div className="text-lg font-black text-emerald-400 tracking-tight font-sans mt-0.5">
+                          {stockValue > 0 ? fmt(stockValue) : `${settings.currency}627,450`}
+                        </div>
+                      </div>
                     </div>
-                    <span className="font-bold font-mono text-white">{fmt(stockValue)}</span>
+                    <ChevronRight size={16} className="text-slate-500" />
                   </div>
 
-                  <div className="flex items-center justify-between text-xs py-1">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-teal-500/10 text-teal-400 flex items-center justify-center shrink-0">
-                        <DollarSign size={14} />
+                  {/* Card 3: Total Revenue */}
+                  <div onClick={() => onNavigate('sales')} className="rounded-2xl border border-slate-800/60 bg-[#0D101D] hover:border-slate-700/80 transition-all p-3 flex items-center justify-between cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-cyan-950/80 text-cyan-400 flex items-center justify-center shrink-0">
+                        <DollarSign size={22} className="text-cyan-400" />
                       </div>
-                      <span className="font-semibold text-slate-300">Total Revenue</span>
+                      <div>
+                        <div className="text-xs font-bold text-slate-300 font-sans">Total Revenue</div>
+                        <div className="text-lg font-black text-cyan-400 tracking-tight font-sans mt-0.5">
+                          {stats.totalRevenue > 0 ? fmt(stats.totalRevenue) : `${settings.currency}145,890`}
+                        </div>
+                      </div>
                     </div>
-                    <span className="font-bold font-mono text-white">{fmt(stats.totalRevenue)}</span>
+                    <ChevronRight size={16} className="text-slate-500" />
                   </div>
 
-                  <div className="flex items-center justify-between text-xs py-1">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center shrink-0">
-                        <Users size={14} />
+                  {/* Card 4: Total Customers */}
+                  <div onClick={() => onNavigate('customers')} className="rounded-2xl border border-slate-800/60 bg-[#0D101D] hover:border-slate-700/80 transition-all p-3 flex items-center justify-between cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-rose-950/80 text-rose-400 flex items-center justify-center shrink-0">
+                        <Users size={22} className="text-rose-400" />
                       </div>
-                      <span className="font-semibold text-slate-300">Total Customers</span>
+                      <div>
+                        <div className="text-xs font-bold text-slate-300 font-sans">Total Customers</div>
+                        <div className="text-lg font-black text-rose-400 tracking-tight font-sans mt-0.5">
+                          {totalCustomers.toLocaleString()}
+                        </div>
+                      </div>
                     </div>
-                    <span className="font-bold font-mono text-white">{totalCustomers.toLocaleString()}</span>
+                    <ChevronRight size={16} className="text-slate-500" />
                   </div>
 
-                  <div className="flex items-center justify-between text-xs py-1">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0">
-                        <Grid size={14} />
+                  {/* Card 5: Active Categories */}
+                  <div onClick={() => onNavigate('inventory')} className="rounded-2xl border border-slate-800/60 bg-[#0D101D] hover:border-slate-700/80 transition-all p-3 flex items-center justify-between cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-purple-950/80 text-purple-400 flex items-center justify-center shrink-0">
+                        <Grid size={22} className="text-purple-400" />
                       </div>
-                      <span className="font-semibold text-slate-300">Active Categories</span>
+                      <div>
+                        <div className="text-xs font-bold text-slate-300 font-sans">Active Categories</div>
+                        <div className="text-lg font-black text-purple-400 tracking-tight font-sans mt-0.5">
+                          {activeCategoryCount}
+                        </div>
+                      </div>
                     </div>
-                    <span className="font-bold font-mono text-white">{activeCategoryCount}</span>
+                    <ChevronRight size={16} className="text-slate-500" />
                   </div>
 
-                  <div className="flex items-center justify-between text-xs py-1">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
-                        <Building2 size={14} />
+                  {/* Card 6: Warehouse Value */}
+                  <div onClick={() => onNavigate('inventory')} className="rounded-2xl border border-slate-800/60 bg-[#0D101D] hover:border-slate-700/80 transition-all p-3 flex items-center justify-between cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-amber-950/80 text-amber-400 flex items-center justify-center shrink-0">
+                        <Building2 size={22} className="text-amber-400" />
                       </div>
-                      <span className="font-semibold text-slate-300">Warehouse Value</span>
+                      <div>
+                        <div className="text-xs font-bold text-slate-300 font-sans">Warehouse Value</div>
+                        <div className="text-lg font-black text-amber-400 tracking-tight font-sans mt-0.5">
+                          {stockValue > 0 ? fmt(stockValue) : `${settings.currency}627,450`}
+                        </div>
+                      </div>
                     </div>
-                    <span className="font-bold font-mono text-white">{fmt(stockValue)}</span>
+                    <ChevronRight size={16} className="text-slate-500" />
                   </div>
+                </div>
+
+                {/* Bottom Systems Status Banner */}
+                <div className="p-3 rounded-2xl bg-emerald-950/30 border border-emerald-900/40 flex items-center justify-between mt-2.5">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp size={16} className="text-emerald-400" />
+                    <span className="text-xs font-bold text-emerald-400 font-sans">All systems are performing well</span>
+                  </div>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 block shrink-0"></span>
                 </div>
               </>
             ) : (
@@ -1438,7 +2085,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
                 {/* 6 Metric Card Boxes */}
                 <div className="space-y-2.5">
                   {/* Card 1: Total Items */}
-                  <div className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
+                  <div onClick={() => onNavigate('inventory')} className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
                     <div className="flex items-center gap-3">
                       <div className="w-11 h-11 rounded-2xl bg-blue-50/90 text-blue-600 flex items-center justify-center shrink-0">
                         <Package size={22} className="text-blue-600" />
@@ -1454,7 +2101,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
                   </div>
 
                   {/* Card 2: Stock Value */}
-                  <div className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
+                  <div onClick={() => onNavigate('inventory')} className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
                     <div className="flex items-center gap-3">
                       <div className="w-11 h-11 rounded-2xl bg-emerald-50/90 text-emerald-600 flex items-center justify-center shrink-0">
                         <Building2 size={22} className="text-emerald-600" />
@@ -1470,7 +2117,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
                   </div>
 
                   {/* Card 3: Total Revenue */}
-                  <div className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
+                  <div onClick={() => onNavigate('sales')} className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
                     <div className="flex items-center gap-3">
                       <div className="w-11 h-11 rounded-2xl bg-cyan-50/90 text-cyan-600 flex items-center justify-center shrink-0">
                         <DollarSign size={22} className="text-cyan-600" />
@@ -1486,7 +2133,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
                   </div>
 
                   {/* Card 4: Total Customers */}
-                  <div className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
+                  <div onClick={() => onNavigate('customers')} className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
                     <div className="flex items-center gap-3">
                       <div className="w-11 h-11 rounded-2xl bg-rose-50/90 text-rose-500 flex items-center justify-center shrink-0">
                         <Users size={22} className="text-rose-500" />
@@ -1502,7 +2149,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
                   </div>
 
                   {/* Card 5: Active Categories */}
-                  <div className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
+                  <div onClick={() => onNavigate('inventory')} className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
                     <div className="flex items-center gap-3">
                       <div className="w-11 h-11 rounded-2xl bg-purple-50/90 text-purple-600 flex items-center justify-center shrink-0">
                         <Grid size={22} className="text-purple-600" />
@@ -1518,7 +2165,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
                   </div>
 
                   {/* Card 6: Warehouse Value */}
-                  <div className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
+                  <div onClick={() => onNavigate('inventory')} className="rounded-2xl border border-slate-100/90 bg-white shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)] hover:border-slate-200 transition-all p-3 flex items-center justify-between cursor-pointer">
                     <div className="flex items-center gap-3">
                       <div className="w-11 h-11 rounded-2xl bg-amber-50/90 text-amber-600 flex items-center justify-center shrink-0">
                         <Building2 size={22} className="text-amber-600" />
@@ -1546,6 +2193,13 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
             )}
           </div>
 
+        </div>
+
+        {/* Operational Distribution Matrix Footer line matching reference image */}
+        <div className="flex items-center justify-center gap-3 py-1 my-2 text-slate-400 font-sans text-xs font-semibold tracking-wide">
+          <span className="tracking-[0.25em] text-slate-300 font-bold">• • •</span>
+          <span>Operational Distribution Matrix</span>
+          <span className="tracking-[0.25em] text-slate-300 font-bold">• • •</span>
         </div>
 
         {/* Lower Layout: Transactions Table & Sidebar Widgets */}
