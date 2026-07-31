@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { QrCode, Camera, Calendar, X, Sparkles, Watch, Truck, CreditCard, DollarSign, Percent, AlertCircle, Upload, FileText, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { QrCode, Camera, Calendar, X, Sparkles, Watch, Truck, CreditCard, DollarSign, Percent, AlertCircle, Upload, FileText, Image as ImageIcon, Trash2, ShoppingBag, Package, LayoutGrid, User, UserPlus, ChevronDown, Landmark, Calculator, Save, MoreVertical, ShoppingCart, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 
@@ -127,6 +127,7 @@ const inferCategory = (productName: string): string => {
 
 export const BuyImportComponent = () => {
   const { products, transactions, addTransaction, deleteTransaction, settings, addProduct, updateProduct } = useData();
+  const isDarkMode = settings.theme === 'dark' || (typeof document !== 'undefined' && (document.body.classList.contains('dark-mode') || document.documentElement.classList.contains('dark')));
   const [showModal, setShowModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -275,39 +276,14 @@ export const BuyImportComponent = () => {
     const selectedCategory = formData.category || 'Others';
 
     const submitData = async (invoiceData?: { data: string; name: string; type: string }) => {
-      // Find if the product exists in products (by case-insensitive name matching)
       const existingProduct = products.find(p => p.name.trim().toLowerCase() === formData.product_name.trim().toLowerCase());
-      
-      let finalProductId = formData.product_id;
-      
-      if (existingProduct) {
-        // If product already exists, update its category to match our selection
-        await updateProduct({
-          ...existingProduct,
-          category: selectedCategory
-        });
-        finalProductId = existingProduct.id;
-      } else {
-        // If product does NOT exist, pre-create the product first with the correct category
-        const newProductGeneratedId = `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-        await addProduct({
-          id: newProductGeneratedId,
-          name: formData.product_name,
-          category: selectedCategory,
-          stock: 0, // addTransaction will add the units
-          cost_price: formData.price,
-          sell_price: finalSellPrice,
-          sku: `SKU-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-          image: '',
-          unit: 'pcs'
-        });
-        finalProductId = newProductGeneratedId;
-      }
+      const finalProductId = existingProduct ? existingProduct.id : (formData.product_id || `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`);
 
       await addTransaction({
         type: 'purchase',
-        product_id: finalProductId || `manual_${Date.now()}`,
+        product_id: finalProductId,
         product_name: formData.product_name,
+        category: selectedCategory,
         quantity: formData.qty,
         unit_price: formData.price,
         sell_price: finalSellPrice,
@@ -318,12 +294,10 @@ export const BuyImportComponent = () => {
         customs_duty: formData.duty,
         vat: formData.vat,
         other_cost: formData.other,
-        // New fields
         supplier: formData.supplier,
         payment_method: formData.payment_method,
         exchange_rate: formData.exchange_rate,
         expiry_date: formData.expiry_date,
-        // Invoice fields
         invoice_file_data: invoiceData?.data || null,
         invoice_file_name: invoiceData?.name || null,
         invoice_file_type: invoiceData?.type || null,
@@ -430,450 +404,504 @@ export const BuyImportComponent = () => {
 
   if (showModal) {
     return (
-      <div id="page-buy" className="page active space-y-6">
-        <div className="page-header">
+      <div id="page-buy" className="page active space-y-6 w-full pb-10">
+        <div className="flex items-center justify-between">
           <div>
-            <h2>Buy Workspace</h2>
-            <p>Record new purchase transaction and manage import details</p>
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Buy Workspace</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Record new purchase transaction and manage import details</p>
           </div>
-          <button className="btn btn-outline flex items-center gap-2" onClick={() => setShowModal(false)}>
+          <button 
+            className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+            onClick={() => setShowModal(false)}
+          >
             <span>← Back to Purchase History</span>
           </button>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm p-6 lg:p-8 space-y-8">
-          <div className="flex justify-between items-center border-b border-slate-200/80 dark:border-slate-800/80 pb-4">
-            <div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Record Purchase</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Fill in purchase details, calculate landing costs, and update stock</p>
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl p-6 sm:p-8 space-y-6 w-full">
+          {/* Card Header */}
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center shrink-0 shadow-xs">
+                <ShoppingBag size={22} className="text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Record Purchase</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Enter purchase details to calculate landed costs and update inventory.</p>
+              </div>
             </div>
-            <button className="retro-close-btn" onClick={() => setShowModal(false)} title="Close Workspace">
-              <X size={20} />
+            <button 
+              className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer" 
+              onClick={() => setShowModal(false)} 
+              title="Close Workspace"
+            >
+              <X size={18} />
             </button>
           </div>
 
-          <div className="space-y-6">
-            {/* Product & Category Row */}
-            <div className="retro-form-row">
-              <div className="retro-form-group">
-                <label>Product *</label>
-                <div className="retro-input-wrapper">
-                  <input 
-                    type="text" 
-                    list="products-list"
-                    className="retro-input"
-                    value={formData.product_name}
-                    onChange={(e) => {
-                      const name = e.target.value;
-                      const existing = products.find(p => p.name === name);
-                      const detectedCategory = inferCategory(name);
-                      setFormData({
-                        ...formData, 
-                        product_name: name,
-                        product_id: existing ? existing.id : '',
-                        price: existing ? existing.cost_price : formData.price,
-                        sell_price: existing ? existing.sell_price : formData.sell_price,
-                        category: existing ? (existing.category || detectedCategory) : detectedCategory
-                      });
-                    }}
-                    placeholder="e.g. Samsung TV" 
-                  />
-                </div>
-                <datalist id="products-list">
-                  {products.map(p => <option key={p.id} value={p.name} />)}
-                </datalist>
-              </div>
-              
-              {/* Category Field with Custom Searchable Dropdown */}
-              <div className="retro-form-group relative" ref={dropdownRef}>
-                <label>Category *</label>
-                <div 
-                  className="retro-input-wrapper cursor-pointer select-none"
-                  onClick={() => {
-                    setDropdownOpen(!dropdownOpen);
-                    setCategorySearch('');
-                    setFocusedIndex(-1);
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+            {/* Product * */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wide">Product *</label>
+              <div className="relative flex items-center rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/10 transition-all">
+                <Package size={18} className="absolute left-3.5 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                <input 
+                  type="text" 
+                  list="products-list"
+                  className="w-full pl-10 pr-4 py-2.5 bg-transparent text-sm font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none"
+                  value={formData.product_name}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    const existing = products.find(p => p.name === name);
+                    const detectedCategory = inferCategory(name);
+                    setFormData({
+                      ...formData, 
+                      product_name: name,
+                      product_id: existing ? existing.id : '',
+                      price: existing ? existing.cost_price : formData.price,
+                      sell_price: existing ? existing.sell_price : formData.sell_price,
+                      category: existing ? (existing.category || detectedCategory) : detectedCategory
+                    });
                   }}
-                >
-                  <div className="retro-input flex items-center justify-between min-h-[42px] px-3">
-                    <span className="font-semibold text-slate-750 dark:text-slate-300">
-                      {formData.category || 'Select Category'}
-                    </span>
-                    <span className="text-slate-400 text-xs">▼</span>
-                  </div>
-                </div>
+                  placeholder="Search or enter product name" 
+                />
+              </div>
+              <datalist id="products-list">
+                {products.map(p => <option key={p.id} value={p.name} />)}
+              </datalist>
+            </div>
 
-                {dropdownOpen && (
-                  <div className="absolute left-0 right-0 top-[100%] mt-1 z-[999] rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl p-2 flex flex-col gap-1">
-                    {/* Search Input inside Dropdown */}
-                    <div className="p-1">
-                      <input
-                        type="text"
-                        className="w-full text-xs bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-teal-500 font-medium text-slate-755 dark:text-slate-300"
-                        placeholder="Type to search category..."
-                        value={categorySearch}
-                        onChange={(e) => {
-                          setCategorySearch(e.target.value);
-                          setFocusedIndex(0);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => {
-                          if (e.key === 'ArrowDown') {
-                            e.preventDefault();
-                            setFocusedIndex(prev => Math.min(filteredCategories.length - 1, prev + 1));
-                          } else if (e.key === 'ArrowUp') {
-                            e.preventDefault();
-                            setFocusedIndex(prev => Math.max(0, prev - 1));
-                          } else if (e.key === 'Enter') {
-                            e.preventDefault();
-                            if (focusedIndex >= 0 && focusedIndex < filteredCategories.length) {
-                              const selected = filteredCategories[focusedIndex];
-                              setFormData({ ...formData, category: selected });
-                              setDropdownOpen(false);
-                            }
-                          } else if (e.key === 'Escape') {
+            {/* Category * */}
+            <div className="space-y-1.5 relative" ref={dropdownRef}>
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wide">Category *</label>
+              <div 
+                className="relative flex items-center rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-100/70 dark:hover:bg-slate-800 cursor-pointer px-3.5 py-2.5 transition-all select-none"
+                onClick={() => {
+                  setDropdownOpen(!dropdownOpen);
+                  setCategorySearch('');
+                  setFocusedIndex(-1);
+                }}
+              >
+                <LayoutGrid size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0 mr-2.5" />
+                <span className="text-sm font-semibold text-slate-800 dark:text-slate-100 flex-1 truncate">
+                  {formData.category || 'Others'}
+                </span>
+                <ChevronDown size={16} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+              </div>
+
+              {dropdownOpen && (
+                <div className="absolute left-0 right-0 top-[100%] mt-1 z-[999] rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl p-2 flex flex-col gap-1">
+                  <div className="p-1">
+                    <input
+                      type="text"
+                      className="w-full text-xs bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500 font-medium text-slate-800 dark:text-slate-200"
+                      placeholder="Type to search category..."
+                      value={categorySearch}
+                      onChange={(e) => {
+                        setCategorySearch(e.target.value);
+                        setFocusedIndex(0);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => {
+                        if (e.key === 'ArrowDown') {
+                          e.preventDefault();
+                          setFocusedIndex(prev => Math.min(filteredCategories.length - 1, prev + 1));
+                        } else if (e.key === 'ArrowUp') {
+                          e.preventDefault();
+                          setFocusedIndex(prev => Math.max(0, prev - 1));
+                        } else if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (focusedIndex >= 0 && focusedIndex < filteredCategories.length) {
+                            const selected = filteredCategories[focusedIndex];
+                            setFormData({ ...formData, category: selected });
                             setDropdownOpen(false);
                           }
-                        }}
-                        autoFocus
-                      />
-                    </div>
-                    {/* Categories List */}
-                    <div className="max-h-[160px] overflow-y-auto custom-scrollbar flex flex-col pt-1">
-                      {filteredCategories.length > 0 ? (
-                        filteredCategories.map((cat, idx) => {
-                          const isFocused = idx === focusedIndex;
-                          const isSelected = formData.category === cat;
-                          return (
-                            <button
-                              key={cat}
-                              type="button"
-                              className={`w-full text-left rounded-lg text-xs font-semibold px-3 py-2 transition-all flex items-center justify-between
-                                ${isSelected 
-                                  ? 'bg-teal-500 text-white' 
-                                  : isFocused 
-                                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100' 
-                                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/10'
-                                }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setFormData({ ...formData, category: cat });
-                                setDropdownOpen(false);
-                              }}
-                              onMouseEnter={() => setFocusedIndex(idx)}
-                            >
-                              <span>{cat}</span>
-                              {isSelected && <span className="text-[10px]">✓</span>}
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <div className="text-center text-[11px] text-slate-400 py-3 italic">
-                          No categories match
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Supplier & Purchase Date Row */}
-            <div className="retro-form-row">
-              <div className="retro-form-group">
-                <label>Supplier</label>
-                <div className="retro-input-wrapper">
-                  <input 
-                    type="text" 
-                    list="suppliers-list"
-                    className="retro-input"
-                    value={formData.supplier}
-                    onChange={(e) => setFormData({...formData, supplier: e.target.value})}
-                    placeholder="Search or enter supplier" 
-                  />
-                  <Truck size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                </div>
-                <datalist id="suppliers-list">
-                  {suppliers.map(s => <option key={s} value={s} />)}
-                </datalist>
-              </div>
-
-              <div className="retro-form-group">
-                <label>Purchase Date *</label>
-                <div className="retro-input-wrapper with-icon cursor-pointer group relative overflow-hidden" 
-                     onClick={() => dateInputRef.current?.showPicker?.()}>
-                  <input 
-                    ref={dateInputRef}
-                    type="date" 
-                    className="retro-input-hidden"
-                    value={formData.date}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val) setFormData({...formData, date: val});
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                  <div className="retro-input-display group-hover:border-blue-400 transition-colors duration-100 relative z-0 pointer-events-none">
-                    {formattedDate}
-                  </div>
-                  <div className="retro-input-icon group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors duration-100 z-0 pointer-events-none">
-                    <Watch size={18} className="text-slate-700 dark:text-slate-300 group-hover:text-blue-500 transition-colors duration-100" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Payment Method Row */}
-            <div className="retro-form-row">
-              <div className="retro-form-group full-width">
-                <label>Payment Method</label>
-                <div className="flex gap-2">
-                  {['Cash', 'Bank', 'LC'].map(method => (
-                    <button
-                      key={method}
-                      type="button"
-                      className={`flex-1 py-2.5 px-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 text-sm font-semibold
-                        ${formData.payment_method === method 
-                          ? 'border-teal-500 bg-teal-50/50 text-teal-700 dark:bg-teal-950/20 dark:text-teal-300 shadow-sm' 
-                          : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'}`}
-                      onClick={() => setFormData({...formData, payment_method: method})}
-                    >
-                      {method === 'Cash' && <DollarSign size={14} />}
-                      {method === 'Bank' && <CreditCard size={14} />}
-                      {method === 'LC' && <FileText size={14} />}
-                      {method}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="retro-section-container">
-              <div className="retro-form-row">
-                <div className="retro-form-group no-label-margin">
-                  <label>QR Code Scan</label>
-                  <div className="qr-scan-area">
-                    <div className="qr-preview-box">
-                      <QrCode size={32} className="qr-icon-dim" />
-                      <div className="qr-focus-corners"></div>
-                      <div className="qr-scan-line"></div>
-                    </div>
-                    <button 
-                      className="retro-btn-metallic-teal scan-btn"
-                      onClick={() => setShowScanner(true)}
-                    >
-                      <Camera size={18} />
-                      <span>Scan QR Code</span>
-                    </button>
-                  </div>
-                </div>
-                <div className="retro-form-group">
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="!mb-0">Purchase Price (unit) *</label>
-                    <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">Rate:</span>
-                      <input 
-                        type="number"
-                        step="0.01"
-                        className="bg-transparent border-none p-0 w-10 text-[11px] font-mono focus:ring-0 text-slate-700 dark:text-slate-300"
-                        value={formData.exchange_rate}
-                        onChange={(e) => setFormData({...formData, exchange_rate: +e.target.value || 1})}
-                      />
-                    </div>
-                  </div>
-                  <div className="retro-input-wrapper">
-                    <input 
-                      type="number" 
-                      className="retro-input"
-                      value={formData.price || ''}
-                      onChange={(e) => {
-                        const val = +e.target.value;
-                        setFormData({
-                          ...formData, 
-                          price: val,
-                          sell_price: formData.sell_price === formData.price || !formData.sell_price ? val : formData.sell_price
-                        });
+                        } else if (e.key === 'Escape') {
+                          setDropdownOpen(false);
+                        }
                       }}
-                      placeholder="0"
+                      autoFocus
                     />
                   </div>
-                  {formData.exchange_rate !== 1 && (
-                    <div className="text-[10px] text-slate-500 mt-1 font-mono">
-                      Effective: {settings.currency}{Math.round(formData.price * formData.exchange_rate).toLocaleString()}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="retro-form-row">
-              <div className="retro-form-group">
-                <label>Quantity *</label>
-                <div className="retro-input-wrapper">
-                  <input 
-                    type="number" 
-                    className="retro-input"
-                    value={formData.qty || ''}
-                    onChange={(e) => setFormData({...formData, qty: +e.target.value})}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-              <div className="retro-form-group">
-                <div className="flex justify-between items-center mb-1">
-                  <label className="!mb-0">Sell Price (unit) *</label>
-                  <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border
-                    ${margin > 20 ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800' : 
-                      margin > 5 ? 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800' : 
-                      'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:border-rose-800'}`}>
-                    <Percent size={10} />
-                    Margin: {margin.toFixed(1)}%
-                  </div>
-                </div>
-                <div className="retro-input-wrapper">
-                  <input 
-                    type="number" 
-                    className="retro-input"
-                    value={formData.sell_price || ''}
-                    onChange={(e) => setFormData({...formData, sell_price: +e.target.value})}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Expiry & Invoice Row */}
-            <div className="retro-form-row">
-              <div className="retro-form-group">
-                <label>Expiry Date</label>
-                <div className="retro-input-wrapper with-icon cursor-pointer group relative overflow-hidden" 
-                     onClick={() => expiryInputRef.current?.showPicker?.()}>
-                  <input 
-                    ref={expiryInputRef}
-                    type="date" 
-                    className="retro-input-hidden"
-                    value={formData.expiry_date}
-                    onChange={(e) => setFormData({...formData, expiry_date: e.target.value})}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                  <div className="retro-input-display group-hover:border-amber-400 transition-colors duration-100 relative z-0 pointer-events-none">
-                    {formattedExpiryDate}
-                  </div>
-                  <div className="retro-input-icon group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30 transition-colors duration-100 z-0 pointer-events-none">
-                    <AlertCircle size={18} className="text-slate-700 dark:text-slate-300 group-hover:text-amber-500 transition-colors duration-100" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="retro-form-group">
-                <label>Invoice File</label>
-                <div className="retro-input-wrapper h-[42px] relative cursor-pointer group overflow-hidden"
-                     onClick={() => fileInputRef.current?.click()}>
-                  <input 
-                    ref={fileInputRef}
-                    type="file" 
-                    className="hidden"
-                    accept="image/*,.pdf"
-                    onChange={(e) => setFormData({...formData, invoice_image: e.target.files?.[0] || null})}
-                  />
-                  <div className="absolute inset-0 flex items-center px-3 gap-2">
-                    {formData.invoice_image ? (
-                      <>
-                        {formData.invoice_image.type.includes('image') ? <ImageIcon size={16} className="text-teal-500" /> : <FileText size={16} className="text-blue-500" />}
-                        <span className="text-xs truncate text-slate-700 dark:text-slate-300 max-w-[140px] font-medium">
-                          {formData.invoice_image.name}
-                        </span>
-                        <button 
-                          className="ml-auto p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setFormData({...formData, invoice_image: null});
-                          }}
-                        >
-                          <X size={12} />
-                        </button>
-                      </>
+                  <div className="max-h-[160px] overflow-y-auto custom-scrollbar flex flex-col pt-1">
+                    {filteredCategories.length > 0 ? (
+                      filteredCategories.map((cat, idx) => {
+                        const isFocused = idx === focusedIndex;
+                        const isSelected = formData.category === cat;
+                        return (
+                          <button
+                            key={cat}
+                            type="button"
+                            className={`w-full text-left rounded-lg text-xs font-semibold px-3 py-2 transition-all flex items-center justify-between
+                              ${isSelected 
+                                ? 'bg-indigo-600 text-white' 
+                                : isFocused 
+                                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100' 
+                                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                              }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFormData({ ...formData, category: cat });
+                              setDropdownOpen(false);
+                            }}
+                            onMouseEnter={() => setFocusedIndex(idx)}
+                          >
+                            <span>{cat}</span>
+                            {isSelected && <span className="text-[10px]">✓</span>}
+                          </button>
+                        );
+                      })
                     ) : (
-                      <>
-                        <Upload size={16} className="text-slate-400" />
-                        <span className="text-xs text-slate-400 italic">Upload Image or PDF</span>
-                      </>
+                      <div className="text-center text-[11px] text-slate-400 py-3 italic">
+                        No categories match
+                      </div>
                     )}
                   </div>
-                  <div className="absolute inset-0 bg-teal-500/0 group-hover:bg-teal-500/5 transition-colors pointer-events-none" />
                 </div>
+              )}
+            </div>
+
+            {/* Supplier */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wide">Supplier</label>
+              <div className="relative flex items-center rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/10 transition-all">
+                <User size={18} className="absolute left-3.5 text-indigo-500 dark:text-indigo-400 pointer-events-none" />
+                <input 
+                  type="text" 
+                  list="suppliers-list"
+                  className="w-full pl-10 pr-10 py-2.5 bg-transparent text-sm font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none"
+                  value={formData.supplier}
+                  onChange={(e) => setFormData({...formData, supplier: e.target.value})}
+                  placeholder="Search supplier" 
+                />
+                <UserPlus size={16} className="absolute right-3.5 text-slate-400 pointer-events-none" />
+              </div>
+              <datalist id="suppliers-list">
+                {suppliers.map(s => <option key={s} value={s} />)}
+              </datalist>
+            </div>
+
+            {/* Purchase Date * */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wide">Purchase Date *</label>
+              <div 
+                className="relative flex items-center justify-between rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-100/70 dark:hover:bg-slate-800 cursor-pointer px-3.5 py-2.5 transition-all select-none"
+                onClick={() => dateInputRef.current?.showPicker?.()}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Calendar size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                    {formattedDate}
+                  </span>
+                </div>
+                <Calendar size={16} className="text-slate-400 shrink-0" />
+                <input 
+                  ref={dateInputRef}
+                  type="date" 
+                  className="sr-only"
+                  value={formData.date}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val) setFormData({...formData, date: val});
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
               </div>
             </div>
 
-            <div className="retro-divider-text">
-              <span>Additional Costs</span>
+            {/* Payment Method (Full width) */}
+            <div className="md:col-span-2 space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wide">Payment Method</label>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { id: 'Cash', label: 'Cash', icon: CreditCard },
+                  { id: 'Bank', label: 'Bank Transfer', icon: Landmark },
+                  { id: 'LC', label: 'Letter of Credit', icon: FileText },
+                ].map(item => {
+                  const IconComp = item.icon;
+                  const isSelected = formData.payment_method === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`py-2.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer ${
+                        isSelected 
+                          ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 shadow-2xs' 
+                          : 'bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100/70 font-semibold'
+                      }`}
+                      onClick={() => setFormData({...formData, payment_method: item.id})}
+                    >
+                      <IconComp size={16} className={isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500'} />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="retro-form-row">
-              <div className="retro-form-group">
-                <label>Shipping Cost</label>
-                <div className="retro-input-wrapper">
+            {/* Purchase Price (Unit) * */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wide">Purchase Price (Unit) *</label>
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/40 text-[11px] font-bold text-blue-600 dark:text-blue-400">
+                  <span>Exchange Rate • {formData.exchange_rate.toFixed(2)}</span>
                   <input 
-                    type="number" 
-                    className="retro-input"
-                    value={formData.ship || ''}
-                    onChange={(e) => setFormData({...formData, ship: +e.target.value})} 
-                    placeholder="0"
+                    type="number"
+                    step="0.01"
+                    className="w-10 bg-transparent border-none p-0 text-[11px] font-bold text-blue-700 dark:text-blue-300 focus:outline-none text-right hidden group-hover:inline-block"
+                    value={formData.exchange_rate}
+                    onChange={(e) => setFormData({...formData, exchange_rate: +e.target.value || 1})}
                   />
                 </div>
               </div>
-              <div className="retro-form-group">
-                <label>Customs Duty</label>
-                <div className="retro-input-wrapper">
-                  <input 
-                    type="number" 
-                    className="retro-input"
-                    value={formData.duty || ''}
-                    onChange={(e) => setFormData({...formData, duty: +e.target.value})} 
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="retro-form-group full-width">
-              <label>Other Costs</label>
-              <div className="retro-input-wrapper">
+              <div className="relative flex items-center rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/10 transition-all">
+                <span className="absolute left-3.5 text-sm font-bold text-slate-600 dark:text-slate-300">৳</span>
                 <input 
                   type="number" 
-                  className="retro-input"
-                  value={formData.other || ''}
-                  onChange={(e) => setFormData({...formData, other: +e.target.value})} 
+                  className="w-full pl-8 pr-4 py-2.5 bg-transparent text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none"
+                  value={formData.price || ''}
+                  onChange={(e) => {
+                    const val = +e.target.value;
+                    setFormData({
+                      ...formData, 
+                      price: val,
+                      sell_price: formData.sell_price === formData.price || !formData.sell_price ? val : formData.sell_price
+                    });
+                  }}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            {/* Sell Price (Unit) * */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wide">Sell Price (Unit) *</label>
+                <div className={`px-2.5 py-0.5 rounded-full border text-[11px] font-bold ${
+                  margin > 20 ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-900/40' : 
+                  margin > 5 ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/40 dark:border-amber-900/40' : 
+                  'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/40 dark:border-rose-900/40'
+                }`}>
+                  Profit Margin • {margin.toFixed(0)}%
+                </div>
+              </div>
+              <div className="relative flex items-center rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/10 transition-all">
+                <span className="absolute left-3.5 text-sm font-bold text-slate-600 dark:text-slate-300">৳</span>
+                <input 
+                  type="number" 
+                  className="w-full pl-8 pr-4 py-2.5 bg-transparent text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none"
+                  value={formData.sell_price || ''}
+                  onChange={(e) => setFormData({...formData, sell_price: +e.target.value})}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            {/* Quantity * */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wide">Quantity *</label>
+              <div className="relative flex items-center rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/10 transition-all">
+                <Package size={18} className="absolute left-3.5 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                <input 
+                  type="number" 
+                  className="w-full pl-10 pr-4 py-2.5 bg-transparent text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none"
+                  value={formData.qty || ''}
+                  onChange={(e) => setFormData({...formData, qty: +e.target.value})}
                   placeholder="0"
                 />
               </div>
             </div>
 
-            <div className="retro-calc-box">
-              <div className="calc-header">AUTO CALCULATION</div>
-              <div className="calc-grid">
-                <div className="calc-item">
-                  <span>Product Cost</span>
-                  <span className="text-mono">৳{Math.round(prod).toLocaleString()}</span>
+            {/* QR Code Scan */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wide">QR Code Scan</label>
+              <div className="flex items-center gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setShowScanner(true)}
+                  className="w-11 h-11 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 hover:bg-indigo-100 transition-colors cursor-pointer"
+                  title="Open Camera Scanner"
+                >
+                  <QrCode size={20} />
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setShowScanner(true)}
+                  className="flex-1 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white font-bold rounded-xl py-2.5 px-4 flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20 text-sm transition-all cursor-pointer"
+                >
+                  <Camera size={16} />
+                  <span>Scan Product QR</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Expiry Date */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wide">Expiry Date</label>
+              <div 
+                className="relative flex items-center justify-between rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-100/70 dark:hover:bg-slate-800 cursor-pointer px-3.5 py-2.5 transition-all select-none"
+                onClick={() => expiryInputRef.current?.showPicker?.()}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Calendar size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                  <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                    {formattedExpiryDate}
+                  </span>
                 </div>
-                <div className="calc-item highlight">
-                  <span>Total Import Cost</span>
-                  <span className="text-mono">৳{Math.round(total).toLocaleString()}</span>
+                <Calendar size={16} className="text-slate-400 shrink-0" />
+                <input 
+                  ref={expiryInputRef}
+                  type="date" 
+                  className="sr-only"
+                  value={formData.expiry_date}
+                  onChange={(e) => setFormData({...formData, expiry_date: e.target.value})}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            </div>
+
+            {/* Invoice File */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wide">Invoice File</label>
+              <div 
+                className="relative flex items-center justify-between rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-100/70 dark:hover:bg-slate-800 cursor-pointer px-3.5 py-2.5 transition-all"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input 
+                  ref={fileInputRef}
+                  type="file" 
+                  className="hidden"
+                  accept="image/*,.pdf"
+                  onChange={(e) => setFormData({...formData, invoice_image: e.target.files?.[0] || null})}
+                />
+                <div className="flex items-center gap-2.5 truncate flex-1 pr-2">
+                  <Upload size={18} className="text-slate-400 shrink-0" />
+                  {formData.invoice_image ? (
+                    <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 truncate">
+                      {formData.invoice_image.name}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-slate-400">
+                      Upload invoice (PDF or Image)
+                    </span>
+                  )}
                 </div>
-                <div className="calc-divider"></div>
-                <div className="calc-item landing-cost">
-                  <span>Landing Cost / Unit</span>
-                  <span className="text-mono font-bold">৳{Math.round(land).toLocaleString()}</span>
+                {formData.invoice_image && (
+                  <button 
+                    type="button"
+                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-500"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFormData({...formData, invoice_image: null});
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Additional Costs Section Header Pill */}
+            <div className="md:col-span-2 relative my-1 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200/80 dark:border-slate-800" />
+              </div>
+              <div className="relative bg-indigo-50/90 dark:bg-indigo-950/70 border border-indigo-100 dark:border-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-bold px-4 py-1 rounded-full shadow-2xs">
+                Additional Costs
+              </div>
+            </div>
+
+            {/* Shipping Cost */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wide">Shipping Cost</label>
+              <div className="relative flex items-center rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/10 transition-all">
+                <span className="absolute left-3.5 text-sm font-bold text-slate-600 dark:text-slate-300">৳</span>
+                <input 
+                  type="number" 
+                  className="w-full pl-8 pr-4 py-2.5 bg-transparent text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none"
+                  value={formData.ship || ''}
+                  onChange={(e) => setFormData({...formData, ship: +e.target.value})} 
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            {/* Customs Duty */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wide">Customs Duty</label>
+              <div className="relative flex items-center rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/10 transition-all">
+                <span className="absolute left-3.5 text-sm font-bold text-slate-600 dark:text-slate-300">৳</span>
+                <input 
+                  type="number" 
+                  className="w-full pl-8 pr-4 py-2.5 bg-transparent text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none"
+                  value={formData.duty || ''}
+                  onChange={(e) => setFormData({...formData, duty: +e.target.value})} 
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            {/* Other Costs */}
+            <div className="md:col-span-2 space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 tracking-wide">Other Costs</label>
+              <div className="relative flex items-center rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/10 transition-all">
+                <span className="absolute left-3.5 text-sm font-bold text-slate-600 dark:text-slate-300">৳</span>
+                <input 
+                  type="number" 
+                  className="w-full pl-8 pr-4 py-2.5 bg-transparent text-sm font-semibold text-slate-800 dark:text-slate-100 placeholder-slate-400 outline-none"
+                  value={formData.other || ''}
+                  onChange={(e) => setFormData({...formData, other: +e.target.value})} 
+                  placeholder="Enter additional expenses"
+                />
+              </div>
+            </div>
+
+            {/* Auto Calculation Card */}
+            <div className="md:col-span-2 bg-indigo-50/40 dark:bg-slate-800/40 border border-indigo-100/80 dark:border-slate-700/60 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Calculator size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                    Auto Calculation <Sparkles size={14} className="text-indigo-500" />
+                  </h4>
+                </div>
+              </div>
+
+              <div className="w-full sm:w-auto space-y-1 text-right text-xs">
+                <div className="flex items-center justify-between sm:justify-end gap-6 text-slate-600 dark:text-slate-300">
+                  <span className="font-medium text-slate-500">Product Cost</span>
+                  <span className="font-bold text-slate-900 dark:text-slate-100">৳{prod.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between sm:justify-end gap-6">
+                  <span className="font-bold text-indigo-600 dark:text-indigo-400">Total Landed Cost</span>
+                  <span className="font-black text-indigo-600 dark:text-indigo-400 text-sm">৳{total.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between sm:justify-end gap-6 text-slate-600 dark:text-slate-300">
+                  <span className="font-medium text-slate-500">Landing Cost per Unit</span>
+                  <span className="font-bold text-slate-900 dark:text-slate-100">৳{land.toFixed(2)}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="pt-6 border-t border-slate-200/80 dark:border-slate-800/80 flex justify-end gap-3">
-            <button className="retro-btn-metallic-silver lg px-6" onClick={() => setShowModal(false)}>Cancel</button>
-            <button className="retro-btn-metallic-teal lg px-8 font-bold flex items-center gap-2" onClick={handleAdd}>
-              <span>Record Purchase</span>
-              <Sparkles size={18} className="sparkle-icon" />
+          {/* Footer Action Buttons */}
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+            <button 
+              type="button"
+              className="px-6 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm shadow-2xs transition-colors cursor-pointer" 
+              onClick={() => setShowModal(false)}
+            >
+              Discard
+            </button>
+            <button 
+              type="button"
+              className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-500/20 flex items-center gap-2 transition-all cursor-pointer" 
+              onClick={handleAdd}
+            >
+              <Save size={16} />
+              <span>Save Purchase</span>
             </button>
           </div>
         </div>
@@ -892,32 +920,89 @@ export const BuyImportComponent = () => {
     <div id="page-buy" className="page active">
       <div className="page-header">
         <div><h2>Buy / Import Management</h2><p>Record purchases with full cost breakdown</p></div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ Record Purchase</button>
+        <button className="btn btn-primary" onClick={() => setShowModal(true)}>Buy Product</button>
       </div>
 
-      <div className="stat-grid">
-        <div className="stat-card">
-          <div className="stat-header">
-            <div className="stat-icon" style={{ background: 'var(--purple-light)', color: 'var(--purple)' }}>🛒</div>
-            <div className="stat-badge badge-info">{stats.count} Records</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 mb-6">
+        {/* KPI 1: TOTAL PURCHASE COST */}
+        <div 
+          className={isDarkMode 
+            ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+            : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+          style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+        >
+          <div className="flex justify-between items-start w-full relative z-10">
+            <div className="flex items-center gap-3">
+              <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center shrink-0 border border-purple-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
+                <ShoppingCart size={18} />
+              </div>
+              <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL PURCHASE COST</span>
+            </div>
+            <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
           </div>
-          <div className="stat-value">{fmt(stats.totalPurchaseCost)}</div>
-          <div className="stat-label">Total Purchase Cost</div>
+          <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+            {fmt(stats.totalPurchaseCost)}
+          </div>
+          <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+            <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Total purchase cost</span>
+            <span className={isDarkMode ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
+              {stats.count} Records
+            </span>
+          </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-header">
-            <div className="stat-icon" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>📦</div>
-            <div className="stat-badge badge-info">{products.length} SKUs</div>
+
+        {/* KPI 2: TOTAL STOCK UNITS */}
+        <div 
+          className={isDarkMode 
+            ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+            : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+          style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+        >
+          <div className="flex justify-between items-start w-full relative z-10">
+            <div className="flex items-center gap-3">
+              <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center shrink-0 border border-blue-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
+                <Package size={18} />
+              </div>
+              <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL STOCK UNITS</span>
+            </div>
+            <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
           </div>
-          <div className="stat-value">{stats.totalStockUnits.toLocaleString()}</div>
-          <div className="stat-label">Total Stock Units</div>
+          <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+            {stats.totalStockUnits.toLocaleString()}
+          </div>
+          <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+            <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Total stock units</span>
+            <span className={isDarkMode ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
+              {products.length} SKUs
+            </span>
+          </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-header">
-            <div className="stat-icon" style={{ background: 'var(--warning-light)', color: 'var(--warning)' }}>🏷️</div>
+
+        {/* KPI 3: AVG LANDING COST */}
+        <div 
+          className={isDarkMode 
+            ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+            : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+          style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+        >
+          <div className="flex justify-between items-start w-full relative z-10">
+            <div className="flex items-center gap-3">
+              <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
+                <Tag size={18} />
+              </div>
+              <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>AVG LANDING COST</span>
+            </div>
+            <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
           </div>
-          <div className="stat-value">{fmt(stats.avgLandingCost)}</div>
-          <div className="stat-label">Avg Landing Cost</div>
+          <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+            {fmt(stats.avgLandingCost)}
+          </div>
+          <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+            <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Avg landing cost</span>
+            <span className={isDarkMode ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
+              Standard
+            </span>
+          </div>
         </div>
       </div>
 

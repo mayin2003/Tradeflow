@@ -1,8 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
+import { Users, Star, Award, Gift, MoreVertical } from 'lucide-react';
 
 export const CustomersComponent = () => {
-  const { customers, addCustomer, transactions } = useData();
+  const { customers, addCustomer, transactions, settings } = useData();
+  const isDarkMode = settings.theme === 'dark' || (typeof document !== 'undefined' && (document.body.classList.contains('dark-mode') || document.documentElement.classList.contains('dark')));
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [newCustomer, setNewCustomer] = useState({
@@ -65,35 +67,113 @@ export const CustomersComponent = () => {
         <button className="btn btn-primary w-full sm:w-auto" onClick={() => setShowModal(true)}>+ Add Customer</button>
       </div>
 
-      <div className="stat-grid">
-        <div className="stat-card">
-          <div className="stat-header">
-            <div className="stat-icon" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>👥</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6 mb-6">
+        {/* KPI 1: TOTAL CUSTOMERS */}
+        <div 
+          className={isDarkMode 
+            ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group relative overflow-hidden" 
+            : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+          style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+        >
+          <div className="flex justify-between items-start w-full relative z-10">
+            <div className="flex items-center gap-3">
+              <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center shrink-0 border border-purple-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
+                <Users size={18} />
+              </div>
+              <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL CUSTOMERS</span>
+            </div>
+            <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
           </div>
-          <div className="stat-value">{customers.length}</div>
-          <div className="stat-label">Total Customers</div>
+          <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+            {customers.length.toLocaleString()}
+          </div>
+          <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+            <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Registered customers</span>
+            <span className={isDarkMode ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
+              Live
+            </span>
+          </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-header">
-            <div className="stat-icon" style={{ background: 'var(--success-light)', color: 'var(--success)' }}>🌟</div>
-            <div className="stat-badge badge-success">High Value</div>
+
+        {/* KPI 2: VIP MEMBERS */}
+        <div 
+          className={isDarkMode 
+            ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group relative overflow-hidden" 
+            : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+          style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+        >
+          <div className="flex justify-between items-start w-full relative z-10">
+            <div className="flex items-center gap-3">
+              <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
+                <Star size={18} />
+              </div>
+              <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>VIP MEMBERS</span>
+            </div>
+            <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
           </div>
-          <div className="stat-value">{stats.vipCount}</div>
-          <div className="stat-label">VIP Members</div>
+          <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+            {stats.vipCount.toLocaleString()}
+          </div>
+          <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+            <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>High value clients</span>
+            <span className={isDarkMode ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
+              High Value
+            </span>
+          </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-header">
-            <div className="stat-icon" style={{ background: 'var(--warning-light)', color: 'var(--warning)' }}>💎</div>
+
+        {/* KPI 3: TOTAL LOYALTY POINTS */}
+        <div 
+          className={isDarkMode 
+            ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group relative overflow-hidden" 
+            : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+          style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+        >
+          <div className="flex justify-between items-start w-full relative z-10">
+            <div className="flex items-center gap-3">
+              <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center shrink-0 border border-purple-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
+                <Award size={18} />
+              </div>
+              <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL LOYALTY POINTS</span>
+            </div>
+            <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
           </div>
-          <div className="stat-value">{stats.totalPoints.toLocaleString()}</div>
-          <div className="stat-label">Total Loyalty Points</div>
+          <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+            {stats.totalPoints.toLocaleString()}
+          </div>
+          <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+            <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Active customer points</span>
+            <span className={isDarkMode ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
+              Active
+            </span>
+          </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-header">
-            <div className="stat-icon" style={{ background: 'var(--purple-light)', color: 'var(--purple)' }}>🎁</div>
+
+        {/* KPI 4: POINTS REDEEMED */}
+        <div 
+          className={isDarkMode 
+            ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group relative overflow-hidden" 
+            : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+          style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+        >
+          <div className="flex justify-between items-start w-full relative z-10">
+            <div className="flex items-center gap-3">
+              <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0 border border-emerald-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
+                <Gift size={18} />
+              </div>
+              <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>POINTS REDEEMED</span>
+            </div>
+            <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
           </div>
-          <div className="stat-value">৳{stats.redeemedPoints.toLocaleString()}</div>
-          <div className="stat-label">Points Redeemed</div>
+          <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+            {(settings?.currency || '৳')}{stats.redeemedPoints.toLocaleString()}
+          </div>
+          <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+            <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Redeemed rewards</span>
+            <span className={isDarkMode ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
+              Total
+            </span>
+          </div>
         </div>
       </div>
 

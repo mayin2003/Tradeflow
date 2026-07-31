@@ -15,7 +15,6 @@ import {
   ClipboardList,
   Settings,
   LogOut,
-  Building2,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -110,49 +109,6 @@ export const SidebarComponent = ({ current, onNavigate, isOpen, onClose }: Sideb
           : '8px 0 30px rgba(15, 23, 42, 0.03)',
       }}
     >
-      {/* Top Header Branding */}
-      <div
-        className={`p-5 border-b select-none ${
-          isDark ? 'border-white/5' : 'border-slate-200/60'
-        }`}
-      >
-        <div
-          onClick={() => {
-            onNavigate('settings');
-            onClose();
-          }}
-          className="flex items-center gap-3.5 cursor-pointer group"
-        >
-          <div className="w-11 h-11 rounded-[16px] bg-gradient-to-tr from-[#00C9A7] via-[#00D2B5] to-[#10B981] flex items-center justify-center text-white shrink-0 shadow-[0_8px_20px_rgba(16,185,129,0.25)] transition-transform duration-200 group-hover:scale-105">
-            {settings?.shopProfile?.logoUrl ? (
-              <img
-                src={settings.shopProfile.logoUrl}
-                alt="Logo"
-                className="w-6 h-6 object-contain"
-              />
-            ) : (
-              <Building2 size={22} className="text-white" />
-            )}
-          </div>
-          <div className="overflow-hidden">
-            <div
-              className={`font-bold text-[15px] tracking-tight truncate leading-tight ${
-                isDark ? 'text-white' : 'text-slate-900'
-              }`}
-            >
-              {settings?.shopProfile?.name || 'Your Company Name'}
-            </div>
-            <div
-              className={`text-[10px] font-extrabold tracking-[1.5px] uppercase mt-1 ${
-                isDark ? 'text-slate-400' : 'text-[#94A3B8]'
-              }`}
-            >
-              BUSINESS SUITE
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Navigation section */}
       <nav className="flex-1 overflow-y-auto px-4 py-5 space-y-5 custom-scrollbar">
         {sections.map((section) => {

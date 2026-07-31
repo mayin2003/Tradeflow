@@ -126,8 +126,10 @@ const initialEmployees: EmployeePayroll[] = [
 ];
 
 export const StaffPayrollComponent = () => {
-  const { settings, addExpense, addActivityLog } = useData();
-  const [employees, setEmployees] = useState<EmployeePayroll[]>(initialEmployees);
+  const { settings, addExpense, addActivityLog, employees: contextEmployees, setEmployees: setContextEmployees } = useData();
+  const [localEmployees, setLocalEmployees] = useState<EmployeePayroll[]>(initialEmployees);
+  const employees = contextEmployees || localEmployees;
+  const setEmployees = setContextEmployees || setLocalEmployees;
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | "Paid" | "Pending">("All");
 

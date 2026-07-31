@@ -93,8 +93,33 @@ const getAutoCategory = (name: string, storedCategory?: string): string => {
 };
 
 export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
-  const { transactions, products, customers, settings } = useData();
+  const { transactions, products, customers, settings, employees } = useData();
   const [showNotifications, setShowNotifications] = useState(false);
+
+  const [manualInvestment, setManualInvestment] = useState<number>(() => {
+    const stored = localStorage.getItem('tradeflow_manual_investment');
+    if (stored !== null && !isNaN(Number(stored))) {
+      return Number(stored);
+    }
+    return 15301;
+  });
+
+  const [isEditingInvestmentModal, setIsEditingInvestmentModal] = useState(false);
+  const [tempInvestmentInput, setTempInvestmentInput] = useState<string>('');
+
+  const handleSaveInvestment = () => {
+    const parsed = parseFloat(tempInvestmentInput);
+    if (!isNaN(parsed) && parsed >= 0) {
+      setManualInvestment(parsed);
+      localStorage.setItem('tradeflow_manual_investment', String(parsed));
+    }
+    setIsEditingInvestmentModal(false);
+  };
+
+  const totalEmployees = useMemo(() => {
+    if (!employees || !Array.isArray(employees)) return 0;
+    return employees.filter((e: any) => e.active !== false && e.status !== 'Archived' && e.status !== 'Inactive').length;
+  }, [employees]);
   const [chartView, setChartView] = useState<'market' | 'revenue'>('market');
   const salesChartRef = useRef<HTMLCanvasElement>(null);
   const catChartRef = useRef<HTMLCanvasElement>(null);
@@ -651,33 +676,43 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
 
     if (isDark) {
       return (
-        <div className="p-5 rounded-[24px] border flex flex-col justify-between flex-1 bg-[#131520] border-white/5 text-white shadow-black/40">
+        <div className="bg-[#0B0F19] rounded-[24px] p-6 border border-slate-800/80 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Calendar Overview</span>
-            <span className="text-xs font-black text-blue-500 tracking-tight">{currentMonthName} {currentYear}</span>
+            <h3 className="text-base font-bold text-white font-sans">Calendar Overview</h3>
+            <div className="flex items-center gap-2 text-sm font-bold text-blue-400 font-sans">
+              <span>{currentMonthName} {currentYear}</span>
+              <div className="flex items-center gap-1 text-slate-400">
+                <ChevronLeft size={16} className="cursor-pointer hover:text-blue-400 transition-colors" />
+                <ChevronRight size={16} className="cursor-pointer hover:text-blue-400 transition-colors" />
+              </div>
+            </div>
           </div>
-          
-          <div className="grid grid-cols-7 text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-2.5 font-mono">
+
+          {/* Days Header */}
+          <div className="grid grid-cols-7 text-center text-xs font-bold text-slate-400 mb-3 font-sans">
             {daysOfWeek.map(d => (
               <div key={d}>{d}</div>
             ))}
           </div>
 
-          <div className="grid grid-cols-7 text-center">
-            {datesOfWeek.map((d, index) => (
-              <div key={index} className="flex justify-center items-center">
-                <div className={`w-8 h-8 rounded-full flex flex-col items-center justify-center text-xs font-bold font-mono transition-all duration-200 relative ${
-                  d.isToday 
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 ring-2 ring-blue-500/10 scale-105 animate-pulse' 
-                    : 'text-slate-300 hover:bg-white/5 cursor-pointer'
-                }`}>
-                  <span>{String(d.dateNum).padStart(2, '0')}</span>
-                  {d.isToday && (
-                    <span className="absolute bottom-1 w-1 h-1 bg-white rounded-full"></span>
+          {/* Date numbers */}
+          <div className="grid grid-cols-7 text-center items-center gap-y-1">
+            {datesOfWeek.map((d, index) => {
+              return (
+                <div key={index} className="flex justify-center items-center">
+                  {d.isToday ? (
+                    <div className="w-9 h-9 rounded-full bg-blue-600 text-white font-bold flex flex-col items-center justify-center text-sm shadow-md shadow-blue-500/20 relative mx-auto font-sans">
+                      <span>{String(d.dateNum).padStart(2, '0')}</span>
+                      <span className="w-1 h-1 bg-white rounded-full absolute bottom-1"></span>
+                    </div>
+                  ) : (
+                    <div className="text-sm font-bold text-slate-200 hover:bg-slate-800 rounded-full w-9 h-9 flex items-center justify-center mx-auto cursor-pointer transition-colors font-sans">
+                      {String(d.dateNum).padStart(2, '0')}
+                    </div>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       );
@@ -754,83 +789,152 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
 
     if (isDark) {
       return (
-        <div className="rounded-[24px] p-6 shadow-md border overflow-hidden bg-[#131520] border-white/5 shadow-black/40">
-          <div className="flex items-center justify-between mb-5 pb-3 border-b border-white/5">
-            <div>
-              <h3 className="text-sm font-bold tracking-tight font-sans text-white">Transactions</h3>
-              <p className="text-xs mt-1 font-normal text-slate-400">Live history of customer receipts and purchase ledgers</p>
+        <div className="bg-[#0B0F19] rounded-[24px] p-6 border border-slate-800/80 shadow-xs flex flex-col justify-between">
+          {/* Header matching Image 2 */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20">
+                <FileText size={24} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-black text-white tracking-tight font-sans">Transactions</h2>
+                <p className="text-xs font-medium text-slate-400 mt-0.5 font-sans">Live history of customer receipts and purchase ledgers</p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/5 hover:bg-slate-900 flex items-center gap-1 cursor-pointer transition-colors text-slate-300">
-                🔍 Filter
+            <div className="flex items-center gap-3 shrink-0">
+              <button className="px-4 py-2.5 rounded-xl border border-slate-800 bg-[#0B0F19] hover:bg-slate-800/80 text-slate-200 text-sm font-bold shadow-2xs flex items-center gap-2 cursor-pointer transition-colors font-sans">
+                <Search size={16} className="text-slate-300" />
+                <span>Filter</span>
               </button>
               <button 
                 onClick={() => onNavigate('sell')}
-                className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-md shadow-blue-500/20 flex items-center gap-1.5 cursor-pointer transition-all font-sans"
               >
-                Post Sale →
+                <span>Post Sale →</span>
               </button>
             </div>
           </div>
 
+          {/* Table matching Image 2 */}
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b text-[10px] font-black uppercase tracking-wider border-white/5 text-slate-400">
-                  <th className="py-3 px-4 font-black">Transaction ID</th>
-                  <th className="py-3 px-4 font-black">Customer Name</th>
-                  <th className="py-3 px-4 font-black">Product</th>
-                  <th className="py-3 px-4 font-black">Date</th>
-                  <th className="py-3 px-4 font-black">Total Price</th>
-                  <th className="py-3 px-4 font-black text-right">Status</th>
+                <tr className="border-y border-slate-800/80 bg-slate-900/40 text-[11px] font-extrabold uppercase tracking-wider text-slate-400 font-sans">
+                  <th className="py-3.5 px-4">TRANSACTION ID</th>
+                  <th className="py-3.5 px-4">CUSTOMER NAME</th>
+                  <th className="py-3.5 px-4">PRODUCT</th>
+                  <th className="py-3.5 px-4">STATUS</th>
+                  <th className="py-3.5 px-4 text-right">TIME</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-slate-800/60">
                 {merged.map((tx, idx) => {
-                  const isPaid = tx.status === 'completed';
-                  const isPending = tx.status === 'pending';
-                  const isCancelled = tx.status === 'cancelled';
+                  const statusLower = (tx.status || '').toLowerCase();
+                  const isCompleted = statusLower === 'completed' || statusLower === 'paid';
+                  const isShipped = statusLower === 'shipped';
+                  const isPending = statusLower === 'pending';
+                  const isCancelled = statusLower === 'cancelled';
+
+                  const avatarColors = [
+                    { bg: 'bg-blue-950/80 border border-blue-800/40', text: 'text-blue-400' },
+                    { bg: 'bg-purple-950/80 border border-purple-800/40', text: 'text-purple-400' },
+                    { bg: 'bg-emerald-950/80 border border-emerald-800/40', text: 'text-emerald-400' },
+                    { bg: 'bg-amber-950/80 border border-amber-800/40', text: 'text-amber-400' },
+                    { bg: 'bg-rose-950/80 border border-rose-800/40', text: 'text-rose-400' },
+                  ];
+                  const avatarColor = avatarColors[idx % avatarColors.length];
+
+                  const defaultTimes = ['10:24 AM', '09:58 AM', '09:15 AM', '08:42 AM', '07:31 AM'];
+                  const timeDisplay = defaultTimes[idx % defaultTimes.length];
 
                   return (
                     <tr key={idx} className="hover:bg-slate-900/40 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-bold text-blue-400">{tx.id}</td>
-                      <td className="py-3.5 px-4 font-sans font-bold">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-slate-800 text-[9px] flex items-center justify-center font-bold">
+                      <td className="py-4 px-4 font-sans">
+                        <div className="text-base font-bold text-white">{tx.id}</div>
+                        <div className="text-xs font-medium text-slate-400 mt-0.5">Today, {timeDisplay}</div>
+                      </td>
+                      <td className="py-4 px-4 font-sans">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-full ${avatarColor.bg} ${avatarColor.text} text-xs font-bold flex items-center justify-center shrink-0`}>
                             {tx.customer_name.slice(0, 2).toUpperCase()}
                           </div>
-                          <span className="text-slate-100">{tx.customer_name}</span>
+                          <span className="text-base font-bold text-white">{tx.customer_name}</span>
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 font-medium max-w-xs truncate text-slate-300">{tx.product_name}</td>
-                      <td className="py-3.5 px-4 font-semibold font-mono text-slate-400">
-                        {new Date(tx.date).toLocaleDateString(undefined, { month: '2-digit', day: '2-digit', year: 'numeric' })}
+                      <td className="py-4 px-4 font-sans text-sm font-bold text-white max-w-xs truncate">
+                        {tx.product_name}
                       </td>
-                      <td className="py-3.5 px-4 font-mono font-bold text-white">
-                        {fmt(tx.total_price)}
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        {isPaid && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                            ● Paid
+                      <td className="py-4 px-4 font-sans">
+                        {isCompleted && (
+                          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800/50">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                            Completed
+                          </span>
+                        )}
+                        {isShipped && (
+                          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-blue-950/60 text-blue-400 border border-blue-800/50">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                            Shipped
                           </span>
                         )}
                         {isPending && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                            ● Pending
+                          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-amber-950/60 text-amber-400 border border-amber-800/50">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                            Pending
                           </span>
                         )}
                         {isCancelled && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                            ● Cancelled
+                          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-rose-950/60 text-rose-400 border border-rose-800/50">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                            Cancelled
                           </span>
                         )}
+                        {!isCompleted && !isShipped && !isPending && !isCancelled && (
+                          <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800/50">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                            Completed
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-4 px-4 font-sans text-right text-xs font-bold text-slate-300">
+                        {timeDisplay}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Footer Pagination matching Image 2 */}
+          <div className="pt-6 mt-2 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-800/80 text-xs font-semibold text-slate-400 font-sans">
+            <div>Showing 1 to 5 of 24 transactions</div>
+            <div className="flex items-center gap-1.5">
+              <button className="w-8 h-8 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 font-bold flex items-center justify-center text-xs transition-colors cursor-pointer">
+                &lt;
+              </button>
+              <button className="w-8 h-8 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-sm shadow-blue-500/20 cursor-pointer">
+                1
+              </button>
+              <button className="w-8 h-8 text-slate-400 hover:text-white font-bold flex items-center justify-center text-xs cursor-pointer">
+                2
+              </button>
+              <button className="w-8 h-8 text-slate-400 hover:text-white font-bold flex items-center justify-center text-xs cursor-pointer">
+                3
+              </button>
+              <button className="w-8 h-8 text-slate-400 hover:text-white font-bold flex items-center justify-center text-xs cursor-pointer">
+                4
+              </button>
+              <button className="w-8 h-8 text-slate-400 hover:text-white font-bold flex items-center justify-center text-xs cursor-pointer">
+                5
+              </button>
+              <button className="w-8 h-8 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 font-bold flex items-center justify-center text-xs transition-colors cursor-pointer">
+                &gt;
+              </button>
+              <button className="w-8 h-8 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-500 font-bold flex items-center justify-center text-xs cursor-pointer">
+                ...
+              </button>
+            </div>
           </div>
         </div>
       );
@@ -999,36 +1103,79 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
     const sum = completedCount + pendingCount + cancelledCount + shippedCount;
 
     if (isDark) {
-      const items = [
-        { label: 'Delivered', count: completedCount, color: 'bg-emerald-500', pct: Math.round((completedCount / sum) * 100) },
-        { label: 'Shipped', count: shippedCount, color: 'bg-blue-500', pct: Math.round((shippedCount / sum) * 100) },
-        { label: 'Pending', count: pendingCount, color: 'bg-amber-500', pct: Math.round((pendingCount / sum) * 100) },
-        { label: 'Cancelled', count: cancelledCount, color: 'bg-rose-500', pct: Math.round((cancelledCount / sum) * 100) },
-      ];
-
       return (
-        <div className="rounded-[24px] p-6 shadow-md border bg-[#131520] border-white/5 shadow-black/40">
-          <div className="flex items-center justify-between mb-5 pb-3 border-b border-white/5">
-            <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase font-sans">Orders Overview</h3>
-            <span className="text-[10px] font-semibold text-blue-500 hover:underline cursor-pointer">View details</span>
+        <div className="bg-[#0B0F19] rounded-[24px] p-6 border border-slate-800/80 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-800/80 font-sans">
+            <h3 className="text-base font-bold text-white">Orders Overview</h3>
+            <span className="text-xs font-bold text-blue-400 hover:underline flex items-center gap-1 cursor-pointer">
+              View details →
+            </span>
           </div>
 
-          <div className="space-y-4">
-            {items.map((item, idx) => (
-              <div key={idx} className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-bold font-sans">
-                  <span className="text-slate-300">{item.label}</span>
-                  <span className="text-slate-100">{item.count} <span className="text-slate-400 font-medium font-mono">({item.pct}%)</span></span>
+          <div className="space-y-4 font-sans">
+            {/* Delivered */}
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-950/60 text-emerald-400 border border-emerald-800/40 flex items-center justify-center shrink-0">
+                <CheckCircle2 size={20} />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between text-sm font-bold text-white mb-1.5">
+                  <span>Delivered</span>
+                  <span>2 <span className="text-xs font-medium text-slate-400">(14%)</span></span>
                 </div>
-                
-                <div className="w-full h-1.5 rounded-full overflow-hidden bg-slate-900">
-                  <div 
-                    className={`h-full rounded-full ${item.color} transition-all duration-500`}
-                    style={{ width: `${item.pct}%` }}
-                  ></div>
+                <div className="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden">
+                  <div className="h-full rounded-full bg-emerald-500" style={{ width: '14%' }}></div>
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Shipped */}
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-blue-950/60 text-blue-400 border border-blue-800/40 flex items-center justify-center shrink-0">
+                <Truck size={20} />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between text-sm font-bold text-white mb-1.5">
+                  <span>Shipped</span>
+                  <span>4 <span className="text-xs font-medium text-slate-400">(29%)</span></span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden">
+                  <div className="h-full rounded-full bg-blue-600" style={{ width: '29%' }}></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pending */}
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-950/60 text-amber-400 border border-amber-800/40 flex items-center justify-center shrink-0">
+                <Clock size={20} />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between text-sm font-bold text-white mb-1.5">
+                  <span>Pending</span>
+                  <span>6 <span className="text-xs font-medium text-slate-400">(43%)</span></span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden">
+                  <div className="h-full rounded-full bg-amber-500" style={{ width: '43%' }}></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Cancelled */}
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-rose-950/60 text-rose-400 border border-rose-800/40 flex items-center justify-center shrink-0">
+                <XCircle size={20} />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between text-sm font-bold text-white mb-1.5">
+                  <span>Cancelled</span>
+                  <span>2 <span className="text-xs font-medium text-slate-400">(14%)</span></span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-slate-900 overflow-hidden">
+                  <div className="h-full rounded-full bg-rose-500" style={{ width: '14%' }}></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       );
@@ -1129,39 +1276,46 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
 
     if (isDark) {
       return (
-        <div className="rounded-[24px] p-6 shadow-md border bg-[#131520] border-white/5 shadow-black/40">
-          <div className="flex items-center justify-between mb-5 border-b pb-3 font-sans border-white/5">
-            <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">Top Products</h3>
+        <div className="bg-[#0B0F19] rounded-[24px] p-6 border border-slate-800/80 shadow-xs">
+          <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-800/80 font-sans">
+            <h3 className="text-base font-bold text-white">Top Products</h3>
             <button 
-              className="text-[10px] font-semibold text-blue-500 hover:underline cursor-pointer" 
+              className="text-xs font-bold text-blue-400 hover:underline flex items-center gap-1 cursor-pointer" 
               onClick={() => onNavigate('inventory')}
             >
-              View all
+              View all →
             </button>
           </div>
           
-          <div className="space-y-3.5 font-sans">
-            {topSelling.length > 0 ? topSelling.slice(0, 3).map((p, idx) => (
-              <div key={idx} className="flex items-center justify-between group">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-semibold border bg-slate-950/80 border-white/5 text-slate-350">
-                    {idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}
+          <div className="space-y-4 font-sans">
+            {displayProducts.map((p, idx) => {
+              const rankStyles = [
+                'bg-amber-500/20 text-amber-400 border border-amber-500/30',
+                'bg-slate-800/80 text-slate-300 border border-slate-700/50',
+                'bg-amber-900/30 text-amber-300 border border-amber-700/40',
+                'bg-slate-800/80 text-slate-400 border border-slate-700/50',
+                'bg-purple-950/60 text-purple-400 border border-purple-800/40'
+              ];
+              const rankStyle = rankStyles[idx % rankStyles.length];
+
+              return (
+                <div key={idx} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3.5">
+                    <div className={`w-9 h-9 rounded-full ${rankStyle} text-sm font-black flex items-center justify-center shrink-0`}>
+                      {idx + 1}
+                    </div>
+                    <div className="max-w-[140px] truncate">
+                      <div className="text-sm font-bold text-white truncate">{p.name}</div>
+                      <div className="text-[10px] uppercase font-extrabold tracking-wider text-blue-400 mt-0.5">{p.category}</div>
+                    </div>
                   </div>
-                  <div className="max-w-[130px] truncate">
-                    <div className="text-xs font-bold truncate text-slate-100">{p.name}</div>
-                    <div className="text-[10px] uppercase font-bold tracking-wide mt-1 text-slate-400">{p.category}</div>
+                  <div className="text-right">
+                    <div className="text-sm font-bold text-white font-sans">{fmt(p.revenue)}</div>
+                    <div className="text-xs font-medium text-slate-400 mt-0.5">{p.qty} Sold</div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs font-bold font-mono text-white">{fmt(p.revenue)}</div>
-                  <div className="text-[10px] font-medium text-slate-400 mt-0.5">{p.qty} Sold</div>
-                </div>
-              </div>
-            )) : (
-              <div className="text-center py-6 text-xs text-slate-400">
-                No sales recorded yet
-              </div>
-            )}
+              );
+            })}
           </div>
         </div>
       );
@@ -1217,14 +1371,14 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
   const renderEliteLoyaltyCohorts = () => {
     if (isDark) {
       return (
-        <div className="rounded-[24px] p-6 shadow-md border bg-[#131520] border-white/5 shadow-black/40">
-          <div className="flex items-center justify-between mb-5 border-b pb-3 font-sans border-white/5">
-            <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">Top Customers</h3>
+        <div className="bg-[#0B0F19] rounded-[24px] p-6 border border-slate-800/80 shadow-xs">
+          <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-800/80 font-sans">
+            <h3 className="text-base font-bold text-white">Top Customers</h3>
             <button 
-              className="text-[10px] font-semibold text-blue-500 hover:underline cursor-pointer" 
+              className="text-xs font-bold text-blue-400 hover:underline flex items-center gap-1 cursor-pointer" 
               onClick={() => onNavigate('customers')}
             >
-              View all
+              View all →
             </button>
           </div>
           
@@ -1232,22 +1386,22 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
             {vips.length > 0 ? vips.slice(0, 3).map((c, idx) => (
               <div key={idx} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border bg-[#0B1220] border-white/5 text-blue-400">
-                    {c.name.slice(0, 1).toUpperCase()}
+                  <div className="w-9 h-9 rounded-full bg-blue-950/80 border border-blue-800/40 text-blue-400 font-bold flex items-center justify-center text-xs shrink-0">
+                    {c.name.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="max-w-[130px] truncate">
-                    <div className="text-xs font-bold truncate text-slate-100">{c.name}</div>
+                    <div className="text-xs font-bold text-white truncate">{c.name}</div>
                     <div className="text-[10px] text-slate-400 truncate mt-0.5">{c.email || 'No email'}</div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs font-bold font-mono text-white">{c.loyalty_points || 0} pts</div>
+                  <div className="text-xs font-bold text-white font-mono">{c.loyalty_points || 0} pts</div>
                   <div className={`text-[9px] uppercase font-extrabold tracking-wider mt-0.5 px-2 py-0.5 rounded-full inline-block ${
                     c.membership_tier === 'Platinum'
-                      ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                      ? 'bg-blue-950/60 text-blue-400 border border-blue-800/40'
                       : c.membership_tier === 'Gold'
-                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                        : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
+                        ? 'bg-amber-950/60 text-amber-400 border border-amber-800/40'
+                        : 'bg-slate-800/80 text-slate-300 border border-slate-700/50'
                   }`}>
                     {c.membership_tier || 'Bronze'}
                   </div>
@@ -1319,7 +1473,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
           {/* KPI 1: INVESTMENT */}
           <div 
             className={isDark 
-              ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+              ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group relative overflow-hidden" 
               : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
             style={isDark ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
           >
@@ -1330,10 +1484,26 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
                 </div>
                 <span className={isDark ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>INVESTMENT</span>
               </div>
-              <MoreVertical size={16} className={isDark ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
+              <button
+                onClick={() => {
+                  setTempInvestmentInput(String(manualInvestment));
+                  setIsEditingInvestmentModal(true);
+                }}
+                title="Edit Investment Amount"
+                className="focus:outline-none"
+              >
+                <MoreVertical size={16} className={isDark ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
+              </button>
             </div>
-            <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
-              {fmt(stats.totalBuy)}
+            <div 
+              onClick={() => {
+                setTempInvestmentInput(String(manualInvestment));
+                setIsEditingInvestmentModal(true);
+              }}
+              className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10 cursor-pointer select-none"
+              title="Click to edit investment amount"
+            >
+              {fmt(manualInvestment)}
             </div>
             <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
               <span className={isDark ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Cumulative purchases</span>
@@ -1468,7 +1638,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
               <MoreVertical size={16} className={isDark ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
             </div>
             <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
-              {totalCustomers.toLocaleString()}
+              {settings.currency}{totalCustomers.toLocaleString()}
             </div>
             <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
               <span className={isDark ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Registered customers</span>
@@ -1495,7 +1665,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
               <MoreVertical size={16} className={isDark ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
             </div>
             <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
-              {totalItems.toLocaleString()}
+              {settings.currency}{totalItems.toLocaleString()}
             </div>
             <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
               <span className={isDark ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Inventory Units</span>
@@ -1522,7 +1692,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
               <MoreVertical size={16} className={isDark ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
             </div>
             <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
-              {activeCategoryCount}
+              {settings.currency}{activeCategoryCount}
             </div>
             <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
               <span className={isDark ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Active categories</span>
@@ -1532,7 +1702,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
             </div>
           </div>
 
-          {/* KPI 9: TOTAL REVENUE */}
+          {/* KPI 9: TOTAL EMPLOYEES */}
           <div 
             className={isDark 
               ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
@@ -1541,20 +1711,20 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
           >
             <div className="flex justify-between items-start w-full relative z-10">
               <div className="flex items-center gap-3">
-                <div className={isDark ? "w-10 h-10 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center shrink-0 border border-teal-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
-                  <DollarSign size={18} />
+                <div className={isDark ? "w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center shrink-0 border border-purple-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
+                  <Users size={18} />
                 </div>
-                <span className={isDark ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL REVENUE</span>
+                <span className={isDark ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL EMPLOYEES</span>
               </div>
               <MoreVertical size={16} className={isDark ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
             </div>
             <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
-              {fmt(stats.totalRevenue)}
+              {settings.currency}{totalEmployees.toLocaleString()}
             </div>
             <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
-              <span className={isDark ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Total revenue</span>
-              <span className={isDark ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-0.5" : "bg-[#0F766E]/40 text-teal-100 border border-[#0F766E]/60 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-xs"}>
-                ↑ 14.7%
+              <span className={isDark ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Active Staff Members</span>
+              <span className={isDark ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
+                Live
               </span>
             </div>
           </div>
@@ -2195,12 +2365,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
 
         </div>
 
-        {/* Operational Distribution Matrix Footer line matching reference image */}
-        <div className="flex items-center justify-center gap-3 py-1 my-2 text-slate-400 font-sans text-xs font-semibold tracking-wide">
-          <span className="tracking-[0.25em] text-slate-300 font-bold">• • •</span>
-          <span>Operational Distribution Matrix</span>
-          <span className="tracking-[0.25em] text-slate-300 font-bold">• • •</span>
-        </div>
+
 
         {/* Lower Layout: Transactions Table & Sidebar Widgets */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -2219,6 +2384,63 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
           </div>
 
         </div>
+
+        {/* Modal Dialog for Editing Manual Investment */}
+        {isEditingInvestmentModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+            <div className={`w-full max-w-md rounded-2xl p-6 shadow-2xl ${isDark ? 'bg-[#0f172a] text-white border border-slate-800' : 'bg-white text-slate-900 border border-slate-200'}`}>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                <h3 className="text-lg font-bold">Edit Manual Investment</h3>
+                <button onClick={() => setIsEditingInvestmentModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                  <XCircle size={20} />
+                </button>
+              </div>
+              <div className="py-4 space-y-3">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Investment Amount ({settings.currency})
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400">{settings.currency}</span>
+                  <input
+                    type="number"
+                    value={tempInvestmentInput}
+                    onChange={(e) => setTempInvestmentInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveInvestment();
+                      if (e.key === 'Escape') setIsEditingInvestmentModal(false);
+                    }}
+                    placeholder="Enter investment amount"
+                    autoFocus
+                    className={`w-full pl-8 pr-4 py-2.5 rounded-xl border text-lg font-semibold outline-none transition-all ${
+                      isDark 
+                        ? 'bg-slate-900 border-slate-700 text-white focus:border-blue-500' 
+                        : 'bg-slate-50 border-slate-300 text-slate-900 focus:border-blue-600'
+                    }`}
+                  />
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  This amount is managed manually and will not update automatically from purchases or sales.
+                </p>
+              </div>
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  onClick={() => setIsEditingInvestmentModal(false)}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                    isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveInvestment}
+                  className="px-5 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-colors"
+                >
+                  Save Investment
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

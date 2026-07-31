@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useData } from '../context/DataContext';
+import { useData, deduplicateProducts } from '../context/DataContext';
 import { BarcodeScanner } from '../components/BarcodeScanner';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, QrCode, Camera, Watch } from 'lucide-react';
+import { X, QrCode, Camera, Watch, MoreVertical, Package, AlertTriangle, Layers } from 'lucide-react';
 
 const MASTER_CATEGORIES = [
   'Fashion',
@@ -323,16 +323,7 @@ export const InventoryComponent = () => {
   const [lowStockThreshold, setLowStockThreshold] = useState<number>(5);
 
   const deduplicatedProducts = useMemo(() => {
-    const seenIds = new Set<string>();
-    const uniques: typeof products = [];
-    products.forEach(p => {
-      if (!p.id) return;
-      if (!seenIds.has(p.id)) {
-        seenIds.add(p.id);
-        uniques.push(p);
-      }
-    });
-    return uniques;
+    return deduplicateProducts(products);
   }, [products]);
 
   const filteredProducts = useMemo(() => {
@@ -479,29 +470,86 @@ export const InventoryComponent = () => {
 
       {activeTab === 'products' ? (
         <>
-          <div className="stat-grid">
-            <div className={`stat-card transition-all duration-300 ${isDarkMode ? 'bg-slate-800 border-white/15 shadow-xl hover:brightness-110' : ''}`}>
-              <div className="stat-header">
-                <div className={`stat-icon ${isDarkMode ? 'bg-blue-500/20 text-blue-400' : ''}`} style={isDarkMode ? {} : { background: 'var(--accent-light)', color: 'var(--accent)' }}>📦</div>
-                <div className="stat-badge" style={isDarkMode ? { background: 'rgba(16, 185, 129, 0.2)', color: '#34d399' } : { background: 'var(--success-light)', color: 'var(--success)' }}>Active</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 mb-6">
+            {/* KPI 1: TOTAL PRODUCTS */}
+            <div 
+              className={isDarkMode 
+                ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+                : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+              style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+            >
+              <div className="flex justify-between items-start w-full relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center shrink-0 border border-blue-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
+                    <Package size={18} />
+                  </div>
+                  <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL PRODUCTS</span>
+                </div>
+                <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
               </div>
-              <div className={`stat-value ${isDarkMode ? 'text-white' : ''}`}>{totalProductsCount}</div>
-              <div className={`stat-label ${isDarkMode ? 'text-slate-300' : ''}`}>Total Products</div>
+              <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+                {totalProductsCount}
+              </div>
+              <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+                <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Active products count</span>
+                <span className={isDarkMode ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
+                  Active
+                </span>
+              </div>
             </div>
-            <div className={`stat-card transition-all duration-300 ${isDarkMode ? 'bg-slate-800 border-white/15 shadow-xl hover:brightness-110' : ''}`}>
-              <div className="stat-header">
-                <div className={`stat-icon ${isDarkMode ? 'bg-amber-500/20 text-amber-400' : ''}`} style={isDarkMode ? {} : { background: 'var(--warning-light)', color: 'var(--warning)' }}>⚠️</div>
-                <div className={`stat-badge ${isDarkMode ? 'bg-rose-500/20 text-rose-400 border border-rose-500/20' : 'badge-danger'}`} style={isDarkMode ? {} : undefined}>{stats.lowStockCount} Items</div>
+
+            {/* KPI 2: LOW STOCK ALERTS */}
+            <div 
+              className={isDarkMode 
+                ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+                : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+              style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+            >
+              <div className="flex justify-between items-start w-full relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
+                    <AlertTriangle size={18} />
+                  </div>
+                  <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>LOW STOCK ALERTS</span>
+                </div>
+                <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
               </div>
-              <div className={`stat-value ${isDarkMode ? 'text-rose-400' : ''}`}>{stats.lowStockCount}</div>
-              <div className={`stat-label ${isDarkMode ? 'text-slate-300' : ''}`}>Low Stock Alerts</div>
+              <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+                {stats.lowStockCount}
+              </div>
+              <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+                <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Critical items threshold</span>
+                <span className={isDarkMode ? "bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#B91C1C]/40 text-rose-100 border border-[#B91C1C]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
+                  {stats.lowStockCount} Items
+                </span>
+              </div>
             </div>
-            <div className={`stat-card transition-all duration-300 ${isDarkMode ? 'bg-slate-800 border-white/15 shadow-xl hover:brightness-110' : ''}`}>
-              <div className="stat-header">
-                <div className={`stat-icon ${isDarkMode ? 'bg-purple-500/20 text-purple-400' : ''}`} style={isDarkMode ? {} : { background: 'var(--purple-light)', color: 'var(--purple)' }}>📑</div>
+
+            {/* KPI 3: CATEGORIES */}
+            <div 
+              className={isDarkMode 
+                ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+                : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+              style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+            >
+              <div className="flex justify-between items-start w-full relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center shrink-0 border border-purple-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
+                    <Layers size={18} />
+                  </div>
+                  <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>CATEGORIES</span>
+                </div>
+                <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
               </div>
-              <div className={`stat-value ${isDarkMode ? 'text-white' : ''}`}>{stats.categories.length}</div>
-              <div className={`stat-label ${isDarkMode ? 'text-slate-300' : ''}`}>Categories</div>
+              <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+                {stats.categories.length}
+              </div>
+              <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+                <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Product categories</span>
+                <span className={isDarkMode ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
+                  Active
+                </span>
+              </div>
             </div>
           </div>
 
@@ -674,42 +722,86 @@ export const InventoryComponent = () => {
           </div>
 
           {/* Inventory Analytics for Categories */}
-          <div className="stat-grid mb-6">
-            <div className={`stat-card animate-fade-in transition-all duration-300 ${
-              isDarkMode ? 'bg-slate-800 border-white/15 shadow-xl hover:brightness-110' : ''
-            }`}>
-              <div className="stat-header">
-                <div className="stat-icon" style={isDarkMode ? { background: 'rgba(99, 102, 241, 0.2)', color: '#818cf8' } : { background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>📑</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 mb-6">
+            {/* KPI 1: TOTAL CATEGORIES */}
+            <div 
+              className={isDarkMode 
+                ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+                : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+              style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+            >
+              <div className="flex justify-between items-start w-full relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center shrink-0 border border-purple-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
+                    <Layers size={18} />
+                  </div>
+                  <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL CATEGORIES</span>
+                </div>
+                <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
               </div>
-              <div className={`stat-value ${isDarkMode ? 'text-blue-400 !text-blue-400' : ''}`}>{categoriesStats.totalCategories}</div>
-              <div className={`stat-label ${isDarkMode ? 'text-slate-300' : ''}`}>Total Categories</div>
+              <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+                {categoriesStats.totalCategories}
+              </div>
+              <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+                <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Active categories</span>
+                <span className={isDarkMode ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
+                  Active
+                </span>
+              </div>
             </div>
-            <div className={`stat-card animate-fade-in transition-all duration-300 ${
-              isDarkMode ? 'bg-slate-800 border-white/15 shadow-xl hover:brightness-110' : ''
-            }`}>
-              <div className="stat-header">
-                <div className="stat-icon" style={isDarkMode ? { background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa' } : { background: 'var(--accent-light)', color: 'var(--accent)' }}>📦</div>
+
+            {/* KPI 2: TOTAL PRODUCTS */}
+            <div 
+              className={isDarkMode 
+                ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+                : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+              style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+            >
+              <div className="flex justify-between items-start w-full relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center shrink-0 border border-blue-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
+                    <Package size={18} />
+                  </div>
+                  <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL PRODUCTS</span>
+                </div>
+                <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
               </div>
-              <div className={`stat-value ${isDarkMode ? 'text-blue-400 !text-blue-400' : ''}`}>{categoriesStats.totalProducts}</div>
-              <div className={`stat-label ${isDarkMode ? 'text-slate-300' : ''}`}>Total Products</div>
+              <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+                {categoriesStats.totalProducts}
+              </div>
+              <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+                <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Inventory products</span>
+                <span className={isDarkMode ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
+                  Active
+                </span>
+              </div>
             </div>
-            <div className={`stat-card animate-fade-in transition-all duration-300 ${
-              isDarkMode ? 'bg-slate-800 border-white/15 shadow-xl hover:brightness-110' : ''
-            }`}>
-              <div className="stat-header">
-                <div className="stat-icon" style={isDarkMode ? { background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24' } : { background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>⚠️</div>
+
+            {/* KPI 3: LOW STOCK PRODUCTS */}
+            <div 
+              className={isDarkMode 
+                ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
+                : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+              style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+            >
+              <div className="flex justify-between items-start w-full relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
+                    <AlertTriangle size={18} />
+                  </div>
+                  <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>LOW STOCK PRODUCTS</span>
+                </div>
+                <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
               </div>
-              <div className={`stat-value ${isDarkMode ? 'text-emerald-400 !text-emerald-400' : ''}`}>{categoriesStats.lowStockCount}</div>
-              <div className={`stat-label ${isDarkMode ? 'text-slate-300' : ''}`}>Low Stock Products</div>
-            </div>
-            <div className={`stat-card animate-fade-in transition-all duration-300 ${
-              isDarkMode ? 'bg-slate-800 border-white/15 shadow-xl hover:brightness-110' : ''
-            }`}>
-              <div className="stat-header">
-                <div className="stat-icon" style={isDarkMode ? { background: 'rgba(239, 68, 68, 0.2)', color: '#f87171' } : { background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>🚨</div>
+              <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
+                {categoriesStats.lowStockCount}
               </div>
-              <div className={`stat-value ${isDarkMode ? 'text-rose-450 !text-rose-400' : ''}`}>{categoriesStats.outOfStockCount}</div>
-              <div className={`stat-label ${isDarkMode ? 'text-slate-300' : ''}`}>Out of Stock Products</div>
+              <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
+                <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Critical stock threshold</span>
+                <span className={isDarkMode ? "bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#B91C1C]/40 text-rose-100 border border-[#B91C1C]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
+                  {categoriesStats.lowStockCount} Items
+                </span>
+              </div>
             </div>
           </div>
 

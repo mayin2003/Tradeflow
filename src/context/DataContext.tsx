@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { Product, Customer, Expense, Transaction, AppSettings, ActivityLogItem, TradeDocument } from '../types';
+import { Product, Customer, Expense, Transaction, AppSettings, ActivityLogItem, TradeDocument, EmployeePayroll, initialEmployees } from '../types';
 import { storage } from '../services/storage';
 import { documentDB } from '../services/db';
 import { useAuth } from './AuthContext';
@@ -14,6 +14,8 @@ interface DataContextType {
   transactions: Transaction[];
   activityLogs: ActivityLogItem[];
   documents: TradeDocument[];
+  employees: EmployeePayroll[];
+  setEmployees: React.Dispatch<React.SetStateAction<EmployeePayroll[]>>;
   settings: AppSettings;
   selectedInvoiceId: string | null;
   dbStatus: 'connected' | 'error' | 'loading' | 'offline';
@@ -35,6 +37,80 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+export const deduplicateProducts = (productList: Product[]): Product[] => {
+  if (!productList || !Array.isArray(productList)) return [];
+
+  const map = new Map<string, Product>();
+
+  for (const p of productList) {
+    if (!p || !p.name) continue;
+
+    const normName = p.name.trim().toLowerCase();
+    const normSku = p.sku ? p.sku.trim().toLowerCase() : '';
+    const normBarcode = p.barcode ? p.barcode.trim().toLowerCase() : '';
+    const pId = p.id;
+
+    let existingKey: string | null = null;
+    let existingProd: Product | null = null;
+
+    for (const [k, item] of map.entries()) {
+      const iName = item.name.trim().toLowerCase();
+      const iSku = item.sku ? item.sku.trim().toLowerCase() : '';
+      const iBarcode = item.barcode ? item.barcode.trim().toLowerCase() : '';
+      const iId = item.id;
+
+      if (
+        (pId && iId === pId) ||
+        (normSku && iSku && normSku === iSku) ||
+        (normBarcode && iBarcode && normBarcode === iBarcode) ||
+        (normName && iName === normName)
+      ) {
+        existingKey = k;
+        existingProd = item;
+        break;
+      }
+    }
+
+    if (existingProd && existingKey) {
+      const catA = existingProd.category;
+      const catB = p.category;
+      let finalCategory = catA;
+      if (!catA || catA.toLowerCase() === 'uncategorized' || catA.toLowerCase() === 'others') {
+        if (catB && catB.toLowerCase() !== 'uncategorized' && catB.toLowerCase() !== 'others') {
+          finalCategory = catB;
+        }
+      }
+
+      const merged: Product = {
+        ...existingProd,
+        id: existingProd.id || p.id,
+        user_id: existingProd.user_id || p.user_id,
+        name: existingProd.name || p.name,
+        category: finalCategory || catA || catB || 'Others',
+        hs_code: existingProd.hs_code || p.hs_code || '',
+        barcode: existingProd.barcode || p.barcode || '',
+        sku: existingProd.sku || p.sku || '',
+        cost_price: existingProd.cost_price > 0 ? existingProd.cost_price : (p.cost_price || 0),
+        sell_price: existingProd.sell_price > 0 ? existingProd.sell_price : (p.sell_price || 0),
+        stock: Math.max(existingProd.stock || 0, p.stock || 0, (existingProd.stock || 0) + (p.stock || 0)),
+        min_stock: Math.max(existingProd.min_stock || 10, p.min_stock || 10),
+        unit: existingProd.unit || p.unit || 'pcs',
+        brand: existingProd.brand || p.brand || '',
+        supplier: existingProd.supplier || p.supplier || '',
+        description: existingProd.description || p.description || '',
+        created_at: existingProd.created_at || p.created_at || new Date().toISOString()
+      };
+
+      map.set(existingKey, merged);
+    } else {
+      const key = p.id || `name_${normName}`;
+      map.set(key, { ...p });
+    }
+  }
+
+  return Array.from(map.values());
+};
+
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
@@ -43,6 +119,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>([]);
   const [documents, setDocuments] = useState<TradeDocument[]>([]);
+  const [employees, setEmployees] = useState<EmployeePayroll[]>(() => {
+    const data = localStorage.getItem('tradeflow_employees');
+    if (data) {
+      try {
+        return JSON.parse(data);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return initialEmployees;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('tradeflow_employees', JSON.stringify(employees));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [employees]);
+
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [dbStatus, setDbStatus] = useState<'connected' | 'error' | 'loading' | 'offline'>('loading');
   const [dbError, setDbError] = useState<string | null>(null);
@@ -205,7 +301,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setDbError(errorMsg);
 
         // Fallback to local storage on error
-        setProducts(storage.getProducts(user.id));
+        setProducts(deduplicateProducts(storage.getProducts(user.id)));
         setCustomers(storage.getCustomers(user.id));
         setExpenses(storage.getExpenses(user.id));
         setTransactions(storage.getTransactions(user.id));
@@ -218,7 +314,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setDbError(null);
         
         // Only set data if no error
-        if (resProducts.data) setProducts(resProducts.data);
+        if (resProducts.data) setProducts(deduplicateProducts(resProducts.data));
         if (resCustomers.data) setCustomers(resCustomers.data);
         if (resExpenses.data) setExpenses(resExpenses.data);
         if (resTransactions.data) {
@@ -359,35 +455,66 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const addProduct = useCallback(async (p: any) => {
     if (!user) return;
     const targetUserId = ensureUuid(user.id);
-    const newProduct: Product = { 
-      ...p, 
-      id: p.id || `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, 
-      user_id: targetUserId, 
-      created_at: new Date().toISOString() 
-    };
+    let finalProductForSync: Product | null = null;
     
-    setProducts(prev => [newProduct, ...prev]);
-    storage.saveProduct(newProduct);
-    
-    // Create a clean version for Supabase that only includes confirmed columns
-    // to prevent "Could not find column... in schema cache" errors
-    const { sku, image, unit, ...cleanProduct } = newProduct as any;
-    
-    (async () => {
-      try {
-        const { error } = await supabase.from('tf_products').insert([{ ...cleanProduct, user_id: targetUserId }]);
-        if (error) {
-          console.warn('Supabase notice adding product:', error.message);
-        }
-        addActivityLog(`Product added: ${p.name}`, '📦', 'var(--purple-light)');
-      } catch (err) {
-        console.warn('Notice during background product adding sync:', err);
+    setProducts(prevProducts => {
+      const targetName = (p.name || '').trim().toLowerCase();
+      const targetSku = p.sku ? p.sku.trim().toLowerCase() : '';
+      const targetBarcode = p.barcode ? p.barcode.trim().toLowerCase() : '';
+      const targetId = p.id;
+
+      const existingIndex = prevProducts.findIndex(item => 
+        (targetId && item.id === targetId) ||
+        (targetSku && item.sku && item.sku.trim().toLowerCase() === targetSku) ||
+        (targetBarcode && item.barcode && item.barcode.trim().toLowerCase() === targetBarcode) ||
+        (targetName && item.name.trim().toLowerCase() === targetName)
+      );
+
+      if (existingIndex >= 0) {
+        const existing = prevProducts[existingIndex];
+        const updatedProduct: Product = {
+          ...existing,
+          ...p,
+          stock: p.stock !== undefined ? p.stock : existing.stock,
+          cost_price: p.cost_price || existing.cost_price,
+          sell_price: p.sell_price || existing.sell_price,
+          category: (p.category && p.category !== 'Uncategorized' && p.category !== 'Others') ? p.category : existing.category
+        };
+        finalProductForSync = updatedProduct;
+        const updatedList = [...prevProducts];
+        updatedList[existingIndex] = updatedProduct;
+        storage.saveProduct(updatedProduct);
+        return deduplicateProducts(updatedList);
+      } else {
+        const newProduct: Product = { 
+          ...p, 
+          id: p.id || `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, 
+          user_id: targetUserId, 
+          created_at: p.created_at || new Date().toISOString() 
+        };
+        finalProductForSync = newProduct;
+        storage.saveProduct(newProduct);
+        return deduplicateProducts([newProduct, ...prevProducts]);
       }
-    })();
+    });
+
+    if (finalProductForSync) {
+      const prodToSync = finalProductForSync as Product;
+      (async () => {
+        try {
+          const { sku, image, unit, ...cleanProduct } = prodToSync as any;
+          const { error } = await supabase.from('tf_products').upsert({ ...cleanProduct, user_id: targetUserId });
+          if (error) console.warn('Supabase notice adding product:', error.message);
+          addActivityLog(`Product added/updated: ${p.name}`, '📦', 'var(--purple-light)');
+        } catch (err) {
+          console.warn('Notice during background product adding sync:', err);
+        }
+      })();
+    }
   }, [user, addActivityLog]);
 
   const updateProduct = useCallback(async (p: Product) => {
-    setProducts(prev => prev.map(item => item.id === p.id ? p : item));
+    setProducts(prev => deduplicateProducts(prev.map(item => item.id === p.id ? p : item)));
     storage.saveProduct(p);
     
     // Create a clean version for Supabase
@@ -475,91 +602,97 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     
     setTransactions(prev => [newTransaction, ...prev]);
     storage.saveTransaction(newTransaction);
-    
-    const productUpdatesToTrigger: Product[] = [];
+
+    const updatedProductsForSync: Product[] = [];
     const customerUpdatesToTrigger: Customer[] = [];
-    
-    if (t.items?.length > 0) {
-      for (const item of t.items) {
-        const p = products.find(prod => prod.id === item.product_id || prod.name === item.product_name);
-        if (p) {
-          const updated = { ...p };
-          if (t.type === 'sale') updated.stock -= item.quantity;
-          if (t.type === 'purchase') {
-            updated.stock += item.quantity;
-            updated.cost_price = item.unit_price;
-            if (item.sell_price) updated.sell_price = item.sell_price;
-          }
-          productUpdatesToTrigger.push(updated);
-        } else if (t.type === 'purchase') {
-          // Auto-create product if missing during purchase
-          const newP: Product = {
-            id: `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-            user_id: targetUserId,
-            created_at: new Date().toISOString(),
-            name: item.product_name,
-            category: 'Uncategorized',
-            stock: item.quantity,
-            cost_price: item.unit_price,
-            sell_price: item.sell_price || item.unit_price,
-            sku: `SKU-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-            image: '',
-            unit: 'pcs',
-            hs_code: '',
-            min_stock: 10
+
+    setProducts(prevProducts => {
+      const currentProducts = [...prevProducts];
+      const itemsToProcess = (t.items && t.items.length > 0) 
+        ? t.items 
+        : [{
+            product_id: t.product_id,
+            product_name: t.product_name,
+            quantity: t.quantity || 0,
+            unit_price: t.unit_price || 0,
+            sell_price: t.sell_price || t.unit_price || 0,
+            category: t.category,
+            supplier: t.supplier,
+            barcode: t.barcode,
+            sku: t.sku,
+            hs_code: t.hs_code,
+            unit: t.unit,
+            brand: t.brand
+          }];
+
+      for (const item of itemsToProcess) {
+        const targetName = (item.product_name || t.product_name || '').trim().toLowerCase();
+        const targetId = item.product_id || t.product_id;
+        const targetSku = item.sku || t.sku ? (item.sku || t.sku).trim().toLowerCase() : '';
+        const targetBarcode = item.barcode || t.barcode ? (item.barcode || t.barcode).trim().toLowerCase() : '';
+
+        const existingIndex = currentProducts.findIndex(p => 
+          (targetId && p.id === targetId) ||
+          (targetSku && p.sku && p.sku.trim().toLowerCase() === targetSku) ||
+          (targetBarcode && p.barcode && p.barcode.trim().toLowerCase() === targetBarcode) ||
+          (targetName && p.name.trim().toLowerCase() === targetName)
+        );
+
+        if (existingIndex >= 0) {
+          const existing = currentProducts[existingIndex];
+          const updatedStock = t.type === 'sale' 
+            ? Math.max(0, (existing.stock || 0) - (item.quantity || 0))
+            : (existing.stock || 0) + (item.quantity || 0);
+
+          const itemCat = item.category || t.category;
+          const updatedCat = (itemCat && itemCat !== 'Uncategorized' && itemCat !== 'Others')
+            ? itemCat
+            : existing.category;
+
+          const updatedProduct: Product = {
+            ...existing,
+            stock: updatedStock,
+            cost_price: item.unit_price || existing.cost_price,
+            sell_price: item.sell_price || existing.sell_price,
+            category: updatedCat || existing.category || 'Others',
+            supplier: t.supplier || existing.supplier || '',
+            barcode: item.barcode || t.barcode || existing.barcode || '',
+            sku: item.sku || t.sku || existing.sku || '',
+            hs_code: item.hs_code || t.hs_code || existing.hs_code || '',
+            unit: item.unit || t.unit || existing.unit || 'pcs',
+            brand: item.brand || t.brand || (existing as any).brand || ''
           };
-          setProducts(prev => [newP, ...prev]);
-          storage.saveProduct(newP);
-          (async () => {
-            try {
-              const { sku, image, unit, ...cleanP } = newP as any;
-              await supabase.from('tf_products').insert([{ ...cleanP, user_id: targetUserId }]);
-            } catch (err) {
-              console.warn('Notice adding auto-created product to Supabase:', err);
-            }
-          })();
+
+          currentProducts[existingIndex] = updatedProduct;
+          updatedProductsForSync.push(updatedProduct);
+          storage.saveProduct(updatedProduct);
+        } else if (t.type === 'purchase') {
+          const newProduct: Product = {
+            id: targetId || `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+            user_id: targetUserId,
+            name: item.product_name || t.product_name,
+            category: item.category || t.category || 'Others',
+            stock: item.quantity || 0,
+            cost_price: item.unit_price || 0,
+            sell_price: item.sell_price || item.unit_price || 0,
+            supplier: t.supplier || '',
+            barcode: item.barcode || t.barcode || '',
+            sku: item.sku || t.sku || `SKU-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+            hs_code: item.hs_code || t.hs_code || '',
+            unit: item.unit || t.unit || 'pcs',
+            brand: item.brand || t.brand || '',
+            min_stock: 10,
+            created_at: t.date || new Date().toISOString()
+          };
+
+          currentProducts.unshift(newProduct);
+          updatedProductsForSync.push(newProduct);
+          storage.saveProduct(newProduct);
         }
       }
-    } else {
-      const p = products.find(prod => prod.id === t.product_id || prod.name === t.product_name);
-      if (p) {
-        const updated = { ...p };
-        if (t.type === 'sale') updated.stock -= t.quantity;
-        if (t.type === 'purchase') {
-          updated.stock += t.quantity;
-          updated.cost_price = t.unit_price;
-          if (t.sell_price) updated.sell_price = t.sell_price;
-        }
-        productUpdatesToTrigger.push(updated);
-      } else if (t.type === 'purchase') {
-        // Auto-create product if missing during purchase
-        const newP: Product = {
-          id: `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-          user_id: targetUserId,
-          created_at: new Date().toISOString(),
-          name: t.product_name,
-          category: 'Uncategorized',
-          stock: t.quantity,
-          cost_price: t.unit_price,
-          sell_price: t.sell_price || t.unit_price,
-          sku: `SKU-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-          image: '',
-          unit: 'pcs',
-          hs_code: '',
-          min_stock: 10
-        };
-        setProducts(prev => [newP, ...prev]);
-        storage.saveProduct(newP);
-        (async () => {
-          try {
-            const { sku, image, unit, ...cleanP } = newP as any;
-            await supabase.from('tf_products').insert([{ ...cleanP, user_id: targetUserId }]);
-          } catch (err) {
-            console.warn('Notice adding auto-created product to Supabase:', err);
-          }
-        })();
-      }
-    }
+
+      return deduplicateProducts(currentProducts);
+    });
 
     // Auto-add customer if not exists
     if (t.type === 'sale' && t.customer_name && t.customer_name.trim() !== '' && t.customer_name.toLowerCase() !== 'walk-in') {
@@ -582,17 +715,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    if (productUpdatesToTrigger.length > 0) {
-      setProducts(prev => prev.map(item => {
-        const matchingUpdate = productUpdatesToTrigger.find(u => u.id === item.id);
-        return matchingUpdate ? matchingUpdate : item;
-      }));
-      productUpdatesToTrigger.forEach(p => storage.saveProduct(p));
-    }
-
     (async () => {
       try {
-        for (const p of productUpdatesToTrigger) {
+        for (const p of updatedProductsForSync) {
           const { sku, image, unit, ...cleanProduct } = p as any;
           await supabase.from('tf_products').upsert({ ...cleanProduct, user_id: ensureUuid(cleanProduct.user_id) });
         }
@@ -601,7 +726,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           await supabase.from('tf_customers').insert([{ ...c, user_id: ensureUuid(c.user_id) }]);
         }
 
-        const { supplier, payment_method, exchange_rate, expiry_date, invoice_file_data, invoice_file_name, invoice_file_type, ...cleanTransaction } = newTransaction as any;
+        const { supplier, payment_method, exchange_rate, expiry_date, invoice_file_data, invoice_file_name, invoice_file_type, category, barcode, sku, hs_code, unit, brand, ...cleanTransaction } = newTransaction as any;
         const { error } = await supabase.from('tf_transactions').insert([{ ...cleanTransaction, user_id: targetUserId }]);
         if (error) console.warn('Supabase notice adding transaction:', error.message);
         
@@ -611,43 +736,44 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         console.warn('Notice during background transaction addition sync:', err);
       }
     })();
-  }, [user, products, customers, addActivityLog]);
+  }, [user, customers, addActivityLog]);
 
   const deleteTransaction = useCallback(async (id: string, name: string) => {
-    // Find the transaction to see if we need to adjust stock
     const t = transactions.find(item => item.id === id);
-    let productToUpdate: Product | null = null;
-    
-    if (t) {
-      if (t.type === 'purchase') {
-        const p = products.find(prod => prod.id === t.product_id || prod.name === t.product_name);
-        if (p) {
-          productToUpdate = { ...p, stock: Math.max(0, p.stock - (t.quantity || 0)) };
-        }
-      } else if (t.type === 'sale') {
-        const p = products.find(prod => prod.id === t.product_id || prod.name === t.product_name);
-        if (p) {
-          productToUpdate = { ...p, stock: p.stock + (t.quantity || 0) };
-        }
-      }
-    }
+    let productToSync: Product | null = null;
 
-    // 1. Instantly update transactions state for instant UI response
     setTransactions(prev => prev.filter(item => item.id !== id));
     storage.deleteTransaction(id);
 
-    // 2. Instantly update products state if stock changed
-    if (productToUpdate) {
-      const updatedProduct = productToUpdate;
-      setProducts(prev => prev.map(item => item.id === updatedProduct.id ? updatedProduct : item));
-      storage.saveProduct(updatedProduct);
+    if (t) {
+      setProducts(prevProducts => {
+        const targetName = (t.product_name || name || '').trim().toLowerCase();
+        const targetId = t.product_id;
+
+        const updatedList = prevProducts.map(p => {
+          if ((targetId && p.id === targetId) || (targetName && p.name.trim().toLowerCase() === targetName)) {
+            let newStock = p.stock;
+            if (t.type === 'purchase') {
+              newStock = Math.max(0, (p.stock || 0) - (t.quantity || 0));
+            } else if (t.type === 'sale') {
+              newStock = (p.stock || 0) + (t.quantity || 0);
+            }
+            const updated = { ...p, stock: newStock };
+            productToSync = updated;
+            storage.saveProduct(updated);
+            return updated;
+          }
+          return p;
+        });
+
+        return deduplicateProducts(updatedList);
+      });
     }
 
-    // 3. Perform network calls and activity logs in background asynchronously (non-blocking)
     (async () => {
       try {
-        if (productToUpdate) {
-          const { sku, image, unit, ...cleanProduct } = productToUpdate as any;
+        if (productToSync) {
+          const { sku, image, unit, ...cleanProduct } = productToSync as any;
           const { error: pError } = await supabase.from('tf_products').upsert(cleanProduct);
           if (pError) console.warn('Supabase notice updating product:', pError.message);
         }
@@ -660,7 +786,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         console.warn('Notice during background transaction deletion sync:', err);
       }
     })();
-  }, [transactions, products, addActivityLog]);
+  }, [transactions, addActivityLog]);
 
   const addDocument = useCallback(async (d: any) => {
     if (!user) return;
@@ -717,7 +843,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   const contextValue = useMemo(() => ({
-    products, customers, expenses, transactions, activityLogs, documents, settings,
+    products, customers, expenses, transactions, activityLogs, documents, employees, setEmployees, settings,
     selectedInvoiceId, dbStatus, setSelectedInvoiceId,
     addProduct, updateProduct, deleteProduct,
     addCustomer, addExpense, addTransaction, deleteTransaction, 
@@ -725,7 +851,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     addActivityLog, clearActivityLogs, updateSettings,
     refreshData: loadData
   }), [
-    products, customers, expenses, transactions, activityLogs, documents, settings,
+    products, customers, expenses, transactions, activityLogs, documents, employees, setEmployees, settings,
     selectedInvoiceId, dbStatus, setSelectedInvoiceId,
     addProduct, updateProduct, deleteProduct,
     addCustomer, addExpense, addTransaction, deleteTransaction, 

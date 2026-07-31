@@ -20,6 +20,8 @@ export interface Product {
   sku?: string;
   image?: string;
   unit?: string;
+  brand?: string;
+  supplier?: string;
   description?: string;
   created_at: string;
 }
@@ -65,7 +67,13 @@ export interface Transaction {
   items?: TransactionItem[];
   loyalty_points_earned?: number;
   loyalty_points_used?: number;
-  // Extra for purchase
+  // Extra for purchase & sync
+  category?: string;
+  barcode?: string;
+  sku?: string;
+  hs_code?: string;
+  unit?: string;
+  brand?: string;
   shipping_cost?: number;
   customs_duty?: number;
   vat?: number;
@@ -157,3 +165,117 @@ export interface TradeDocument {
   file_data: string; // Base64 or Blob URL
   file_type: string;
 }
+
+export interface EmployeePayroll {
+  id: string;
+  name: string;
+  role: string;
+  baseSalary: number;
+  allowanceOvertime: number;
+  allowanceBonus: number;
+  deductionAdvance: number;
+  deductionTax: number;
+  paymentMethod: 'Bank Transfer' | 'Cash' | 'Mobile Wallet';
+  status: 'Paid' | 'Pending' | string;
+  avatarInitials: string;
+  avatarBg: string;
+  payoutDate?: string;
+  active?: boolean;
+}
+
+export const initialEmployees: EmployeePayroll[] = [
+  {
+    id: "EMP-102",
+    name: "Alex Sterling",
+    role: "Customs Agent & Compliance Officer",
+    baseSalary: 4500,
+    allowanceOvertime: 250,
+    allowanceBonus: 500,
+    deductionAdvance: 0,
+    deductionTax: 675,
+    paymentMethod: "Bank Transfer",
+    status: "Paid",
+    avatarInitials: "AS",
+    avatarBg: "from-cyan-500 to-blue-600",
+    payoutDate: "2026-05-15",
+    active: true
+  },
+  {
+    id: "EMP-108",
+    name: "Marcus Vance",
+    role: "Global Logistics Director",
+    baseSalary: 5800,
+    allowanceOvertime: 0,
+    allowanceBonus: 800,
+    deductionAdvance: 300,
+    deductionTax: 870,
+    paymentMethod: "Bank Transfer",
+    status: "Paid",
+    avatarInitials: "MV",
+    avatarBg: "from-indigo-500 to-purple-600",
+    payoutDate: "2026-05-15",
+    active: true
+  },
+  {
+    id: "EMP-115",
+    name: "Sarah Rahman",
+    role: "Supply Chain Analyst",
+    baseSalary: 3800,
+    allowanceOvertime: 150,
+    allowanceBonus: 200,
+    deductionAdvance: 0,
+    deductionTax: 570,
+    paymentMethod: "Mobile Wallet",
+    status: "Pending",
+    avatarInitials: "SR",
+    avatarBg: "from-emerald-400 to-teal-600",
+    active: true
+  },
+  {
+    id: "EMP-120",
+    name: "Tariq Mahmood",
+    role: "Warehouse Operations Supervisor",
+    baseSalary: 3200,
+    allowanceOvertime: 480,
+    allowanceBonus: 0,
+    deductionAdvance: 150,
+    deductionTax: 480,
+    paymentMethod: "Mobile Wallet",
+    status: "Pending",
+    avatarInitials: "TM",
+    avatarBg: "from-amber-400 to-orange-600",
+    active: true
+  },
+  {
+    id: "EMP-134",
+    name: "Helena Rostova",
+    role: "Freight Procurement Specialist",
+    baseSalary: 4100,
+    allowanceOvertime: 120,
+    allowanceBonus: 300,
+    deductionAdvance: 0,
+    deductionTax: 615,
+    paymentMethod: "Bank Transfer",
+    status: "Paid",
+    avatarInitials: "HR",
+    avatarBg: "from-pink-500 to-rose-600",
+    payoutDate: "2026-05-15",
+    active: true
+  },
+  {
+    id: "EMP-149",
+    name: "Devon Carter",
+    role: "Port Operations Coordinator",
+    baseSalary: 3000,
+    allowanceOvertime: 320,
+    allowanceBonus: 100,
+    deductionAdvance: 0,
+    deductionTax: 450,
+    paymentMethod: "Cash",
+    status: "Pending",
+    avatarInitials: "DC",
+    avatarBg: "from-violet-500 to-fuchsia-600",
+    active: true
+  }
+];
+
