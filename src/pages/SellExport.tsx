@@ -35,21 +35,63 @@ export const SellExportComponent = ({ onNavigate }: SellExportProps) => {
   const availableProducts = useMemo(() => {
     const list = [...products];
 
+    const productMapById = new Map<string, typeof products[0]>();
+    const productNameSet = new Set<string>();
+
+    products.forEach(p => {
+      productMapById.set(p.id, p);
+      productNameSet.add(p.name.trim().toLowerCase());
+    });
+
     transactions.forEach(t => {
-      if (t.type === 'purchase') {
-        const hasProduct = list.some(p => p.id === t.product_id || p.name.trim().toLowerCase() === t.product_name.trim().toLowerCase());
-        if (!hasProduct && t.product_name) {
-          list.push({
-            id: t.product_id || `manual_${Date.now()}`,
+      if (t.type === 'purchase' && t.product_name) {
+        const normName = t.product_name.trim().toLowerCase();
+        if (!productNameSet.has(normName) && (!t.product_id || !productMapById.has(t.product_id))) {
+          let totalPurchased = 0;
+          let totalSold = 0;
+
+          transactions.forEach(tr => {
+            const checkMatch = (pId?: string, pName?: string) => {
+              const matchId = Boolean(t.product_id && pId && pId === t.product_id);
+              const matchName = Boolean(pName && pName.trim().toLowerCase() === normName);
+              return matchId || matchName;
+            };
+
+            if (tr.type === 'purchase') {
+              if (tr.items && tr.items.length > 0) {
+                tr.items.forEach(i => {
+                  if (checkMatch(i.product_id, i.product_name)) totalPurchased += (i.quantity || 0);
+                });
+              } else if (checkMatch(tr.product_id, tr.product_name)) {
+                totalPurchased += (tr.quantity || 0);
+              }
+            } else if (tr.type === 'sale') {
+              if (tr.items && tr.items.length > 0) {
+                tr.items.forEach(i => {
+                  if (checkMatch(i.product_id, i.product_name)) totalSold += (i.quantity || 0);
+                });
+              } else if (checkMatch(tr.product_id, tr.product_name)) {
+                totalSold += (tr.quantity || 0);
+              }
+            }
+          });
+
+          const currentStock = Math.max(0, totalPurchased - totalSold);
+
+          const newP = {
+            id: t.product_id || `manual_${t.id || Date.now()}`,
             name: t.product_name,
             category: t.category || 'Uncategorized',
-            stock: t.quantity || 0,
+            stock: currentStock,
             cost_price: t.unit_price || 0,
             sell_price: t.sell_price || t.unit_price || 0,
             sku: `SKU-${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
             image: '',
             unit: 'pcs'
-          } as any);
+          } as any;
+          list.push(newP);
+          productNameSet.add(normName);
+          if (t.product_id) productMapById.set(t.product_id, newP);
         }
       }
     });
@@ -226,39 +268,69 @@ export const SellExportComponent = ({ onNavigate }: SellExportProps) => {
     return symbol + Math.round(n).toLocaleString();
   }, [formData.currency, settings.currency]);
 
-  const filteredTransactions = useMemo(() => {
-    return transactions
-      .filter(t => t.type === 'sale')
-      .filter(t => t.product_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-             (t.customer_name && t.customer_name.toLowerCase().includes(searchQuery.toLowerCase())));
-  }, [transactions, searchQuery]);
+  const productCostMap = useMemo(() => {
+    const costMap = new Map<string, number>();
+    availableProducts.forEach(p => {
+      if (p.id) costMap.set(p.id, p.cost_price || 0);
+      if (p.name) costMap.set(p.name.trim().toLowerCase(), p.cost_price || 0);
+    });
+    return costMap;
+  }, [availableProducts]);
 
   const getTransactionProfit = useCallback((t: any) => {
     if (t.items && t.items.length > 0) {
-      const itemsCost = t.items.reduce((sum: number, item: any) => {
-        const prod = availableProducts.find(p => p.id === item.product_id || p.name === item.product_name);
-        return sum + (prod?.cost_price || 0) * item.quantity;
-      }, 0);
+      let itemsCost = 0;
+      for (let i = 0; i < t.items.length; i++) {
+        const item = t.items[i];
+        const cost = (item.product_id ? productCostMap.get(item.product_id) : undefined) ?? 
+                     (item.product_name ? productCostMap.get(item.product_name.trim().toLowerCase()) : undefined) ?? 0;
+        itemsCost += cost * (item.quantity || 0);
+      }
       return t.total_price - itemsCost;
     }
-    const prod = availableProducts.find(p => p.id === t.product_id || p.name === t.product_name);
-    return t.total_price - (prod?.cost_price || 0) * t.quantity;
-  }, [availableProducts]);
+    const cost = (t.product_id ? productCostMap.get(t.product_id) : undefined) ?? 
+                 (t.product_name ? productCostMap.get(t.product_name.trim().toLowerCase()) : undefined) ?? 0;
+    return t.total_price - cost * (t.quantity || 0);
+  }, [productCostMap]);
+
+  const salesTransactions = useMemo(() => {
+    return transactions.filter(t => t.type === 'sale');
+  }, [transactions]);
+
+  const salesRecordsWithProfit = useMemo(() => {
+    return salesTransactions.map(t => ({
+      ...t,
+      rowProfit: getTransactionProfit(t)
+    }));
+  }, [salesTransactions, getTransactionProfit]);
+
+  const filteredTransactions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return salesRecordsWithProfit;
+    return salesRecordsWithProfit.filter(t => 
+      (t.product_name && t.product_name.toLowerCase().includes(q)) || 
+      (t.customer_name && t.customer_name.toLowerCase().includes(q))
+    );
+  }, [salesRecordsWithProfit, searchQuery]);
 
   const stats = useMemo(() => {
-    const sales = transactions.filter(t => t.type === 'sale');
-    const totalRevenueSum = sales.reduce((a, b) => a + b.total_price, 0);
-    const totalProfitSum = sales.reduce((a, b) => {
-      return a + getTransactionProfit(b);
-    }, 0);
+    let totalRevenueSum = 0;
+    let totalProfitSum = 0;
+    const count = salesRecordsWithProfit.length;
+
+    for (let i = 0; i < count; i++) {
+      const s = salesRecordsWithProfit[i];
+      totalRevenueSum += s.total_price || 0;
+      totalProfitSum += s.rowProfit || 0;
+    }
 
     return { 
-      count: sales.length, 
+      count, 
       totalRevenueSum,
       totalProfitSum,
       avgMargin: totalRevenueSum > 0 ? (totalProfitSum / totalRevenueSum) * 100 : 0
     };
-  }, [transactions, getTransactionProfit]);
+  }, [salesRecordsWithProfit]);
 
   const calculatedProfit = useMemo(() => {
     const revenue = stats.totalRevenueSum;
@@ -679,7 +751,7 @@ export const SellExportComponent = ({ onNavigate }: SellExportProps) => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 mb-6">
-        {/* KPI 1: TOTAL REVENUE */}
+        {/* KPI 1: TOTAL SELL */}
         <div 
           id="card-sell-revenue"
           className={isDarkMode 
@@ -692,7 +764,7 @@ export const SellExportComponent = ({ onNavigate }: SellExportProps) => {
               <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0 border border-emerald-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
                 <DollarSign size={18} />
               </div>
-              <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL REVENUE</span>
+              <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL SELL</span>
             </div>
             <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
           </div>
@@ -794,7 +866,7 @@ export const SellExportComponent = ({ onNavigate }: SellExportProps) => {
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {filteredTransactions.map(t => {
-                const rowProfit = getTransactionProfit(t);
+                const rowProfit = t.rowProfit;
                 return (
                   <tr key={t.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="px-5 py-3.5 font-medium text-slate-600 dark:text-slate-400">{new Date(t.date).toLocaleDateString()}</td>

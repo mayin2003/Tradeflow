@@ -86,8 +86,9 @@ const AppContent = () => {
   const activePageElement = useMemo(() => {
     switch (currentPage) {
       case 'dashboard': return <Dashboard onNavigate={handleNavigate} />;
-      case 'inventory': return <Inventory />;
-      case 'buy': return <BuyImport />;
+      case 'inventory': return <Inventory initialTab="products" />;
+      case 'inventory-categories': return <Inventory initialTab="categories" />;
+      case 'buy': return <BuyImport onNavigate={handleNavigate} />;
       case 'sell': return <SellExport onNavigate={handleNavigate} />;
       case 'invoice': return <InvoicePage onNavigate={handleNavigate} />;
       case 'reports': return <Reports />;

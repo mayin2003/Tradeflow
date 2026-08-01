@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useData } from '../context/DataContext';
+import { useData, deduplicateProducts } from '../context/DataContext';
 import { QrCode, Camera, Calendar, X, Sparkles, Watch, Truck, CreditCard, DollarSign, Percent, AlertCircle, Upload, FileText, Image as ImageIcon, Trash2, ShoppingBag, Package, LayoutGrid, User, UserPlus, ChevronDown, Landmark, Calculator, Save, MoreVertical, ShoppingCart, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BarcodeScanner } from '../components/BarcodeScanner';
@@ -125,7 +125,11 @@ const inferCategory = (productName: string): string => {
   return 'Others';
 };
 
-export const BuyImportComponent = () => {
+interface BuyImportProps {
+  onNavigate?: (page: string) => void;
+}
+
+export const BuyImportComponent = ({ onNavigate }: BuyImportProps) => {
   const { products, transactions, addTransaction, deleteTransaction, settings, addProduct, updateProduct } = useData();
   const isDarkMode = settings.theme === 'dark' || (typeof document !== 'undefined' && (document.body.classList.contains('dark-mode') || document.documentElement.classList.contains('dark')));
   const [showModal, setShowModal] = useState(false);
@@ -386,10 +390,51 @@ export const BuyImportComponent = () => {
       .filter(t => t.product_name.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [transactions, searchQuery]);
 
+  const allProducts = useMemo(() => {
+    const list = [...products];
+    const existingNames = new Set(list.map(p => p.name.trim().toLowerCase()));
+
+    transactions.forEach(t => {
+      if (t.type === 'purchase') {
+        const processItem = (pName?: string, catName?: string, cost?: number, qty?: number) => {
+          if (!pName || !pName.trim()) return;
+          const norm = pName.trim().toLowerCase();
+          if (!existingNames.has(norm)) {
+            existingNames.add(norm);
+            list.push({
+              id: `trans-prod-${norm.replace(/[^a-z0-9]/g, '-')}`,
+              name: pName.trim(),
+              category: catName || inferCategory(pName.trim()),
+              cost_price: cost || 0,
+              sell_price: (cost || 0) * 1.2,
+              stock: qty || 0,
+              min_stock: 5,
+              hs_code: '',
+              barcode: '',
+              sku: '',
+              unit: 'pcs',
+              date: t.date || new Date().toISOString().split('T')[0]
+            } as any);
+          }
+        };
+
+        if (t.items && t.items.length > 0) {
+          t.items.forEach(item => {
+            processItem(item.product_name, item.category, item.unit_price, item.quantity);
+          });
+        } else if (t.product_name) {
+          processItem(t.product_name, t.category, t.unit_price, t.quantity);
+        }
+      }
+    });
+
+    return deduplicateProducts(list).filter(p => !(p as any).is_inactive && (p as any).status !== 'inactive');
+  }, [products, transactions]);
+
   const stats = useMemo(() => {
     const purchaseTransactions = transactions.filter(t => t.type === 'purchase');
     const totalPurchaseCost = purchaseTransactions.reduce((a, b) => a + b.total_price, 0);
-    const totalStockUnits = products.reduce((acc, p) => acc + p.stock, 0);
+    const totalStockUnits = allProducts.reduce((acc, p) => acc + (Number(p.stock) || 0), 0);
     const avgLandingCost = purchaseTransactions.length > 0 
       ? totalPurchaseCost / purchaseTransactions.reduce((a, b) => a + (b.quantity || 1), 0)
       : 0;
@@ -398,9 +443,10 @@ export const BuyImportComponent = () => {
       count: purchaseTransactions.length, 
       totalPurchaseCost, 
       totalStockUnits,
+      totalSkus: allProducts.length,
       avgLandingCost
     };
-  }, [transactions, products]);
+  }, [transactions, allProducts]);
 
   if (showModal) {
     return (
@@ -953,9 +999,17 @@ export const BuyImportComponent = () => {
 
         {/* KPI 2: TOTAL STOCK UNITS */}
         <div 
+          onClick={() => {
+            if (onNavigate) {
+              onNavigate('inventory');
+            } else {
+              const invNavBtn = document.querySelector('[data-page="inventory"]') as HTMLElement;
+              invNavBtn?.click();
+            }
+          }}
           className={isDarkMode 
-            ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
-            : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+            ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group cursor-pointer" 
+            : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden cursor-pointer"}
           style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
         >
           <div className="flex justify-between items-start w-full relative z-10">
@@ -973,7 +1027,7 @@ export const BuyImportComponent = () => {
           <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
             <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Total stock units</span>
             <span className={isDarkMode ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
-              {products.length} SKUs
+              {stats.totalSkus} SKUs
             </span>
           </div>
         </div>

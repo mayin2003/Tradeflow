@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Chart, registerables } from 'chart.js';
-import { useData } from '../context/DataContext';
+import { useData, deduplicateProducts } from '../context/DataContext';
 import { 
   Wallet, ShoppingCart, Tag, TrendingUp, TrendingDown, Package, 
   MoreVertical, ChevronRight, Calendar, ArrowUpRight, ShoppingBag, 
@@ -231,60 +231,55 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
   }, [transactions, calculateProfit]);
 
   const activeCategoryCount = useMemo(() => {
-    const categoryCountMap = new Map<string, number>();
+    const list = [...products];
+    const existingNames = new Set(list.map(p => p.name.trim().toLowerCase()));
 
-    // 1. Process products list
-    if (products && Array.isArray(products) && products.length > 0) {
-      for (let i = 0; i < products.length; i++) {
-        const p = products[i];
-        if (!p) continue;
-        const rawCat = p.category && p.category.trim().length > 0 ? p.category.trim() : '';
-        const cat = (rawCat && rawCat.toLowerCase() !== 'uncategorized') 
-          ? (rawCat.charAt(0).toUpperCase() + rawCat.slice(1).toLowerCase())
-          : getAutoCategory(p.name, p.category);
-
-        if (cat && cat.trim().length > 0) {
-          const normCat = cat.trim();
-          categoryCountMap.set(normCat, (categoryCountMap.get(normCat) || 0) + 1);
-        }
-      }
-    }
-
-    // 2. Fallback: If products array yielded 0 active categories, scan transactions
-    if (categoryCountMap.size === 0 && transactions && Array.isArray(transactions) && transactions.length > 0) {
-      for (let i = 0; i < transactions.length; i++) {
-        const t = transactions[i];
-        if (t.items && Array.isArray(t.items) && t.items.length > 0) {
-          for (let j = 0; j < t.items.length; j++) {
-            const item = t.items[j];
-            const prod = item.product_id ? productMap.get(item.product_id) : null;
-            const cat = getAutoCategory(item.product_name || prod?.name || '', prod?.category);
-            if (cat && cat.trim().length > 0) {
-              const normCat = cat.trim();
-              categoryCountMap.set(normCat, (categoryCountMap.get(normCat) || 0) + 1);
+    if (transactions && Array.isArray(transactions)) {
+      transactions.forEach(t => {
+        if (t.type === 'purchase') {
+          const processItem = (pName?: string, catName?: string) => {
+            if (!pName || !pName.trim()) return;
+            const norm = pName.trim().toLowerCase();
+            if (!existingNames.has(norm)) {
+              existingNames.add(norm);
+              list.push({
+                id: `trans-prod-${norm.replace(/[^a-z0-9]/g, '-')}`,
+                name: pName.trim(),
+                category: catName || getAutoCategory(pName.trim()),
+                stock: 1,
+              } as any);
             }
-          }
-        } else if (t.product_id || t.product_name) {
-          const prod = t.product_id ? productMap.get(t.product_id) : null;
-          const cat = getAutoCategory(t.product_name || prod?.name || '', prod?.category);
-          if (cat && cat.trim().length > 0) {
-            const normCat = cat.trim();
-            categoryCountMap.set(normCat, (categoryCountMap.get(normCat) || 0) + 1);
+          };
+
+          if (t.items && t.items.length > 0) {
+            t.items.forEach(item => processItem(item.product_name, item.category));
+          } else if (t.product_name) {
+            processItem(t.product_name, t.category);
           }
         }
+      });
+    }
+
+    const deduplicated = deduplicateProducts(list);
+    const activeProducts = deduplicated.filter(p => !(p as any).is_inactive && (p as any).status !== 'inactive');
+
+    const categorySet = new Set<string>();
+
+    for (let i = 0; i < activeProducts.length; i++) {
+      const p = activeProducts[i];
+      if (!p) continue;
+      const rawCat = p.category && p.category.trim().length > 0 ? p.category.trim() : '';
+      const cat = (rawCat && rawCat.toLowerCase() !== 'uncategorized') 
+        ? (rawCat.charAt(0).toUpperCase() + rawCat.slice(1).toLowerCase())
+        : getAutoCategory(p.name, p.category);
+
+      if (cat && cat.trim().length > 0) {
+        categorySet.add(cat.trim());
       }
     }
 
-    // Active categories must have at least 1 product (count > 0)
-    let activeCount = 0;
-    for (const count of categoryCountMap.values()) {
-      if (count > 0) {
-        activeCount++;
-      }
-    }
-
-    return activeCount;
-  }, [products, transactions, productMap]);
+    return categorySet.size;
+  }, [products, transactions]);
 
   const categoryShareData = useMemo(() => {
     const categories: { [key: string]: number } = {};
@@ -1913,9 +1908,14 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
 
           {/* KPI 8: TOTAL CATEGORY */}
           <div 
+            onClick={() => {
+              if (onNavigate) {
+                onNavigate('inventory-categories');
+              }
+            }}
             className={isDark 
-              ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
-              : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+              ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group cursor-pointer" 
+              : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden cursor-pointer"}
             style={isDark ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
           >
             <div className="flex justify-between items-start w-full relative z-10">
@@ -1928,7 +1928,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
               <MoreVertical size={16} className={isDark ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
             </div>
             <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
-              {settings.currency}{activeCategoryCount}
+              {activeCategoryCount}
             </div>
             <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
               <span className={isDark ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Active categories</span>

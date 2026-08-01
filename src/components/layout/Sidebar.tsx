@@ -126,7 +126,7 @@ export const SidebarComponent = ({ current, onNavigate, isOpen, onClose }: Sideb
               </div>
               <div className="space-y-1">
                 {sectionItems.map((item) => {
-                  const isActive = current === item.id;
+                  const isActive = current === item.id || (item.id === 'inventory' && current.startsWith('inventory'));
                   return (
                     <div
                       key={item.id}

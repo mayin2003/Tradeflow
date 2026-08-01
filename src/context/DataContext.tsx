@@ -92,7 +92,7 @@ export const deduplicateProducts = (productList: Product[]): Product[] => {
         sku: existingProd.sku || p.sku || '',
         cost_price: existingProd.cost_price > 0 ? existingProd.cost_price : (p.cost_price || 0),
         sell_price: existingProd.sell_price > 0 ? existingProd.sell_price : (p.sell_price || 0),
-        stock: Math.max(existingProd.stock || 0, p.stock || 0, (existingProd.stock || 0) + (p.stock || 0)),
+        stock: typeof p.stock === 'number' ? p.stock : (existingProd.stock || 0),
         min_stock: Math.max(existingProd.min_stock || 10, p.min_stock || 10),
         unit: existingProd.unit || p.unit || 'pcs',
         brand: existingProd.brand || p.brand || '',
@@ -652,8 +652,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           const updatedProduct: Product = {
             ...existing,
             stock: updatedStock,
-            cost_price: item.unit_price || existing.cost_price,
-            sell_price: item.sell_price || existing.sell_price,
+            cost_price: t.type === 'purchase' ? (item.unit_price || existing.cost_price) : existing.cost_price,
+            sell_price: item.sell_price || (t.type === 'sale' ? item.unit_price : 0) || existing.sell_price,
             category: updatedCat || existing.category || 'Others',
             supplier: t.supplier || existing.supplier || '',
             barcode: item.barcode || t.barcode || existing.barcode || '',
@@ -666,14 +666,34 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           currentProducts[existingIndex] = updatedProduct;
           updatedProductsForSync.push(updatedProduct);
           storage.saveProduct(updatedProduct);
-        } else if (t.type === 'purchase') {
+        } else {
+          let initialPurchaseQty = 0;
+          transactions.forEach(prevT => {
+            if (prevT.type === 'purchase') {
+              if (prevT.items && prevT.items.length > 0) {
+                prevT.items.forEach(pi => {
+                  if ((targetId && pi.product_id === targetId) || (targetName && pi.product_name && pi.product_name.trim().toLowerCase() === targetName)) {
+                    initialPurchaseQty += (pi.quantity || 0);
+                  }
+                });
+              } else if ((targetId && prevT.product_id === targetId) || (targetName && prevT.product_name && prevT.product_name.trim().toLowerCase() === targetName)) {
+                initialPurchaseQty += (prevT.quantity || 0);
+              }
+            }
+          });
+
+          const baseStock = initialPurchaseQty > 0 ? initialPurchaseQty : (t.type === 'purchase' ? (item.quantity || 0) : 100);
+          const finalStock = t.type === 'sale'
+            ? Math.max(0, baseStock - (item.quantity || 0))
+            : baseStock + (item.quantity || 0);
+
           const newProduct: Product = {
             id: targetId || `p_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
             user_id: targetUserId,
             name: item.product_name || t.product_name,
             category: item.category || t.category || 'Others',
-            stock: item.quantity || 0,
-            cost_price: item.unit_price || 0,
+            stock: finalStock,
+            cost_price: t.type === 'purchase' ? (item.unit_price || 0) : 0,
             sell_price: item.sell_price || item.unit_price || 0,
             supplier: t.supplier || '',
             barcode: item.barcode || t.barcode || '',

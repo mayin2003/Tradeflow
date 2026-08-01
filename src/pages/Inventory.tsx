@@ -198,14 +198,24 @@ const inferCategory = (productName: string): string => {
   return 'Others';
 };
 
-export const InventoryComponent = () => {
+interface InventoryProps {
+  initialTab?: 'products' | 'categories';
+}
+
+export const InventoryComponent = ({ initialTab = 'products' }: InventoryProps) => {
   const { products, transactions, addProduct, updateProduct, deleteProduct, settings } = useData();
   const isDarkMode = settings?.theme === 'dark';
   const [showModal, setShowModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'products' | 'categories'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'categories'>(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -221,6 +231,16 @@ export const InventoryComponent = () => {
   });
 
   const dateInputRef = useRef<HTMLInputElement>(null);
+  const categoryDetailsRef = useRef<HTMLDivElement>(null);
+  const productsTableRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selectedCategory && categoryDetailsRef.current) {
+      setTimeout(() => {
+        categoryDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [selectedCategory]);
 
   const formattedDate = useMemo(() => {
     if (!newProduct.date) return 'Select Date';
@@ -323,19 +343,65 @@ export const InventoryComponent = () => {
   const [lowStockThreshold, setLowStockThreshold] = useState<number>(5);
 
   const deduplicatedProducts = useMemo(() => {
-    return deduplicateProducts(products);
-  }, [products]);
+    const list = [...products];
+    const existingNames = new Set(list.map(p => p.name.trim().toLowerCase()));
+
+    transactions.forEach(t => {
+      if (t.type === 'purchase') {
+        const processItem = (pName?: string, catName?: string, cost?: number, qty?: number) => {
+          if (!pName || !pName.trim()) return;
+          const norm = pName.trim().toLowerCase();
+          if (!existingNames.has(norm)) {
+            existingNames.add(norm);
+            list.push({
+              id: `trans-prod-${norm.replace(/[^a-z0-9]/g, '-')}`,
+              name: pName.trim(),
+              category: catName || inferCategory(pName.trim()),
+              cost_price: cost || 0,
+              sell_price: (cost || 0) * 1.2,
+              stock: qty || 0,
+              min_stock: 5,
+              hs_code: '',
+              barcode: '',
+              sku: '',
+              unit: 'pcs',
+              date: t.date || new Date().toISOString().split('T')[0]
+            } as any);
+          }
+        };
+
+        if (t.items && t.items.length > 0) {
+          t.items.forEach(item => {
+            processItem(item.product_name, item.category, item.unit_price, item.quantity);
+          });
+        } else if (t.product_name) {
+          processItem(t.product_name, t.category, t.unit_price, t.quantity);
+        }
+      }
+    });
+
+    return deduplicateProducts(list);
+  }, [products, transactions]);
 
   const activeProducts = useMemo(() => {
     return deduplicatedProducts.filter(p => !(p as any).is_inactive && (p as any).status !== 'inactive');
   }, [deduplicatedProducts]);
 
   const filteredProducts = useMemo(() => {
-    return deduplicatedProducts.filter(p => 
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.category.toLowerCase().includes(searchQuery.toLowerCase())
+    const query = searchQuery.trim().toLowerCase();
+    let base = activeProducts;
+    if (selectedCategory) {
+      base = base.filter(p => p.category.toLowerCase() === selectedCategory.toLowerCase());
+    }
+    if (!query) return base;
+    return base.filter(p => 
+      p.name.toLowerCase().includes(query) ||
+      p.category.toLowerCase().includes(query) ||
+      (p.hs_code && p.hs_code.toLowerCase().includes(query)) ||
+      (p.barcode && p.barcode.toLowerCase().includes(query)) ||
+      (p.sku && p.sku.toLowerCase().includes(query))
     );
-  }, [deduplicatedProducts, searchQuery]);
+  }, [activeProducts, searchQuery, selectedCategory]);
 
   // Dynamically extract and list low-stock items (Current Stock < 5)
   const lowStockProducts = useMemo(() => {
@@ -371,40 +437,16 @@ export const InventoryComponent = () => {
   }, [activeProducts, transactions]);
 
   // Count active categories (categories containing at least 1 active product)
-  const activeCategoriesCount = useMemo(() => {
-    const activeCatSet = new Set<string>();
-    activeProducts.forEach(p => {
-      const cat = normalizeCategoryName(p.category);
-      if (cat && cat.trim().length > 0) {
-        activeCatSet.add(cat.trim());
-      }
-    });
-    transactions.forEach(t => {
-      if (t.type === 'purchase') {
-        if (t.items && t.items.length > 0) {
-          t.items.forEach(item => {
-            if (item.product_name) {
-              const cat = inferCategory(item.product_name);
-              if (cat && cat.trim().length > 0) activeCatSet.add(cat.trim());
-            }
-          });
-        } else if (t.product_name) {
-          const cat = inferCategory(t.product_name);
-          if (cat && cat.trim().length > 0) activeCatSet.add(cat.trim());
-        }
-      }
-    });
-    return activeCatSet.size;
-  }, [activeProducts, transactions]);
-
   const categoryMasterList = useMemo(() => {
     const activeCatsMap = new Map<string, number>();
     activeProducts.forEach(p => {
       const cat = normalizeCategoryName(p.category);
-      activeCatsMap.set(cat, (activeCatsMap.get(cat) || 0) + 1);
+      if (cat && cat.trim().length > 0) {
+        activeCatsMap.set(cat, (activeCatsMap.get(cat) || 0) + 1);
+      }
     });
 
-    const list = [
+    const defaultList = [
       'Fashion',
       'Electronics',
       'Home',
@@ -428,20 +470,23 @@ export const InventoryComponent = () => {
       'Others'
     ];
     
-    // Only return categories that have at least 1 active product
-    const activeList = list.filter(cat => {
-      return (activeCatsMap.get(cat) || 0) > 0;
-    });
+    // Categories with active products only
+    const activeList = defaultList.filter(cat => (activeCatsMap.get(cat) || 0) > 0);
 
     // Fallback for any other custom category found in products
+    const customList: string[] = [];
     activeCatsMap.forEach((count, cat) => {
-      if (count > 0 && !list.includes(cat)) {
-        activeList.push(cat);
+      if (count > 0 && !defaultList.includes(cat)) {
+        customList.push(cat);
       }
     });
 
-    return activeList;
+    return [...activeList, ...customList];
   }, [activeProducts]);
+
+  const activeCategoriesCount = useMemo(() => {
+    return categoryMasterList.length;
+  }, [categoryMasterList]);
 
   const categoriesStats = useMemo(() => {
     return {
@@ -504,34 +549,7 @@ export const InventoryComponent = () => {
 
       {activeTab === 'products' ? (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 mb-6">
-            {/* KPI 1: TOTAL PRODUCTS */}
-            <div 
-              className={isDarkMode 
-                ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
-                : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
-              style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
-            >
-              <div className="flex justify-between items-start w-full relative z-10">
-                <div className="flex items-center gap-3">
-                  <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center shrink-0 border border-blue-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
-                    <Package size={18} />
-                  </div>
-                  <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL PRODUCTS</span>
-                </div>
-                <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
-              </div>
-              <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
-                {totalProductsCount}
-              </div>
-              <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
-                <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Active products count</span>
-                <span className={isDarkMode ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
-                  Active
-                </span>
-              </div>
-            </div>
-
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 lg:gap-6 mb-6">
             {/* KPI 2: LOW STOCK ALERTS */}
             <div 
               className={isDarkMode 
@@ -561,10 +579,12 @@ export const InventoryComponent = () => {
 
             {/* KPI 3: CATEGORIES */}
             <div 
+              onClick={() => setActiveTab('categories')}
               className={isDarkMode 
-                ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
-                : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
+                ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group cursor-pointer" 
+                : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden cursor-pointer"}
               style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
+              title="Click to view categories"
             >
               <div className="flex justify-between items-start w-full relative z-10">
                 <div className="flex items-center gap-3">
@@ -624,11 +644,22 @@ export const InventoryComponent = () => {
             </div>
           )}
 
-          <div className="table-card">
+          <div className="table-card" ref={productsTableRef}>
             <div className="table-toolbar">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, flexWrap: 'wrap' }}>
                 <div style={{ background: 'var(--accent)', width: '4px', height: '16px', borderRadius: '2px' }}></div>
-                <h3 style={{ margin: 0 }}>All Products</h3>
+                <h3 style={{ margin: 0 }}>
+                  {selectedCategory ? `Products in "${selectedCategory}"` : 'All Products'}
+                </h3>
+                {selectedCategory && (
+                  <button 
+                    onClick={() => setSelectedCategory(null)}
+                    className="text-xs bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 px-2.5 py-1 rounded-lg border border-blue-400/30 transition-all cursor-pointer font-medium"
+                    title="Show all products"
+                  >
+                    Show All Products ✕
+                  </button>
+                )}
               </div>
               <div className="search-input">
                 <span style={{ opacity: 0.5 }}>🔍</span>
@@ -696,7 +727,27 @@ export const InventoryComponent = () => {
                   )) : (
                     <tr>
                       <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                        No products matching "{searchQuery}"
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <p>
+                            {searchQuery 
+                              ? `No products matching "${searchQuery}"${selectedCategory ? ` in category "${selectedCategory}"` : ''}` 
+                              : selectedCategory 
+                                ? `No products found in category "${selectedCategory}"`
+                                : 'No products available'
+                            }
+                          </p>
+                          {(searchQuery || selectedCategory) && (
+                            <button
+                              onClick={() => {
+                                setSearchQuery('');
+                                setSelectedCategory(null);
+                              }}
+                              className="text-xs text-blue-500 hover:underline font-semibold cursor-pointer"
+                            >
+                              Clear filters to view all products
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )}
@@ -758,8 +809,13 @@ export const InventoryComponent = () => {
 
 
           {/* Clean Category Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
-            {categoryMasterList.map((cat, index) => {
+          {categoryMasterList.length === 0 ? (
+            <div className={`p-8 text-center rounded-[20px] border mb-6 ${isDarkMode ? 'bg-[#1E293B] border-white/10 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>
+              No active categories found. Add products to populate categories.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+              {categoryMasterList.map((cat, index) => {
               const catProducts = deduplicatedProducts.filter(p => normalizeCategoryName(p.category) === cat);
               const totalInventoryQuantity = catProducts.reduce((sum, p) => sum + Math.max(0, p.stock), 0);
               
@@ -817,7 +873,13 @@ export const InventoryComponent = () => {
                       <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-2xl transition-all duration-200 select-none ${iconContainerClass}`}>
                         {getCategoryIcon(cat)}
                       </div>
-                      <span className={`text-[10px] font-extrabold tracking-wider px-2.5 py-1.5 rounded-xl uppercase transition-all duration-200 ${badgeClass}`}>
+                      <span 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCategory(cat);
+                        }}
+                        className={`text-[10px] font-extrabold tracking-wider px-2.5 py-1.5 rounded-xl uppercase transition-all duration-200 cursor-pointer ${badgeClass}`}
+                      >
                         {isSelected ? 'Selected' : 'View Products'}
                       </span>
                     </div>
@@ -826,8 +888,16 @@ export const InventoryComponent = () => {
                       <h4 className={titleClass}>
                         {cat}
                       </h4>
-                      <p className={quantityClass}>
-                        {totalInventoryQuantity} {totalInventoryQuantity === 1 ? 'Item' : 'Items'}
+                      <p 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCategory(cat);
+                        }}
+                        className={`${quantityClass} cursor-pointer hover:opacity-90 flex items-center gap-1.5`}
+                        title={`Click to view ${cat} product details`}
+                      >
+                        <span>{catProducts.length} {catProducts.length === 1 ? 'Product' : 'Products'}</span>
+                        <span className="text-xs font-normal opacity-75">({totalInventoryQuantity} units)</span>
                       </p>
                     </div>
                   </div>
@@ -835,11 +905,13 @@ export const InventoryComponent = () => {
               );
             })}
           </div>
+          )}
 
           {/* Category Details View */}
           <AnimatePresence mode="wait">
             {selectedCategory && (
               <motion.div 
+                ref={categoryDetailsRef}
                 key={selectedCategory}
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
