@@ -678,7 +678,7 @@ export const SellExportComponent = ({ onNavigate }: SellExportProps) => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 mb-6">
         {/* KPI 1: TOTAL REVENUE */}
         <div 
           id="card-sell-revenue"
@@ -707,35 +707,7 @@ export const SellExportComponent = ({ onNavigate }: SellExportProps) => {
           </div>
         </div>
 
-        {/* KPI 2: PROFIT */}
-        <div 
-          id="card-sell-profit"
-          className={isDarkMode 
-            ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
-            : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
-          style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
-        >
-          <div className="flex justify-between items-start w-full relative z-10">
-            <div className="flex items-center gap-3">
-              <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0 border border-emerald-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
-                <TrendingUp size={18} />
-              </div>
-              <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>PROFIT</span>
-            </div>
-            <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
-          </div>
-          <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
-            {fmt(calculatedProfit)}
-          </div>
-          <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
-            <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Net profit after expenses</span>
-            <span className={isDarkMode ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
-              Live
-            </span>
-          </div>
-        </div>
-
-        {/* KPI 3: ESTIMATED PROFIT */}
+        {/* KPI 2: ESTIMATED PROFIT */}
         <div 
           id="card-sell-est-profit"
           className={isDarkMode 

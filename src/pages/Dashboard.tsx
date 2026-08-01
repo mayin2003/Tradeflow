@@ -124,28 +124,106 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
   const salesChartRef = useRef<HTMLCanvasElement>(null);
   const catChartRef = useRef<HTMLCanvasElement>(null);
 
+  // O(1) Fast Product Map for instant lookup by ID and Name
+  const productMap = useMemo(() => {
+    const map = new Map<string, any>();
+    for (let i = 0; i < products.length; i++) {
+      const p = products[i];
+      if (p.id) map.set(p.id, p);
+      if (p.name) map.set(p.name.trim().toLowerCase(), p);
+    }
+    return map;
+  }, [products]);
+
+  // Fast Purchase Cost Map for backup unit cost lookup
+  const purchaseCostMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (let i = 0; i < transactions.length; i++) {
+      const t = transactions[i];
+      if (t.type === 'purchase') {
+        const cost = t.unit_price || (t.quantity ? t.total_price / t.quantity : 0);
+        if (cost > 0) {
+          if (t.product_id) map.set(t.product_id, cost);
+          if (t.product_name) map.set(t.product_name.trim().toLowerCase(), cost);
+        }
+        if (t.items && Array.isArray(t.items)) {
+          for (let j = 0; j < t.items.length; j++) {
+            const item = t.items[j];
+            const itemCost = item.unit_price || (item.quantity ? item.total / item.quantity : 0);
+            if (itemCost > 0) {
+              if (item.product_id) map.set(item.product_id, itemCost);
+              if (item.product_name) map.set(item.product_name.trim().toLowerCase(), itemCost);
+            }
+          }
+        }
+      }
+    }
+    return map;
+  }, [transactions]);
+
   const calculateProfit = useCallback((t: any) => {
     if (t.type !== 'sale') return 0;
-    if (t.items && t.items.length > 0) {
-      return t.items.reduce((sum: number, item: any) => {
-        const prod = products.find(p => p.id === item.product_id);
-        const cost = prod ? (prod.cost_price * item.quantity) : (item.total * 0.85);
-        return sum + (item.total - cost);
-      }, 0);
+    if (t.status && t.status.toLowerCase() === 'cancelled') return 0;
+
+    let totalProfit = 0;
+
+    if (t.items && Array.isArray(t.items) && t.items.length > 0) {
+      for (let i = 0; i < t.items.length; i++) {
+        const item = t.items[i];
+        const qty = item.quantity ?? item.qty ?? 1;
+        const itemTotal = item.total ?? (item.unit_price ? item.unit_price * qty : 0);
+        
+        const prod = (item.product_id ? productMap.get(item.product_id) : null) || 
+                     (item.product_name ? productMap.get(item.product_name.trim().toLowerCase()) : null);
+        
+        let unitCost = item.cost_price ?? item.purchase_price ?? item.unit_cost ?? 0;
+
+        if (unitCost <= 0 && item.product_id && purchaseCostMap.has(item.product_id)) {
+          unitCost = purchaseCostMap.get(item.product_id)!;
+        }
+        if (unitCost <= 0 && item.product_name && purchaseCostMap.has(item.product_name.trim().toLowerCase())) {
+          unitCost = purchaseCostMap.get(item.product_name.trim().toLowerCase())!;
+        }
+        if (unitCost <= 0 && prod) {
+          unitCost = prod.cost_price ?? 0;
+        }
+
+        const itemCostTotal = unitCost > 0 ? (unitCost * qty) : (itemTotal * 0.85);
+        totalProfit += (itemTotal - itemCostTotal);
+      }
     } else {
-      const prod = products.find(p => p.id === t.product_id);
-      const cost = prod ? (prod.cost_price * t.quantity) : (t.total_price * 0.85);
-      return t.total_price - cost;
+      const qty = t.quantity ?? t.qty ?? 1;
+      const totalRevenue = t.total_price ?? t.total ?? 0;
+      
+      const prod = (t.product_id ? productMap.get(t.product_id) : null) || 
+                   (t.product_name ? productMap.get(t.product_name.trim().toLowerCase()) : null);
+      
+      let unitCost = t.cost_price ?? t.purchase_price ?? t.unit_cost ?? 0;
+
+      if (unitCost <= 0 && t.product_id && purchaseCostMap.has(t.product_id)) {
+        unitCost = purchaseCostMap.get(t.product_id)!;
+      }
+      if (unitCost <= 0 && t.product_name && purchaseCostMap.has(t.product_name.trim().toLowerCase())) {
+        unitCost = purchaseCostMap.get(t.product_name.trim().toLowerCase())!;
+      }
+      if (unitCost <= 0 && prod) {
+        unitCost = prod.cost_price ?? 0;
+      }
+
+      const totalCost = unitCost > 0 ? (unitCost * qty) : (totalRevenue * 0.85);
+      totalProfit = totalRevenue - totalCost;
     }
-  }, [products]);
+
+    return totalProfit;
+  }, [productMap, purchaseCostMap]);
 
   const stats = useMemo(() => {
     const purchases = transactions.filter(t => t.type === 'purchase');
     const sales = transactions.filter(t => t.type === 'sale');
-    const completedSales = sales.filter(t => t.status === 'completed');
+    const completedSales = sales.filter(t => !t.status || t.status.toLowerCase() !== 'cancelled');
     
-    const totalBuy = purchases.reduce((val, t) => val + t.total_price, 0);
-    const totalSell = completedSales.reduce((val, t) => val + t.total_price, 0);
+    const totalBuy = purchases.reduce((val, t) => val + (t.total_price || 0), 0);
+    const totalSell = completedSales.reduce((val, t) => val + (t.total_price || 0), 0);
     const totalProfit = completedSales.reduce((val, t) => val + calculateProfit(t), 0);
     const totalRevenue = totalSell;
     
@@ -153,46 +231,96 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
   }, [transactions, calculateProfit]);
 
   const activeCategoryCount = useMemo(() => {
-    const catSet = new Set<string>();
-    products.forEach(p => {
-      const cat = getAutoCategory(p.name, p.category);
-      if (cat && cat.trim() !== '') {
-        catSet.add(cat);
+    const categoryCountMap = new Map<string, number>();
+
+    // 1. Process products list
+    if (products && Array.isArray(products) && products.length > 0) {
+      for (let i = 0; i < products.length; i++) {
+        const p = products[i];
+        if (!p) continue;
+        const rawCat = p.category && p.category.trim().length > 0 ? p.category.trim() : '';
+        const cat = (rawCat && rawCat.toLowerCase() !== 'uncategorized') 
+          ? (rawCat.charAt(0).toUpperCase() + rawCat.slice(1).toLowerCase())
+          : getAutoCategory(p.name, p.category);
+
+        if (cat && cat.trim().length > 0) {
+          const normCat = cat.trim();
+          categoryCountMap.set(normCat, (categoryCountMap.get(normCat) || 0) + 1);
+        }
       }
-    });
-    return catSet.size;
-  }, [products]);
+    }
+
+    // 2. Fallback: If products array yielded 0 active categories, scan transactions
+    if (categoryCountMap.size === 0 && transactions && Array.isArray(transactions) && transactions.length > 0) {
+      for (let i = 0; i < transactions.length; i++) {
+        const t = transactions[i];
+        if (t.items && Array.isArray(t.items) && t.items.length > 0) {
+          for (let j = 0; j < t.items.length; j++) {
+            const item = t.items[j];
+            const prod = item.product_id ? productMap.get(item.product_id) : null;
+            const cat = getAutoCategory(item.product_name || prod?.name || '', prod?.category);
+            if (cat && cat.trim().length > 0) {
+              const normCat = cat.trim();
+              categoryCountMap.set(normCat, (categoryCountMap.get(normCat) || 0) + 1);
+            }
+          }
+        } else if (t.product_id || t.product_name) {
+          const prod = t.product_id ? productMap.get(t.product_id) : null;
+          const cat = getAutoCategory(t.product_name || prod?.name || '', prod?.category);
+          if (cat && cat.trim().length > 0) {
+            const normCat = cat.trim();
+            categoryCountMap.set(normCat, (categoryCountMap.get(normCat) || 0) + 1);
+          }
+        }
+      }
+    }
+
+    // Active categories must have at least 1 product (count > 0)
+    let activeCount = 0;
+    for (const count of categoryCountMap.values()) {
+      if (count > 0) {
+        activeCount++;
+      }
+    }
+
+    return activeCount;
+  }, [products, transactions, productMap]);
 
   const categoryShareData = useMemo(() => {
     const categories: { [key: string]: number } = {};
     
     if (chartView === 'market') {
-      products.forEach(p => {
+      for (let i = 0; i < products.length; i++) {
+        const p = products[i];
         const cat = getAutoCategory(p.name, p.category);
         categories[cat] = (categories[cat] || 0) + Math.max(0, p.stock || 0);
-      });
+      }
       const totalStock = Object.values(categories).reduce((a, b) => a + b, 0);
       if (totalStock === 0) {
-        products.forEach(p => {
+        for (let i = 0; i < products.length; i++) {
+          const p = products[i];
           const cat = getAutoCategory(p.name, p.category);
           categories[cat] = (categories[cat] || 0) + 1;
-        });
+        }
       }
     } else {
-      const sales = transactions.filter(t => t.type === 'sale');
-      sales.forEach(t => {
-        if (t.items && t.items.length > 0) {
-          t.items.forEach((item: any) => {
-            const product = products.find(p => p.id === item.product_id);
-            const cat = getAutoCategory(item.product_name || product?.name || '', product?.category);
-            categories[cat] = (categories[cat] || 0) + (item.total || 0);
-          });
-        } else if (t.product_id) {
-          const product = products.find(p => p.id === t.product_id);
-          const cat = getAutoCategory(t.product_name || product?.name || '', product?.category);
-          categories[cat] = (categories[cat] || 0) + (t.total_price || 0);
+      for (let i = 0; i < transactions.length; i++) {
+        const t = transactions[i];
+        if (t.type === 'sale') {
+          if (t.items && t.items.length > 0) {
+            for (let j = 0; j < t.items.length; j++) {
+              const item = t.items[j];
+              const product = productMap.get(item.product_id);
+              const cat = getAutoCategory(item.product_name || product?.name || '', product?.category);
+              categories[cat] = (categories[cat] || 0) + (item.total || 0);
+            }
+          } else if (t.product_id) {
+            const product = productMap.get(t.product_id);
+            const cat = getAutoCategory(t.product_name || product?.name || '', product?.category);
+            categories[cat] = (categories[cat] || 0) + (t.total_price || 0);
+          }
         }
-      });
+      }
     }
 
     if (Object.keys(categories).length === 0) {
@@ -225,22 +353,23 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
       leading,
       totalVal
     };
-  }, [chartView, products, transactions]);
+  }, [chartView, products, transactions, productMap]);
 
   const growthStats = useMemo(() => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const currentMonthIndex = new Date().getMonth();
-    const salesByMonth = months.slice(0, currentMonthIndex + 1).map((_, i) => {
-      return transactions
-        .filter(t => t.type === 'sale' && new Date(t.date).getMonth() === i)
-        .reduce((sum, t) => sum + t.total_price, 0);
-    });
+    const salesByMonth = new Array(currentMonthIndex + 1).fill(0);
+    const profitByMonth = new Array(currentMonthIndex + 1).fill(0);
 
-    const profitByMonth = months.slice(0, currentMonthIndex + 1).map((_, i) => {
-      return transactions
-        .filter(t => t.type === 'sale' && new Date(t.date).getMonth() === i)
-        .reduce((sum, t) => sum + calculateProfit(t), 0);
-    });
+    for (let i = 0; i < transactions.length; i++) {
+      const t = transactions[i];
+      if (t.type === 'sale') {
+        const m = new Date(t.date).getMonth();
+        if (m <= currentMonthIndex) {
+          salesByMonth[m] += t.total_price || 0;
+          profitByMonth[m] += calculateProfit(t);
+        }
+      }
+    }
 
     let revenueGrowth = '18.6';
     let profitGrowth = '16.4';
@@ -270,21 +399,22 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
 
     if (salesChartRef.current) {
       // Group by month
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const currentMonthIndex = new Date().getMonth();
-      const monthLabels = months.slice(0, currentMonthIndex + 1);
+      const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].slice(0, currentMonthIndex + 1);
       
-      const salesByMonth = monthLabels.map((_, i) => {
-        return transactions
-          .filter(t => t.type === 'sale' && new Date(t.date).getMonth() === i)
-          .reduce((sum, t) => sum + t.total_price, 0);
-      });
-      
-      const profitByMonth = monthLabels.map((_, i) => {
-        return transactions
-          .filter(t => t.type === 'sale' && new Date(t.date).getMonth() === i)
-          .reduce((sum, t) => sum + calculateProfit(t), 0);
-      });
+      const salesByMonth = new Array(monthLabels.length).fill(0);
+      const profitByMonth = new Array(monthLabels.length).fill(0);
+
+      for (let i = 0; i < transactions.length; i++) {
+        const t = transactions[i];
+        if (t.type === 'sale') {
+          const m = new Date(t.date).getMonth();
+          if (m < monthLabels.length) {
+            salesByMonth[m] += t.total_price || 0;
+            profitByMonth[m] += calculateProfit(t);
+          }
+        }
+      }
 
       const isDark = settings.theme === 'dark';
       const textColor = isDark ? '#94a3b8' : '#64748b';
@@ -595,40 +725,44 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
   // Top Selling Products calculation
   const topSelling = useMemo(() => {
     const productSalesMap: { [key: string]: { name: string; qty: number; revenue: number; category: string } } = {};
-    transactions.filter(t => t.type === 'sale').forEach(t => {
-      if (t.items && t.items.length > 0) {
-        t.items.forEach((item: any) => {
-          if (!productSalesMap[item.product_id]) {
-            const p = products.find(prod => prod.id === item.product_id);
-            productSalesMap[item.product_id] = { 
-              name: item.product_name || p?.name || 'Unknown', 
+    for (let i = 0; i < transactions.length; i++) {
+      const t = transactions[i];
+      if (t.type === 'sale') {
+        if (t.items && t.items.length > 0) {
+          for (let j = 0; j < t.items.length; j++) {
+            const item = t.items[j];
+            if (!productSalesMap[item.product_id]) {
+              const p = productMap.get(item.product_id);
+              productSalesMap[item.product_id] = { 
+                name: item.product_name || p?.name || 'Unknown', 
+                qty: 0, 
+                revenue: 0,
+                category: getAutoCategory(item.product_name || p?.name || '', p?.category)
+              };
+            }
+            productSalesMap[item.product_id].qty += item.quantity;
+            productSalesMap[item.product_id].revenue += item.total;
+          }
+        } else if (t.product_id) {
+          if (!productSalesMap[t.product_id]) {
+            const p = productMap.get(t.product_id);
+            productSalesMap[t.product_id] = { 
+              name: t.product_name || p?.name || 'Unknown', 
               qty: 0, 
               revenue: 0,
-              category: getAutoCategory(item.product_name || p?.name || '', p?.category)
+              category: getAutoCategory(t.product_name || p?.name || '', p?.category)
             };
           }
-          productSalesMap[item.product_id].qty += item.quantity;
-          productSalesMap[item.product_id].revenue += item.total;
-        });
-      } else if (t.product_id) {
-        if (!productSalesMap[t.product_id]) {
-          const p = products.find(prod => prod.id === t.product_id);
-          productSalesMap[t.product_id] = { 
-            name: t.product_name || p?.name || 'Unknown', 
-            qty: 0, 
-            revenue: 0,
-            category: getAutoCategory(t.product_name || p?.name || '', p?.category)
-          };
+          productSalesMap[t.product_id].qty += t.quantity;
+          productSalesMap[t.product_id].revenue += t.total_price;
         }
-        productSalesMap[t.product_id].qty += t.quantity;
-        productSalesMap[t.product_id].revenue += t.total_price;
       }
-    });
+    }
 
     return Object.values(productSalesMap)
       .sort((a, b) => b.qty - a.qty)
       .slice(0, 5);
-  }, [transactions, products]);
+  }, [transactions, productMap]);
 
   // VIP Customers
   const vips = useMemo(() => {
@@ -638,12 +772,114 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
   }, [customers]);
 
   const stockValue = useMemo(() => {
-    return products.reduce((sum, p) => sum + ((p.stock || 0) * (p.cost_price || 0)), 0);
-  }, [products]);
+    let totalValue = 0;
+    
+    // 1. Calculate from products list
+    if (products && Array.isArray(products) && products.length > 0) {
+      for (let i = 0; i < products.length; i++) {
+        const p = products[i];
+        const stock = Math.max(0, p.stock ?? (p as any).quantity ?? (p as any).qty ?? 0);
+        if (stock > 0) {
+          let cost = p.cost_price ?? (p as any).purchase_price ?? (p as any).unit_cost ?? 0;
+          if (cost <= 0 && p.id && purchaseCostMap.has(p.id)) {
+            cost = purchaseCostMap.get(p.id)!;
+          }
+          if (cost <= 0 && p.name && purchaseCostMap.has(p.name.trim().toLowerCase())) {
+            cost = purchaseCostMap.get(p.name.trim().toLowerCase())!;
+          }
+          if (cost <= 0 && p.sell_price && p.sell_price > 0) {
+            cost = p.sell_price * 0.85;
+          }
+          totalValue += stock * cost;
+        }
+      }
+    }
+
+    // 2. Fallback: If products stock value evaluates to 0, calculate from purchase transactions minus sales
+    if (totalValue === 0 && transactions && Array.isArray(transactions) && transactions.length > 0) {
+      const stockMap = new Map<string, { qty: number; cost: number }>();
+      for (let i = 0; i < transactions.length; i++) {
+        const t = transactions[i];
+        if (t.type === 'purchase') {
+          const qty = t.quantity ?? 1;
+          const cost = t.unit_price || (qty ? t.total_price / qty : 0);
+          const key = t.product_id || (t.product_name ? t.product_name.trim().toLowerCase() : `tx_${i}`);
+          const current = stockMap.get(key) || { qty: 0, cost: 0 };
+          stockMap.set(key, { qty: current.qty + qty, cost: cost || current.cost });
+        } else if (t.type === 'sale' && (!t.status || t.status.toLowerCase() !== 'cancelled')) {
+          if (t.items && Array.isArray(t.items) && t.items.length > 0) {
+            for (let j = 0; j < t.items.length; j++) {
+              const item = t.items[j];
+              const qty = item.quantity ?? item.qty ?? 1;
+              const key = item.product_id || (item.product_name ? item.product_name.trim().toLowerCase() : null);
+              if (key && stockMap.has(key)) {
+                const current = stockMap.get(key)!;
+                stockMap.set(key, { qty: Math.max(0, current.qty - qty), cost: current.cost });
+              }
+            }
+          } else {
+            const qty = t.quantity ?? 1;
+            const key = t.product_id || (t.product_name ? t.product_name.trim().toLowerCase() : null);
+            if (key && stockMap.has(key)) {
+              const current = stockMap.get(key)!;
+              stockMap.set(key, { qty: Math.max(0, current.qty - qty), cost: current.cost });
+            }
+          }
+        }
+      }
+      for (const item of stockMap.values()) {
+        if (item.qty > 0) {
+          totalValue += item.qty * item.cost;
+        }
+      }
+    }
+
+    return totalValue;
+  }, [products, transactions, purchaseCostMap]);
 
   const totalItems = useMemo(() => {
-    return products.reduce((sum, p) => sum + (p.stock || 0), 0);
-  }, [products]);
+    let count = 0;
+    if (products && Array.isArray(products) && products.length > 0) {
+      for (let i = 0; i < products.length; i++) {
+        const p = products[i];
+        count += Math.max(0, p.stock ?? (p as any).quantity ?? (p as any).qty ?? 0);
+      }
+    }
+
+    if (count === 0 && transactions && Array.isArray(transactions) && transactions.length > 0) {
+      const stockMap = new Map<string, number>();
+      for (let i = 0; i < transactions.length; i++) {
+        const t = transactions[i];
+        if (t.type === 'purchase') {
+          const qty = t.quantity ?? 1;
+          const key = t.product_id || (t.product_name ? t.product_name.trim().toLowerCase() : `tx_${i}`);
+          stockMap.set(key, (stockMap.get(key) || 0) + qty);
+        } else if (t.type === 'sale' && (!t.status || t.status.toLowerCase() !== 'cancelled')) {
+          if (t.items && Array.isArray(t.items) && t.items.length > 0) {
+            for (let j = 0; j < t.items.length; j++) {
+              const item = t.items[j];
+              const qty = item.quantity ?? item.qty ?? 1;
+              const key = item.product_id || (item.product_name ? item.product_name.trim().toLowerCase() : null);
+              if (key && stockMap.has(key)) {
+                stockMap.set(key, Math.max(0, stockMap.get(key)! - qty));
+              }
+            }
+          } else {
+            const qty = t.quantity ?? 1;
+            const key = t.product_id || (t.product_name ? t.product_name.trim().toLowerCase() : null);
+            if (key && stockMap.has(key)) {
+              stockMap.set(key, Math.max(0, stockMap.get(key)! - qty));
+            }
+          }
+        }
+      }
+      for (const qty of stockMap.values()) {
+        if (qty > 0) count += qty;
+      }
+    }
+
+    return count;
+  }, [products, transactions]);
 
   const totalCustomers = useMemo(() => {
     return customers ? customers.length : 0;

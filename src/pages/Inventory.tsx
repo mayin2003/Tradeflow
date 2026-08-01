@@ -326,6 +326,10 @@ export const InventoryComponent = () => {
     return deduplicateProducts(products);
   }, [products]);
 
+  const activeProducts = useMemo(() => {
+    return deduplicatedProducts.filter(p => !(p as any).is_inactive && (p as any).status !== 'inactive');
+  }, [deduplicatedProducts]);
+
   const filteredProducts = useMemo(() => {
     return deduplicatedProducts.filter(p => 
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -333,32 +337,73 @@ export const InventoryComponent = () => {
     );
   }, [deduplicatedProducts, searchQuery]);
 
-  // Dynamically extract and list low-stock items (Quantity <= 1)
+  // Dynamically extract and list low-stock items (Current Stock < 5)
   const lowStockProducts = useMemo(() => {
-    return deduplicatedProducts.filter(p => p.stock <= 1);
-  }, [deduplicatedProducts]);
+    return activeProducts.filter(p => Number(p.stock) < 5);
+  }, [activeProducts]);
+
+  const lowStockCount = useMemo(() => {
+    return lowStockProducts.length;
+  }, [lowStockProducts]);
 
   // Real-time synchronization of Total Products across both products list and active Buy section transactions
   const totalProductsCount = useMemo(() => {
     const uniqueKeys = new Set<string>();
-    deduplicatedProducts.forEach(p => {
-      uniqueKeys.add(p.name.trim().toLowerCase());
+    activeProducts.forEach(p => {
+      if (p.name && p.name.trim()) {
+        uniqueKeys.add(p.name.trim().toLowerCase());
+      }
     });
     transactions.forEach(t => {
       if (t.type === 'purchase') {
         if (t.items && t.items.length > 0) {
           t.items.forEach(item => {
-            if (item.product_name) uniqueKeys.add(item.product_name.trim().toLowerCase());
+            if (item.product_name && item.product_name.trim()) {
+              uniqueKeys.add(item.product_name.trim().toLowerCase());
+            }
           });
-        } else if (t.product_name) {
+        } else if (t.product_name && t.product_name.trim()) {
           uniqueKeys.add(t.product_name.trim().toLowerCase());
         }
       }
     });
-    return Math.max(deduplicatedProducts.length, uniqueKeys.size);
-  }, [deduplicatedProducts, transactions]);
+    return Math.max(activeProducts.length, uniqueKeys.size);
+  }, [activeProducts, transactions]);
+
+  // Count active categories (categories containing at least 1 active product)
+  const activeCategoriesCount = useMemo(() => {
+    const activeCatSet = new Set<string>();
+    activeProducts.forEach(p => {
+      const cat = normalizeCategoryName(p.category);
+      if (cat && cat.trim().length > 0) {
+        activeCatSet.add(cat.trim());
+      }
+    });
+    transactions.forEach(t => {
+      if (t.type === 'purchase') {
+        if (t.items && t.items.length > 0) {
+          t.items.forEach(item => {
+            if (item.product_name) {
+              const cat = inferCategory(item.product_name);
+              if (cat && cat.trim().length > 0) activeCatSet.add(cat.trim());
+            }
+          });
+        } else if (t.product_name) {
+          const cat = inferCategory(t.product_name);
+          if (cat && cat.trim().length > 0) activeCatSet.add(cat.trim());
+        }
+      }
+    });
+    return activeCatSet.size;
+  }, [activeProducts, transactions]);
 
   const categoryMasterList = useMemo(() => {
+    const activeCatsMap = new Map<string, number>();
+    activeProducts.forEach(p => {
+      const cat = normalizeCategoryName(p.category);
+      activeCatsMap.set(cat, (activeCatsMap.get(cat) || 0) + 1);
+    });
+
     const list = [
       'Fashion',
       'Electronics',
@@ -383,14 +428,7 @@ export const InventoryComponent = () => {
       'Others'
     ];
     
-    // Count products per normalized category name in real time
-    const activeCatsMap = new Map<string, number>();
-    deduplicatedProducts.forEach(p => {
-      const cat = normalizeCategoryName(p.category);
-      activeCatsMap.set(cat, (activeCatsMap.get(cat) || 0) + 1);
-    });
-
-    // Only return categories that have at least 1 product
+    // Only return categories that have at least 1 active product
     const activeList = list.filter(cat => {
       return (activeCatsMap.get(cat) || 0) > 0;
     });
@@ -403,26 +441,22 @@ export const InventoryComponent = () => {
     });
 
     return activeList;
-  }, [deduplicatedProducts]);
+  }, [activeProducts]);
 
   const categoriesStats = useMemo(() => {
-    const totalCategories = categoryMasterList.length;
-    const totalProducts = deduplicatedProducts.length;
-    const lowStockCount = deduplicatedProducts.filter(p => p.stock <= 1).length;
-    const outOfStockCount = deduplicatedProducts.filter(p => p.stock <= 0).length;
     return {
-      totalCategories,
-      totalProducts,
-      lowStockCount,
-      outOfStockCount
+      totalCategories: activeCategoriesCount,
+      totalProducts: totalProductsCount,
+      lowStockCount: lowStockCount,
+      outOfStockCount: activeProducts.filter(p => Number(p.stock) <= 0).length
     };
-  }, [deduplicatedProducts, categoryMasterList]);
+  }, [activeCategoriesCount, totalProductsCount, lowStockCount, activeProducts]);
 
   const stats = useMemo(() => ({
-    lowStockCount: lowStockProducts.length,
-    productNames: Array.from(new Set(deduplicatedProducts.map(p => p.name))),
-    categories: Array.from(new Set(deduplicatedProducts.map(p => normalizeCategoryName(p.category))))
-  }), [deduplicatedProducts, lowStockProducts]);
+    lowStockCount: lowStockCount,
+    productNames: Array.from(new Set(activeProducts.map(p => p.name))),
+    categories: Array.from(new Set(activeProducts.map(p => normalizeCategoryName(p.category))))
+  }), [activeProducts, lowStockCount]);
 
   return (
     <div id="page-inventory" className={`page active ${isDarkMode ? 'bg-slate-950 p-6 rounded-[24px] border border-white/5 shadow-2xl' : ''}`}>
@@ -542,7 +576,7 @@ export const InventoryComponent = () => {
                 <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
               </div>
               <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
-                {stats.categories.length}
+                {activeCategoriesCount}
               </div>
               <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
                 <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Product categories</span>
@@ -563,7 +597,7 @@ export const InventoryComponent = () => {
                 <div>
                   <h3 className="low-stock-title">Low Stock Alerts</h3>
                   <p className="low-stock-subtitle">
-                    The following products have a critical stock level of <strong className="font-semibold text-rose-600 dark:text-rose-400">1 unit or less</strong>.
+                    The following products have a critical stock level of <strong className="font-semibold text-rose-600 dark:text-rose-400">less than 5 units</strong>.
                   </p>
                 </div>
               </div>
@@ -721,89 +755,7 @@ export const InventoryComponent = () => {
             </div>
           </div>
 
-          {/* Inventory Analytics for Categories */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 mb-6">
-            {/* KPI 1: TOTAL CATEGORIES */}
-            <div 
-              className={isDarkMode 
-                ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
-                : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
-              style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
-            >
-              <div className="flex justify-between items-start w-full relative z-10">
-                <div className="flex items-center gap-3">
-                  <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center shrink-0 border border-purple-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
-                    <Layers size={18} />
-                  </div>
-                  <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL CATEGORIES</span>
-                </div>
-                <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
-              </div>
-              <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
-                {categoriesStats.totalCategories}
-              </div>
-              <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
-                <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Active categories</span>
-                <span className={isDarkMode ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
-                  Active
-                </span>
-              </div>
-            </div>
 
-            {/* KPI 2: TOTAL PRODUCTS */}
-            <div 
-              className={isDarkMode 
-                ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
-                : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
-              style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
-            >
-              <div className="flex justify-between items-start w-full relative z-10">
-                <div className="flex items-center gap-3">
-                  <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center shrink-0 border border-blue-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
-                    <Package size={18} />
-                  </div>
-                  <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>TOTAL PRODUCTS</span>
-                </div>
-                <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
-              </div>
-              <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
-                {categoriesStats.totalProducts}
-              </div>
-              <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
-                <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Inventory products</span>
-                <span className={isDarkMode ? "bg-[#1c2e63] text-blue-200 border border-blue-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#1D4ED8]/40 text-blue-100 border border-[#1D4ED8]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
-                  Active
-                </span>
-              </div>
-            </div>
-
-            {/* KPI 3: LOW STOCK PRODUCTS */}
-            <div 
-              className={isDarkMode 
-                ? "bg-gradient-to-b from-[#0d163d] via-[#09102f] to-[#060a21] border border-[#1b2756] text-white rounded-[20px] p-5 shadow-lg flex flex-col justify-between h-[162px] hover:border-[#2b3c7d] transition-all group" 
-                : "border border-white/10 text-white rounded-[20px] p-5 shadow-[0_10px_20px_rgba(15,23,42,0.08),0_20px_40px_rgba(37,99,235,0.12),0_30px_60px_rgba(37,99,235,0.08)] hover:shadow-[0_16px_32px_rgba(15,23,42,0.12),0_28px_56px_rgba(37,99,235,0.18),0_40px_70px_rgba(37,99,235,0.12)] hover:-translate-y-1 transition-all duration-250 ease-out flex flex-col justify-between h-[162px] group relative overflow-hidden"}
-              style={isDarkMode ? undefined : { background: 'radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 45%), linear-gradient(135deg, #315E9F 0%, #2B5598 45%, #244A8F 100%)' }}
-            >
-              <div className="flex justify-between items-start w-full relative z-10">
-                <div className="flex items-center gap-3">
-                  <div className={isDarkMode ? "w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-400/20" : "w-10 h-10 rounded-xl bg-white/12 border border-white/10 backdrop-blur-md text-white flex items-center justify-center shrink-0 shadow-xs"}>
-                    <AlertTriangle size={18} />
-                  </div>
-                  <span className={isDarkMode ? "text-[11px] font-extrabold uppercase tracking-wider text-slate-200" : "text-[11px] font-bold uppercase tracking-wider text-white/90"}>LOW STOCK PRODUCTS</span>
-                </div>
-                <MoreVertical size={16} className={isDarkMode ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
-              </div>
-              <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
-                {categoriesStats.lowStockCount}
-              </div>
-              <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
-                <span className={isDarkMode ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Critical stock threshold</span>
-                <span className={isDarkMode ? "bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-bold px-3 py-0.5 rounded-md" : "bg-[#B91C1C]/40 text-rose-100 border border-[#B91C1C]/60 text-[11px] font-bold px-3 py-0.5 rounded-md shadow-xs"}>
-                  {categoriesStats.lowStockCount} Items
-                </span>
-              </div>
-            </div>
-          </div>
 
           {/* Clean Category Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
