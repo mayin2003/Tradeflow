@@ -27,7 +27,7 @@ const MASTER_CATEGORIES = [
   'Garden'
 ];
 
-const normalizeCategoryName = (cat: string): string => {
+export const normalizeCategoryName = (cat: string): string => {
   const norm = (cat || '').trim().toLowerCase();
   
   const matched = MASTER_CATEGORIES.find(c => c.toLowerCase() === norm);
@@ -106,7 +106,7 @@ const CATEGORY_MAPPING: Record<string, string[]> = {
   Garden: ['Spray Bottle', 'Pot', 'Seeds', 'Fertilizer', 'Gloves', 'Trowel', 'Shears', 'Watering Can', 'Plant Stick', 'Grass Mat']
 };
 
-const inferCategory = (productName: string): string => {
+export const inferCategory = (productName: string): string => {
   const name = productName.trim().toLowerCase();
   if (!name) return 'Others';
 
@@ -196,6 +196,53 @@ const inferCategory = (productName: string): string => {
   }
 
   return 'Others';
+};
+
+export const calculateCategoryMasterList = (activeProducts: any[]): string[] => {
+  const activeCatsMap = new Map<string, number>();
+  activeProducts.forEach(p => {
+    const cat = normalizeCategoryName(p.category);
+    if (cat && cat.trim().length > 0) {
+      activeCatsMap.set(cat, (activeCatsMap.get(cat) || 0) + 1);
+    }
+  });
+
+  const defaultList = [
+    'Fashion',
+    'Electronics',
+    'Home',
+    'Beauty',
+    'Health',
+    'Sports',
+    'Toys',
+    'Automotive',
+    'Books',
+    'Groceries',
+    'Kitchen',
+    'Tools',
+    'Office',
+    'Pets',
+    'Travel',
+    'Baby',
+    'Jewelry',
+    'Fitness',
+    'Music',
+    'Garden',
+    'Others'
+  ];
+  
+  // Categories with active products only
+  const activeList = defaultList.filter(cat => (activeCatsMap.get(cat) || 0) > 0);
+
+  // Fallback for any other custom category found in products
+  const customList: string[] = [];
+  activeCatsMap.forEach((count, cat) => {
+    if (count > 0 && !defaultList.includes(cat)) {
+      customList.push(cat);
+    }
+  });
+
+  return [...activeList, ...customList];
 };
 
 interface InventoryProps {
@@ -438,50 +485,7 @@ export const InventoryComponent = ({ initialTab = 'products' }: InventoryProps) 
 
   // Count active categories (categories containing at least 1 active product)
   const categoryMasterList = useMemo(() => {
-    const activeCatsMap = new Map<string, number>();
-    activeProducts.forEach(p => {
-      const cat = normalizeCategoryName(p.category);
-      if (cat && cat.trim().length > 0) {
-        activeCatsMap.set(cat, (activeCatsMap.get(cat) || 0) + 1);
-      }
-    });
-
-    const defaultList = [
-      'Fashion',
-      'Electronics',
-      'Home',
-      'Beauty',
-      'Health',
-      'Sports',
-      'Toys',
-      'Automotive',
-      'Books',
-      'Groceries',
-      'Kitchen',
-      'Tools',
-      'Office',
-      'Pets',
-      'Travel',
-      'Baby',
-      'Jewelry',
-      'Fitness',
-      'Music',
-      'Garden',
-      'Others'
-    ];
-    
-    // Categories with active products only
-    const activeList = defaultList.filter(cat => (activeCatsMap.get(cat) || 0) > 0);
-
-    // Fallback for any other custom category found in products
-    const customList: string[] = [];
-    activeCatsMap.forEach((count, cat) => {
-      if (count > 0 && !defaultList.includes(cat)) {
-        customList.push(cat);
-      }
-    });
-
-    return [...activeList, ...customList];
+    return calculateCategoryMasterList(activeProducts);
   }, [activeProducts]);
 
   const activeCategoriesCount = useMemo(() => {
@@ -896,7 +900,7 @@ export const InventoryComponent = ({ initialTab = 'products' }: InventoryProps) 
                         className={`${quantityClass} cursor-pointer hover:opacity-90 flex items-center gap-1.5`}
                         title={`Click to view ${cat} product details`}
                       >
-                        <span>{catProducts.length} {catProducts.length === 1 ? 'Product' : 'Products'}</span>
+                        <span>{catProducts.length > 1 ? `${catProducts.length} Products` : 'Product'}</span>
                         <span className="text-xs font-normal opacity-75">({totalInventoryQuantity} units)</span>
                       </p>
                     </div>

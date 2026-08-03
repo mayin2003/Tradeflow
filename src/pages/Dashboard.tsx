@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Chart, registerables } from 'chart.js';
 import { useData, deduplicateProducts } from '../context/DataContext';
+import { calculateCategoryMasterList, inferCategory } from './Inventory';
 import { 
   Wallet, ShoppingCart, Tag, TrendingUp, TrendingDown, Package, 
   MoreVertical, ChevronRight, Calendar, ArrowUpRight, ShoppingBag, 
@@ -237,7 +238,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
     if (transactions && Array.isArray(transactions)) {
       transactions.forEach(t => {
         if (t.type === 'purchase') {
-          const processItem = (pName?: string, catName?: string) => {
+          const processItem = (pName?: string, catName?: string, cost?: number, qty?: number) => {
             if (!pName || !pName.trim()) return;
             const norm = pName.trim().toLowerCase();
             if (!existingNames.has(norm)) {
@@ -245,16 +246,24 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
               list.push({
                 id: `trans-prod-${norm.replace(/[^a-z0-9]/g, '-')}`,
                 name: pName.trim(),
-                category: catName || getAutoCategory(pName.trim()),
-                stock: 1,
+                category: catName || inferCategory(pName.trim()),
+                cost_price: cost || 0,
+                sell_price: (cost || 0) * 1.2,
+                stock: qty || 0,
+                min_stock: 5,
+                hs_code: '',
+                barcode: '',
+                sku: '',
+                unit: 'pcs',
+                date: t.date || new Date().toISOString().split('T')[0]
               } as any);
             }
           };
 
           if (t.items && t.items.length > 0) {
-            t.items.forEach(item => processItem(item.product_name, item.category));
+            t.items.forEach(item => processItem(item.product_name, item.category, item.unit_price, item.quantity));
           } else if (t.product_name) {
-            processItem(t.product_name, t.category);
+            processItem(t.product_name, t.category, t.unit_price, t.quantity);
           }
         }
       });
@@ -263,22 +272,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
     const deduplicated = deduplicateProducts(list);
     const activeProducts = deduplicated.filter(p => !(p as any).is_inactive && (p as any).status !== 'inactive');
 
-    const categorySet = new Set<string>();
-
-    for (let i = 0; i < activeProducts.length; i++) {
-      const p = activeProducts[i];
-      if (!p) continue;
-      const rawCat = p.category && p.category.trim().length > 0 ? p.category.trim() : '';
-      const cat = (rawCat && rawCat.toLowerCase() !== 'uncategorized') 
-        ? (rawCat.charAt(0).toUpperCase() + rawCat.slice(1).toLowerCase())
-        : getAutoCategory(p.name, p.category);
-
-      if (cat && cat.trim().length > 0) {
-        categorySet.add(cat.trim());
-      }
-    }
-
-    return categorySet.size;
+    return calculateCategoryMasterList(activeProducts).length;
   }, [products, transactions]);
 
   const categoryShareData = useMemo(() => {
@@ -833,48 +827,17 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
   }, [products, transactions, purchaseCostMap]);
 
   const totalItems = useMemo(() => {
-    let count = 0;
-    if (products && Array.isArray(products) && products.length > 0) {
-      for (let i = 0; i < products.length; i++) {
-        const p = products[i];
-        count += Math.max(0, p.stock ?? (p as any).quantity ?? (p as any).qty ?? 0);
-      }
+    if (!products || !Array.isArray(products) || products.length === 0) {
+      return 0;
     }
+    const deduplicated = deduplicateProducts(products);
+    const activeProducts = deduplicated.filter(p => !(p as any).is_inactive && (p as any).status !== 'inactive');
 
-    if (count === 0 && transactions && Array.isArray(transactions) && transactions.length > 0) {
-      const stockMap = new Map<string, number>();
-      for (let i = 0; i < transactions.length; i++) {
-        const t = transactions[i];
-        if (t.type === 'purchase') {
-          const qty = t.quantity ?? 1;
-          const key = t.product_id || (t.product_name ? t.product_name.trim().toLowerCase() : `tx_${i}`);
-          stockMap.set(key, (stockMap.get(key) || 0) + qty);
-        } else if (t.type === 'sale' && (!t.status || t.status.toLowerCase() !== 'cancelled')) {
-          if (t.items && Array.isArray(t.items) && t.items.length > 0) {
-            for (let j = 0; j < t.items.length; j++) {
-              const item = t.items[j];
-              const qty = item.quantity ?? item.qty ?? 1;
-              const key = item.product_id || (item.product_name ? item.product_name.trim().toLowerCase() : null);
-              if (key && stockMap.has(key)) {
-                stockMap.set(key, Math.max(0, stockMap.get(key)! - qty));
-              }
-            }
-          } else {
-            const qty = t.quantity ?? 1;
-            const key = t.product_id || (t.product_name ? t.product_name.trim().toLowerCase() : null);
-            if (key && stockMap.has(key)) {
-              stockMap.set(key, Math.max(0, stockMap.get(key)! - qty));
-            }
-          }
-        }
-      }
-      for (const qty of stockMap.values()) {
-        if (qty > 0) count += qty;
-      }
-    }
-
-    return count;
-  }, [products, transactions]);
+    return activeProducts.reduce((sum, p) => {
+      const qty = Number(p.stock ?? (p as any).quantity ?? (p as any).qty ?? 0);
+      return sum + (isNaN(qty) ? 0 : Math.max(0, qty));
+    }, 0);
+  }, [products]);
 
   const totalCustomers = useMemo(() => {
     return customers ? customers.length : 0;
@@ -1896,7 +1859,7 @@ export const DashboardComponent = ({ onNavigate }: { onNavigate: (page: string) 
               <MoreVertical size={16} className={isDark ? "text-slate-400 hover:text-white cursor-pointer transition-colors" : "text-white/60 hover:text-white cursor-pointer transition-colors"} />
             </div>
             <div className="text-[28px] font-bold tracking-tight text-white font-sans leading-none my-1 relative z-10">
-              {settings.currency}{totalItems.toLocaleString()}
+              {totalItems.toLocaleString()}
             </div>
             <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-[11px] relative z-10">
               <span className={isDark ? "text-slate-300 font-medium" : "text-white/75 font-medium"}>Inventory Units</span>
